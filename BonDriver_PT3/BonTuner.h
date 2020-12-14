@@ -37,12 +37,12 @@ public:
 	LPCTSTR GetTunerName(void);
 
 	const BOOL IsTunerOpening(void);
-	
+
 	LPCTSTR EnumTuningSpace(const DWORD dwSpace);
 	LPCTSTR EnumChannelName(const DWORD dwSpace, const DWORD dwChannel);
 
 	const BOOL SetChannel(const DWORD dwSpace, const DWORD dwChannel);
-	
+
 	const DWORD GetCurSpace(void);
 	const DWORD GetCurChannel(void);
 
@@ -57,6 +57,8 @@ protected:
 
 	DWORD m_dwCurSpace;
 	DWORD m_dwCurChannel;
+
+	BOOL m_hasStream;
 
 	typedef struct _TS_DATA{
 		BYTE* pbBuff;

@@ -101,8 +101,48 @@ BOOL CParseChSet::Parse1Line(string parseLine, SPACE_DATA* info )
 	return TRUE;
 }
 
+	static __inline DWORD ParsePT1Ch(string strBuff)
+	{
+		DWORD ch=0; int offset=0;
+		string prefix, suffix="" ;
+		Separate( strBuff, "+", prefix, suffix);
+		if(suffix!="") {
+			ch= atoi(prefix.c_str());
+			offset= +atoi(suffix.c_str());
+		}else {
+			Separate( strBuff, "-", prefix, suffix);
+			if(suffix!="") {
+				ch= atoi(prefix.c_str());
+				offset= -atoi(suffix.c_str());
+			}else {
+				ch= atoi(strBuff.c_str()) ;
+			}
+		}
+		return ch | WORD(offset)<<16 ;
+	}
+
+// MARK: BOOL CParseChSet::Parse1Line(string parseLine, CH_DATA* chInfo )
 BOOL CParseChSet::Parse1Line(string parseLine, CH_DATA* chInfo )
 {
+	auto ParsePT1Ch=[](string strBuff) -> DWORD {
+		DWORD ch=0; int offset=0;
+		string prefix, suffix="" ;
+		Separate( strBuff, "+", prefix, suffix);
+		if(suffix!="") {
+			ch= atoi(prefix.c_str());
+			offset= +atoi(suffix.c_str());
+		}else {
+			Separate( strBuff, "-", prefix, suffix);
+			if(suffix!="") {
+				ch= atoi(prefix.c_str());
+				offset= -atoi(suffix.c_str());
+			}else {
+				ch= atoi(strBuff.c_str()) ;
+			}
+		}
+		return ch | WORD(offset)<<16 ;
+	};
+
 	if( parseLine.empty() == true || chInfo == NULL ){
 		return FALSE;
 	}
@@ -126,7 +166,9 @@ BOOL CParseChSet::Parse1Line(string parseLine, CH_DATA* chInfo )
 	Separate( parseLine, "\t", strBuff, parseLine);
 
 	//PTxのチャンネル
-	chInfo->dwPT1Ch = atoi(strBuff.c_str());
+	//ch+-offsetで周波数オフセット可に
+    //(fixed by 2020 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+	chInfo->dwPT1Ch = ParsePT1Ch(strBuff);
 
 	Separate( parseLine, "\t", strBuff, parseLine);
 
