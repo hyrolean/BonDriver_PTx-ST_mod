@@ -36,6 +36,7 @@
 #define CMD_ERR_DISCONNECT	6 //サーバーから切断された
 #define CMD_ERR_TIMEOUT		7 //タイムアウト発生
 #define CMD_ERR_BUSY		8 //ビジー状態で現在処理できない
+#define CMD_BIT_NON_STREAM	1024 //処理対象のストリームが存在しない by 2020 LVhJPic0JSk5LiQ1ITskKVk9UGBg
 
 //コマンド送受信ストリーム
 typedef struct _CMD_STREAM{
