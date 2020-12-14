@@ -128,16 +128,21 @@ void CPT3CtrlMain::CmdCloseTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 }
 
 //CMD_SET_CH SetChannel
+// MARK : void CPT3CtrlMain::CmdSetCh(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 void CPT3CtrlMain::CmdSetCh(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	int iID;
 	DWORD dwCh;
 	DWORD dwTSID;
+	BOOL hasStream=FALSE;
 	CopyDefData3((DWORD*)&iID, &dwCh, &dwTSID, pCmdParam->bData);
-	if( m_cPT3.SetCh(iID,dwCh,dwTSID) == TRUE ){
+	if( m_cPT3.SetCh(iID,dwCh,dwTSID,hasStream) == TRUE ){
 		pResParam->dwParam = CMD_SUCCESS;
 	}else{
 		pResParam->dwParam = CMD_ERR;
+	}
+	if(!hasStream) {
+		pResParam->dwParam |= CMD_BIT_NON_STREAM;
 	}
 }
 

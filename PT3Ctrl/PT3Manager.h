@@ -21,7 +21,7 @@ public:
 	int OpenTuner2(BOOL bSate, int iTunerID);
 	BOOL CloseTuner(int iID);
 
-	BOOL SetCh(int iID, unsigned long ulCh, DWORD dwTSID);
+	BOOL SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream);
 	DWORD GetSignal(int iID);
 
 	BOOL IsFindOpen();
