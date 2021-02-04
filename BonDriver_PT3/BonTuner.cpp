@@ -106,7 +106,8 @@ CBonTuner::CBonTuner()
 			strChSet += L"BonDriver_PT3-S.ChSet.txt";
 		else
 			strChSet += L"BonDriver_PT3-T.ChSet.txt";
-		m_chSet.ParseText(strChSet.c_str());
+		if(!m_chSet.ParseText(strChSet.c_str()))
+			BuildDefSpace(strIni);
 	}
 }
 
@@ -124,6 +125,129 @@ CBonTuner::~CBonTuner()
 	::DeleteCriticalSection(&m_CriticalSection);
 
 	m_pThis = NULL;
+}
+
+void CBonTuner::BuildDefSpace(wstring strIni)
+{
+	//.Ch.Setが存在しない場合は、既定のチャンネル情報を構築する
+	//(added by 2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+
+	BOOL UHF=TRUE, CATV=FALSE, VHF=FALSE, BS=TRUE, CS110=TRUE;
+	DWORD BSStreams=8, CS110Streams=8;
+
+#define LOADDW(nam) do {\
+		nam=(DWORD)GetPrivateProfileIntW(L"DefSpace", L#nam, nam, strIni.c_str()); \
+	}while(0)
+
+	LOADDW(UHF);
+	LOADDW(CATV);
+	LOADDW(VHF);
+	LOADDW(BS);
+	LOADDW(CS110);
+	LOADDW(BSStreams);
+	LOADDW(CS110Streams);
+
+#undef LOADDW
+
+	DWORD spc=0 ;
+
+	if(isISDB_S) {  // BS / CS110
+
+		if(BS) {
+			for(DWORD i=0,ch=1;ch<=23;ch+=2) {
+				for(DWORD ts=0;ts<(BSStreams>0?BSStreams:1);ts++,i++) {
+					CH_DATA item;
+					if(BSStreams>0)
+						Format(item.wszName,L"BS%02d/TS%d",ch,ts);
+					else
+						Format(item.wszName,L"BS%02d",ch);
+					item.dwSpace=spc;
+					item.dwCh=i;
+					item.dwPT1Ch=(ch-1)/2;
+					item.dwTSID=ts;
+					DWORD iKey = (item.dwSpace<<16) | item.dwCh;
+					m_chSet.chMap.insert( pair<DWORD, CH_DATA>(iKey,item) );
+				}
+			}
+			SPACE_DATA item;
+			item.wszName=L"BS";
+			item.dwSpace=spc++;
+			m_chSet.spaceMap.insert( pair<DWORD, SPACE_DATA>(item.dwSpace,item) );
+		}
+
+		if(CS110) {
+			for(DWORD i=0,ch=2;ch<=24;ch+=2) {
+				for(DWORD ts=0;ts<(CS110Streams>0?CS110Streams:1);ts++,i++) {
+					CH_DATA item;
+					if(CS110Streams>0)
+						Format(item.wszName,L"ND%02d/TS%d",ch,ts);
+					else
+						Format(item.wszName,L"ND%02d",ch);
+					item.dwSpace=spc;
+					item.dwCh=i;
+					item.dwPT1Ch=(ch-2)/2+12;
+					item.dwTSID=ts;
+					DWORD iKey = (item.dwSpace<<16) | item.dwCh;
+					m_chSet.chMap.insert( pair<DWORD, CH_DATA>(iKey,item) );
+				}
+			}
+			SPACE_DATA item;
+			item.wszName=L"CS110";
+			item.dwSpace=spc++;
+			m_chSet.spaceMap.insert( pair<DWORD, SPACE_DATA>(item.dwSpace,item) );
+		}
+
+	}else { // 地デジ
+
+		if(UHF) {
+			for(DWORD i=0;i<50;i++) {
+				CH_DATA item;
+				Format(item.wszName,L"%dCh",i+13);
+				item.dwSpace=spc;
+				item.dwCh=i;
+				item.dwPT1Ch=i+63;
+				DWORD iKey = (item.dwSpace<<16) | item.dwCh;
+				m_chSet.chMap.insert( pair<DWORD, CH_DATA>(iKey,item) );
+			}
+			SPACE_DATA item;
+			item.wszName=L"地デジ(UHF)";
+			item.dwSpace=spc++;
+			m_chSet.spaceMap.insert( pair<DWORD, SPACE_DATA>(item.dwSpace,item) );
+		}
+
+		if(CATV) {
+			for(DWORD i=0;i<51;i++) {
+				CH_DATA item;
+				Format(item.wszName,L"C%dCh",i+13);
+				item.dwSpace=spc;
+				item.dwCh=i;
+				item.dwPT1Ch=i+(i>=10?12:3) ;
+				DWORD iKey = (item.dwSpace<<16) | item.dwCh;
+				m_chSet.chMap.insert( pair<DWORD, CH_DATA>(iKey,item) );
+			}
+			SPACE_DATA item;
+			item.wszName=L"地デジ(CATV)";
+			item.dwSpace=spc++;
+			m_chSet.spaceMap.insert( pair<DWORD, SPACE_DATA>(item.dwSpace,item) );
+		}
+
+		if(VHF) {
+			for(DWORD i=0;i<12;i++) {
+				CH_DATA item;
+				Format(item.wszName,L"%dCh",i+1);
+				item.dwSpace=spc;
+				item.dwCh=i;
+				item.dwPT1Ch=i+(i>=3?10:0) ;
+				DWORD iKey = (item.dwSpace<<16) | item.dwCh;
+				m_chSet.chMap.insert( pair<DWORD, CH_DATA>(iKey,item) );
+			}
+			SPACE_DATA item;
+			item.wszName=L"地デジ(VHF)";
+			item.dwSpace=spc++;
+			m_chSet.spaceMap.insert( pair<DWORD, SPACE_DATA>(item.dwSpace,item) );
+		}
+
+	}
 }
 
 const BOOL CBonTuner::OpenTuner(void)

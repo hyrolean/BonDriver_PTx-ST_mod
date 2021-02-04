@@ -84,6 +84,7 @@ protected:
 	wstring m_strTunerName;
 
 	CParseChSet m_chSet;
+	void BuildDefSpace(wstring strIni);
 
 protected:
 	static UINT WINAPI RecvThread(LPVOID pParam);
