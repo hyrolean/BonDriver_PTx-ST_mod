@@ -129,11 +129,12 @@ CBonTuner::~CBonTuner()
 
 void CBonTuner::BuildDefSpace(wstring strIni)
 {
-	//.Ch.Setが存在しない場合は、既定のチャンネル情報を構築する
+	//.ChSet.txtが存在しない場合は、既定のチャンネル情報を構築する
 	//(added by 2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 
 	BOOL UHF=TRUE, CATV=FALSE, VHF=FALSE, BS=TRUE, CS110=TRUE;
 	DWORD BSStreams=8, CS110Streams=8;
+	BOOL BSStreamStride=FALSE, CS110StreamStride=FALSE;
 
 #define LOADDW(nam) do {\
 		nam=(DWORD)GetPrivateProfileIntW(L"DefSpace", L#nam, nam, strIni.c_str()); \
@@ -146,105 +147,87 @@ void CBonTuner::BuildDefSpace(wstring strIni)
 	LOADDW(CS110);
 	LOADDW(BSStreams);
 	LOADDW(CS110Streams);
+	LOADDW(BSStreamStride);
+	LOADDW(CS110StreamStride);
 
 #undef LOADDW
 
 	DWORD spc=0 ;
+	auto entry_spc = [&](const wchar_t *space_name) {
+		SPACE_DATA item;
+		item.wszName=space_name;
+		item.dwSpace=spc++;
+		m_chSet.spaceMap.insert( pair<DWORD, SPACE_DATA>(item.dwSpace,item) );
+	};
 
 	if(isISDB_S) {  // BS / CS110
 
+		DWORD i,ch,ts,pt1offs;
+		auto entry_ch = [&](const wchar_t *prefix, bool suffix) {
+			CH_DATA item ;
+			Format(item.wszName,suffix?L"%s%02d/TS%d":L"%s%02d",prefix,ch,ts);
+			item.dwSpace=spc;
+			item.dwCh=i;
+			item.dwPT1Ch=(ch-1)/2+pt1offs;
+			item.dwTSID=ts;
+			DWORD iKey = (item.dwSpace<<16) | item.dwCh;
+			m_chSet.chMap.insert( pair<DWORD, CH_DATA>(iKey,item) );
+		};
+
 		if(BS) {
-			for(DWORD i=0,ch=1;ch<=23;ch+=2) {
-				for(DWORD ts=0;ts<(BSStreams>0?BSStreams:1);ts++,i++) {
-					CH_DATA item;
-					if(BSStreams>0)
-						Format(item.wszName,L"BS%02d/TS%d",ch,ts);
-					else
-						Format(item.wszName,L"BS%02d",ch);
-					item.dwSpace=spc;
-					item.dwCh=i;
-					item.dwPT1Ch=(ch-1)/2;
-					item.dwTSID=ts;
-					DWORD iKey = (item.dwSpace<<16) | item.dwCh;
-					m_chSet.chMap.insert( pair<DWORD, CH_DATA>(iKey,item) );
-				}
+			pt1offs=0;
+			if(BSStreamStride) {
+				for(i=0,ts=0;ts<(BSStreams>0?BSStreams:1);ts++)
+				for(ch=1;ch<=23;ch+=2,i++)
+					entry_ch(L"BS",BSStreams>0);
+			}else {
+				for(i=0,ch=1;ch<=23;ch+=2)
+				for(ts=0;ts<(BSStreams>0?BSStreams:1);ts++,i++)
+					entry_ch(L"BS",BSStreams>0);
 			}
-			SPACE_DATA item;
-			item.wszName=L"BS";
-			item.dwSpace=spc++;
-			m_chSet.spaceMap.insert( pair<DWORD, SPACE_DATA>(item.dwSpace,item) );
+			entry_spc(L"BS");
 		}
 
 		if(CS110) {
-			for(DWORD i=0,ch=2;ch<=24;ch+=2) {
-				for(DWORD ts=0;ts<(CS110Streams>0?CS110Streams:1);ts++,i++) {
-					CH_DATA item;
-					if(CS110Streams>0)
-						Format(item.wszName,L"ND%02d/TS%d",ch,ts);
-					else
-						Format(item.wszName,L"ND%02d",ch);
-					item.dwSpace=spc;
-					item.dwCh=i;
-					item.dwPT1Ch=(ch-2)/2+12;
-					item.dwTSID=ts;
-					DWORD iKey = (item.dwSpace<<16) | item.dwCh;
-					m_chSet.chMap.insert( pair<DWORD, CH_DATA>(iKey,item) );
-				}
+			pt1offs=12;
+			if(CS110StreamStride) {
+				for(i=0,ts=0;ts<(CS110Streams>0?CS110Streams:1);ts++)
+				for(ch=2;ch<=24;ch+=2,i++)
+					entry_ch(L"ND",CS110Streams>0);
+			}else {
+				for(i=0,ch=2;ch<=24;ch+=2)
+				for(ts=0;ts<(CS110Streams>0?CS110Streams:1);ts++,i++)
+					entry_ch(L"ND",CS110Streams>0);
 			}
-			SPACE_DATA item;
-			item.wszName=L"CS110";
-			item.dwSpace=spc++;
-			m_chSet.spaceMap.insert( pair<DWORD, SPACE_DATA>(item.dwSpace,item) );
+			entry_spc(L"CS110");
 		}
 
 	}else { // 地デジ
 
+		DWORD i,offs,C;
+		auto entry_ch = [&](int (*pt1conv)(int i)) {
+			CH_DATA item;
+			Format(item.wszName,C?L"C%dCh":L"%dCh",i+offs);
+			item.dwSpace=spc;
+			item.dwCh=i;
+			item.dwPT1Ch=pt1conv(i);
+			DWORD iKey = (item.dwSpace<<16) | item.dwCh;
+			m_chSet.chMap.insert( pair<DWORD, CH_DATA>(iKey,item) );
+		};
+
 		if(UHF) {
-			for(DWORD i=0;i<50;i++) {
-				CH_DATA item;
-				Format(item.wszName,L"%dCh",i+13);
-				item.dwSpace=spc;
-				item.dwCh=i;
-				item.dwPT1Ch=i+63;
-				DWORD iKey = (item.dwSpace<<16) | item.dwCh;
-				m_chSet.chMap.insert( pair<DWORD, CH_DATA>(iKey,item) );
-			}
-			SPACE_DATA item;
-			item.wszName=L"地デジ(UHF)";
-			item.dwSpace=spc++;
-			m_chSet.spaceMap.insert( pair<DWORD, SPACE_DATA>(item.dwSpace,item) );
+			for(offs=13,C=i=0;i<50;i++) entry_ch([](int i){return i+63;});
+			entry_spc(L"地デジ(UHF)") ;
 		}
 
 		if(CATV) {
-			for(DWORD i=0;i<51;i++) {
-				CH_DATA item;
-				Format(item.wszName,L"C%dCh",i+13);
-				item.dwSpace=spc;
-				item.dwCh=i;
-				item.dwPT1Ch=i+(i>=10?12:3) ;
-				DWORD iKey = (item.dwSpace<<16) | item.dwCh;
-				m_chSet.chMap.insert( pair<DWORD, CH_DATA>(iKey,item) );
-			}
-			SPACE_DATA item;
-			item.wszName=L"地デジ(CATV)";
-			item.dwSpace=spc++;
-			m_chSet.spaceMap.insert( pair<DWORD, SPACE_DATA>(item.dwSpace,item) );
+			for(offs=13,C=1,i=0;i<51;i++) entry_ch([](int i){return i+(i>=10?12:3);});
+			entry_spc(L"地デジ(CATV)") ;
 		}
 
 		if(VHF) {
-			for(DWORD i=0;i<12;i++) {
-				CH_DATA item;
-				Format(item.wszName,L"%dCh",i+1);
-				item.dwSpace=spc;
-				item.dwCh=i;
-				item.dwPT1Ch=i+(i>=3?10:0) ;
-				DWORD iKey = (item.dwSpace<<16) | item.dwCh;
-				m_chSet.chMap.insert( pair<DWORD, CH_DATA>(iKey,item) );
-			}
-			SPACE_DATA item;
-			item.wszName=L"地デジ(VHF)";
-			item.dwSpace=spc++;
-			m_chSet.spaceMap.insert( pair<DWORD, SPACE_DATA>(item.dwSpace,item) );
+			for(offs=1,C=i=0;i<12;i++) entry_ch([](int i){return i+(i>=3?10:0);});
+			entry_spc(L"地デジ(VHF)") ;
 		}
 
 	}
