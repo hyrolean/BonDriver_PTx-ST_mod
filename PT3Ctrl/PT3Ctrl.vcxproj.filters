@@ -21,9 +21,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="small.ico">
-      <Filter>リソース ファイル</Filter>
-    </None>
     <None Include="PT3Ctrl.ico">
       <Filter>リソース ファイル</Filter>
     </None>
@@ -62,15 +59,6 @@
     <ClInclude Include="inc\Prefix_Integer.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="inc\EX_Buffer.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\EX_Utility.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\OS_Memory.h">
-      <Filter>inc</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\PipeServer.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -91,6 +79,15 @@
     </ClInclude>
     <ClInclude Include="..\Common\Util.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\EX_Buffer.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\EX_Utility.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\OS_Memory.h">
+      <Filter>inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -132,10 +129,5 @@
     <ResourceCompile Include="PT3Ctrl.rc">
       <Filter>リソース ファイル</Filter>
     </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Manifest Include="..\Common\compatibility.manifest">
-      <Filter>リソース ファイル</Filter>
-    </Manifest>
   </ItemGroup>
 </Project>

@@ -51,21 +51,6 @@
     <ClInclude Include="inc\Prefix_Integer.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\PT1OutsideCtrlCmdDef.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\PT1SendCtrlCmdUtil.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\ServiceUtil.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\StringUtil.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\Util.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -74,6 +59,18 @@
     </ClInclude>
     <ClInclude Include="..\Common\PT1CreateCtrlCmdUtil.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\PT1OutsideCtrlCmdDef.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\PT1SendCtrlCmdUtil.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\StringUtil.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -92,15 +89,6 @@
     <ClCompile Include="ParseChSet.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="..\Common\PT1SendCtrlCmdUtil.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\ServiceUtil.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\StringUtil.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="..\Common\Util.cpp">
       <Filter>Common</Filter>
     </ClCompile>
@@ -110,15 +98,16 @@
     <ClCompile Include="..\Common\PT1CreateCtrlCmdUtil.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\Common\PT1SendCtrlCmdUtil.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\StringUtil.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="BonDriver_PT3.rc">
       <Filter>リソース ファイル</Filter>
     </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Manifest Include="..\Common\compatibility.manifest">
-      <Filter>リソース ファイル</Filter>
-    </Manifest>
   </ItemGroup>
 </Project>
