@@ -67,6 +67,7 @@ public:
 
 protected:
 	wstring filePath;
+	CH_DATA chLast;
 
 protected:
 	BOOL Parse1Line(string parseLine, SPACE_DATA* info );

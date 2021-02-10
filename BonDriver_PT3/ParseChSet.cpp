@@ -101,43 +101,39 @@ BOOL CParseChSet::Parse1Line(string parseLine, SPACE_DATA* info )
 	return TRUE;
 }
 
-	static __inline DWORD ParsePT1Ch(string strBuff)
-	{
-		DWORD ch=0; int offset=0;
-		string prefix, suffix="" ;
-		Separate( strBuff, "+", prefix, suffix);
-		if(suffix!="") {
-			ch= atoi(prefix.c_str());
-			offset= +atoi(suffix.c_str());
-		}else {
-			Separate( strBuff, "-", prefix, suffix);
-			if(suffix!="") {
-				ch= atoi(prefix.c_str());
-				offset= -atoi(suffix.c_str());
-			}else {
-				ch= atoi(strBuff.c_str()) ;
-			}
-		}
-		return ch | WORD(offset)<<16 ;
-	}
-
 // MARK: BOOL CParseChSet::Parse1Line(string parseLine, CH_DATA* chInfo )
 BOOL CParseChSet::Parse1Line(string parseLine, CH_DATA* chInfo )
 {
-	auto ParsePT1Ch=[](string strBuff) -> DWORD {
+	auto ParseData=[](string strBuff, DWORD lastVal) -> DWORD {
+		if(strBuff=="-") return lastVal ;
+		if(strBuff=="+") return lastVal+1 ;
+		return DWORD(atoi(strBuff.c_str()));
+	};
+
+	auto ParsePT1Ch=[](string strBuff, DWORD lastVal) -> DWORD {
 		DWORD ch=0; int offset=0;
-		string prefix, suffix="" ;
+		if(strBuff.size()>0) {
+			if(strBuff[0]=='-'||strBuff[0]=='+') {
+				ch= lastVal;
+				offset= (ch>>16) & 0xffff;
+				if (offset >= 32768) offset -= 65536;
+				ch&= 0xffff;
+				if(strBuff[0]=='+') ch++;
+				strBuff=strBuff.substr(1,strBuff.size()-1);
+			}
+		}
+		string prefix="", suffix="" ;
 		Separate( strBuff, "+", prefix, suffix);
 		if(suffix!="") {
-			ch= atoi(prefix.c_str());
-			offset= +atoi(suffix.c_str());
+			if(prefix!="") ch= atoi(prefix.c_str());
+			offset += atoi(suffix.c_str());
 		}else {
 			Separate( strBuff, "-", prefix, suffix);
 			if(suffix!="") {
-				ch= atoi(prefix.c_str());
-				offset= -atoi(suffix.c_str());
+				if(prefix!="") ch= atoi(prefix.c_str());
+				offset -= atoi(suffix.c_str());
 			}else {
-				ch= atoi(strBuff.c_str()) ;
+				if(prefix!="") ch= atoi(strBuff.c_str()) ;
 			}
 		}
 		return ch | WORD(offset)<<16 ;
@@ -156,24 +152,27 @@ BOOL CParseChSet::Parse1Line(string parseLine, CH_DATA* chInfo )
 	Separate( parseLine, "\t", strBuff, parseLine);
 
 	//Space
-	chInfo->dwSpace = atoi(strBuff.c_str());
+	chInfo->dwSpace = ParseData(strBuff, chLast.dwSpace);
 
 	Separate( parseLine, "\t", strBuff, parseLine);
 
 	//Ch
-	chInfo->dwCh = atoi(strBuff.c_str());
+	chInfo->dwCh = ParseData(strBuff, chLast.dwCh);
 
 	Separate( parseLine, "\t", strBuff, parseLine);
 
 	//PTxのチャンネル
 	//ch+-offsetで周波数オフセット可に
     //(fixed by 2020 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-	chInfo->dwPT1Ch = ParsePT1Ch(strBuff);
+	chInfo->dwPT1Ch = ParsePT1Ch(strBuff, chLast.dwPT1Ch);
 
 	Separate( parseLine, "\t", strBuff, parseLine);
 
 	//TSID
-	chInfo->dwTSID = (WORD)atoi(strBuff.c_str());
+	chInfo->dwTSID = (WORD)ParseData(strBuff, chLast.dwTSID);
+
+	//直近のchデータを複製
+	chLast = *chInfo;
 
 	return TRUE;
 }
