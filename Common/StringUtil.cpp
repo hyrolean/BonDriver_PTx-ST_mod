@@ -66,7 +66,7 @@ void Replace(wstring& strBuff, const wstring strOld, const wstring strNew)
 
 void WtoA(wstring strIn, string& strOut)
 {
-	if( strIn.empty() == true ){
+	if( strIn.empty() ){
 		strOut="";
 		return ;
 	}
@@ -76,13 +76,13 @@ void WtoA(wstring strIn, string& strOut)
 	ZeroMemory(pszBuff, sizeof(char)*(iLen+1));
 	WideCharToMultiByte( 932, 0, strIn.c_str(), -1, pszBuff, iLen, NULL, NULL );
 	strOut = pszBuff;
-	
+
 	delete[] pszBuff;
 }
 
 void WtoUTF8(wstring strIn, string& strOut)
 {
-	if( strIn.empty() == true ){
+	if( strIn.empty() ){
 		strOut="";
 		return ;
 	}
@@ -92,13 +92,13 @@ void WtoUTF8(wstring strIn, string& strOut)
 	ZeroMemory(pszBuff, sizeof(char)*(iLen+1));
 	WideCharToMultiByte( CP_UTF8, 0, strIn.c_str(), -1, pszBuff, iLen, NULL, NULL );
 	strOut = pszBuff;
-	
+
 	delete[] pszBuff;
 }
 
 void AtoW(string strIn, wstring& strOut)
 {
-	if( strIn.empty() == true ){
+	if( strIn.empty() ){
 		strOut=L"";
 		return ;
 	}
@@ -108,13 +108,13 @@ void AtoW(string strIn, wstring& strOut)
 	MultiByteToWideChar( 932, 0, strIn.c_str(), -1, pwszBuff, iLen );
 
 	strOut = pwszBuff;
-	
+
 	delete[] pwszBuff;
 }
 
 void UTF8toW(string strIn, wstring& strOut)
 {
-	if( strIn.empty() == true ){
+	if( strIn.empty() ){
 		strOut=L"";
 		return ;
 	}
@@ -124,18 +124,18 @@ void UTF8toW(string strIn, wstring& strOut)
 	MultiByteToWideChar( CP_UTF8, 0, strIn.c_str(), -1, pwszBuff, iLen );
 
 	strOut = pwszBuff;
-	
+
 	delete[] pwszBuff;
 }
 
 BOOL Separate(string strIn, string strSep, string& strLeft, string& strRight)
 {
-	if( strIn.empty() == true ){
+	if( strIn.empty() ){
 		strLeft = "";
 		strRight = "";
 		return FALSE;
 	}
-	
+
 	strLeft = "";
 	strRight = "";
 	int iPos = (int)strIn.find(strSep);
@@ -150,18 +150,18 @@ BOOL Separate(string strIn, string strSep, string& strLeft, string& strRight)
 	strLeft = strIn.substr(0,iPos);
 	strIn.erase(0, iPos+strSep.length());
 	strRight = strIn;
-	
+
 	return TRUE;
 }
 
 BOOL Separate(wstring strIn, wstring strSep, wstring& strLeft, wstring& strRight)
 {
-	if( strIn.empty() == true ){
+	if( strIn.empty() ){
 		strLeft = L"";
 		strRight = L"";
 		return FALSE;
 	}
-	
+
 	strLeft = L"";
 	strRight = L"";
 	int iPos = (int)strIn.find(strSep);
@@ -176,13 +176,13 @@ BOOL Separate(wstring strIn, wstring strSep, wstring& strLeft, wstring& strRight
 	strLeft = strIn.substr(0,iPos);
 	strIn.erase(0, iPos+strSep.length());
 	strRight = strIn;
-	
+
 	return TRUE;
 }
 
 void ChkFolderPath(string& strPath)
 {
-	if( strPath.empty() == true ){
+	if( strPath.empty() ){
 		return ;
 	}
 	string strChk = "\\";
@@ -193,7 +193,7 @@ void ChkFolderPath(string& strPath)
 
 void ChkFolderPath(wstring& strPath)
 {
-	if( strPath.empty() == true ){
+	if( strPath.empty() ){
 		return ;
 	}
 	wstring strChk = L"\\";
@@ -204,7 +204,7 @@ void ChkFolderPath(wstring& strPath)
 
 void ChkFileName(string& strPath)
 {
-	if( strPath.empty() == true ){
+	if( strPath.empty() ){
 		return ;
 	}
 	Replace(strPath, "\\","Åè");
@@ -220,7 +220,7 @@ void ChkFileName(string& strPath)
 
 void ChkFileName(wstring& strPath)
 {
-	if( strPath.empty() == true ){
+	if( strPath.empty() ){
 		return ;
 	}
 	Replace(strPath, L"\\",L"Åè");

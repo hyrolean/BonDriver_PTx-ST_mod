@@ -107,7 +107,7 @@ void WINAPI service_main(DWORD dwArgc, LPTSTR *lpszArgv)
 	if (g_hStatusHandle == NULL){
 		goto cleanup;
 	}
-	
+
 	SendStatusScm(SERVICE_START_PENDING, 0, 1);
 
 	SendStatusScm(SERVICE_RUNNING, 0, 0);
@@ -132,7 +132,7 @@ DWORD WINAPI service_ctrl(DWORD dwControl, DWORD dwEventType, LPVOID lpEventData
 			OutputDebugString(_T("SERVICE_CONTROL_POWEREVENT"));
 			if ( dwEventType == PBT_APMQUERYSUSPEND ){
 				OutputDebugString(_T("PBT_APMQUERYSUSPEND"));
-				if( g_cMain.IsFindOpen() == TRUE ){
+				if( g_cMain.IsFindOpen() ){
 					OutputDebugString(_T("BROADCAST_QUERY_DENY"));
 					return BROADCAST_QUERY_DENY;
 					}

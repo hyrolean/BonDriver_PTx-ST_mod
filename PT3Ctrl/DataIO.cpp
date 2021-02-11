@@ -47,7 +47,7 @@ CDataIO::~CDataIO(void)
 		::CloseHandle(m_hStopEvent);
 		m_hStopEvent = NULL;
 	}
-	
+
 	SAFE_DELETE(m_T0SetBuff);
 	SAFE_DELETE(m_T1SetBuff);
 	SAFE_DELETE(m_S0SetBuff);
@@ -360,7 +360,7 @@ BOOL CDataIO::EnableTuner(int iID, BOOL bEnable)
 
 	status enStatus = PT::STATUS_OK;
 
-	if( bEnable == TRUE ){
+	if( bEnable ){
 		if( enISDB == PT::Device::ISDB_T ){
 			if( iTuner == 0 ){
 				Lock1();
@@ -446,11 +446,11 @@ void CDataIO::ChkTransferInfo()
 		ZeroMemory(&transferInfo, sizeof(PT::Device::TransferInfo));
 		m_pcDevice->GetTransferInfo((PT::Device::ISDB)0, 0, &transferInfo);
 
-		if( transferInfo.InternalFIFO_A_Overflow == true ||
-			transferInfo.InternalFIFO_A_Underflow == true ||
-			transferInfo.InternalFIFO_B_Overflow == true ||
-			transferInfo.InternalFIFO_B_Underflow == true ||
-			transferInfo.ExternalFIFO_Overflow == true ||
+		if( transferInfo.InternalFIFO_A_Overflow ||
+			transferInfo.InternalFIFO_A_Underflow ||
+			transferInfo.InternalFIFO_B_Overflow ||
+			transferInfo.InternalFIFO_B_Underflow ||
+			transferInfo.ExternalFIFO_Overflow ||
 			transferInfo.Status >= 0x100
 			){
 				_OutputDebugString(L"ÅöTransferInfo err : isdb:%d, tunerIndex:%d status:%d InternalFIFO_A_Overflow:%d InternalFIFO_A_Underflow:%d InternalFIFO_B_Overflow:%d InternalFIFO_B_Underflow:%d ExternalFIFO_Overflow:%d",
@@ -468,11 +468,11 @@ void CDataIO::ChkTransferInfo()
 		ZeroMemory(&transferInfo, sizeof(PT::Device::TransferInfo));
 		m_pcDevice->GetTransferInfo((PT::Device::ISDB)0, 1, &transferInfo);
 
-		if( transferInfo.InternalFIFO_A_Overflow == true ||
-			transferInfo.InternalFIFO_A_Underflow == true ||
-			transferInfo.InternalFIFO_B_Overflow == true ||
-			transferInfo.InternalFIFO_B_Underflow == true ||
-			transferInfo.ExternalFIFO_Overflow == true ||
+		if( transferInfo.InternalFIFO_A_Overflow ||
+			transferInfo.InternalFIFO_A_Underflow ||
+			transferInfo.InternalFIFO_B_Overflow ||
+			transferInfo.InternalFIFO_B_Underflow ||
+			transferInfo.ExternalFIFO_Overflow ||
 			transferInfo.Status >= 0x100
 			){
 				_OutputDebugString(L"ÅöTransferInfo err : isdb:%d, tunerIndex:%d status:%d InternalFIFO_A_Overflow:%d InternalFIFO_A_Underflow:%d InternalFIFO_B_Overflow:%d InternalFIFO_B_Underflow:%d ExternalFIFO_Overflow:%d",
@@ -490,12 +490,12 @@ void CDataIO::ChkTransferInfo()
 		ZeroMemory(&transferInfo, sizeof(PT::Device::TransferInfo));
 		m_pcDevice->GetTransferInfo((PT::Device::ISDB)1, 0, &transferInfo);
 
-		if( transferInfo.InternalFIFO_A_Overflow == true ||
-			transferInfo.InternalFIFO_A_Underflow == true ||
-			transferInfo.InternalFIFO_B_Overflow == true ||
-			transferInfo.InternalFIFO_B_Underflow == true ||
-			transferInfo.ExternalFIFO_Overflow == true ||
-			transferInfo.Status >= 0x100 
+		if( transferInfo.InternalFIFO_A_Overflow ||
+			transferInfo.InternalFIFO_A_Underflow ||
+			transferInfo.InternalFIFO_B_Overflow ||
+			transferInfo.InternalFIFO_B_Underflow ||
+			transferInfo.ExternalFIFO_Overflow ||
+			transferInfo.Status >= 0x100
 			){
 				_OutputDebugString(L"ÅöTransferInfo err : isdb:%d, tunerIndex:%d status:%d InternalFIFO_A_Overflow:%d InternalFIFO_A_Underflow:%d InternalFIFO_B_Overflow:%d InternalFIFO_B_Underflow:%d ExternalFIFO_Overflow:%d",
 					1, 0,transferInfo.Status,
@@ -512,12 +512,12 @@ void CDataIO::ChkTransferInfo()
 		ZeroMemory(&transferInfo, sizeof(PT::Device::TransferInfo));
 		m_pcDevice->GetTransferInfo((PT::Device::ISDB)1, 1, &transferInfo);
 
-		if( transferInfo.InternalFIFO_A_Overflow == true ||
-			transferInfo.InternalFIFO_A_Underflow == true ||
-			transferInfo.InternalFIFO_B_Overflow == true ||
-			transferInfo.InternalFIFO_B_Underflow == true ||
-			transferInfo.ExternalFIFO_Overflow == true ||
-			transferInfo.Status >= 0x100 
+		if( transferInfo.InternalFIFO_A_Overflow ||
+			transferInfo.InternalFIFO_A_Underflow ||
+			transferInfo.InternalFIFO_B_Overflow ||
+			transferInfo.InternalFIFO_B_Underflow ||
+			transferInfo.ExternalFIFO_Overflow ||
+			transferInfo.Status >= 0x100
 			){
 				_OutputDebugString(L"ÅöTransferInfo err : isdb:%d, tunerIndex:%d status:%d InternalFIFO_A_Overflow:%d InternalFIFO_A_Underflow:%d InternalFIFO_B_Overflow:%d InternalFIFO_B_Underflow:%d ExternalFIFO_Overflow:%d",
 					1, 1,transferInfo.Status,
@@ -531,7 +531,7 @@ void CDataIO::ChkTransferInfo()
 		}
 	}
 
-	if( err == TRUE ){
+	if( err ){
 		for(int i=0; i<2; i++ ){
 			for(int j=0; j<2; j++ ){
 				int iID = (i<<8) | (j&0x000000FF);
@@ -629,8 +629,8 @@ UINT WINAPI CDataIO::RecvThread(LPVOID pParam)
 		*/
 		pSys->Lock1();
 		if( pSys->m_T0SetBuff != NULL ){
-			if( pSys->CheckReady(pSys->m_T0SetBuff, pSys->m_T0WriteIndex) == true ){
-				if( pSys->ReadAddBuff(pSys->m_T0SetBuff, pSys->m_T0WriteIndex, pSys->m_T0Buff) == true ){
+			if( pSys->CheckReady(pSys->m_T0SetBuff, pSys->m_T0WriteIndex) ){
+				if( pSys->ReadAddBuff(pSys->m_T0SetBuff, pSys->m_T0WriteIndex, pSys->m_T0Buff) ){
 					if( pSys->m_T0Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_T0Buff.front();
 						pSys->m_T0Buff.pop_front();
@@ -652,8 +652,8 @@ UINT WINAPI CDataIO::RecvThread(LPVOID pParam)
 
 		pSys->Lock2();
 		if( pSys->m_T1SetBuff != NULL ){
-			if( pSys->CheckReady(pSys->m_T1SetBuff, pSys->m_T1WriteIndex) == true ){
-				if( pSys->ReadAddBuff(pSys->m_T1SetBuff, pSys->m_T1WriteIndex, pSys->m_T1Buff) == true ){
+			if( pSys->CheckReady(pSys->m_T1SetBuff, pSys->m_T1WriteIndex) ){
+				if( pSys->ReadAddBuff(pSys->m_T1SetBuff, pSys->m_T1WriteIndex, pSys->m_T1Buff) ){
 					if( pSys->m_T1Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_T1Buff.front();
 						pSys->m_T1Buff.pop_front();
@@ -675,8 +675,8 @@ UINT WINAPI CDataIO::RecvThread(LPVOID pParam)
 
 		pSys->Lock3();
 		if( pSys->m_S0SetBuff != NULL ){
-			if( pSys->CheckReady(pSys->m_S0SetBuff, pSys->m_S0WriteIndex) == true ){
-				if( pSys->ReadAddBuff(pSys->m_S0SetBuff, pSys->m_S0WriteIndex, pSys->m_S0Buff) == true ){
+			if( pSys->CheckReady(pSys->m_S0SetBuff, pSys->m_S0WriteIndex) ){
+				if( pSys->ReadAddBuff(pSys->m_S0SetBuff, pSys->m_S0WriteIndex, pSys->m_S0Buff) ){
 					if( pSys->m_S0Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_S0Buff.front();
 						pSys->m_S0Buff.pop_front();
@@ -698,8 +698,8 @@ UINT WINAPI CDataIO::RecvThread(LPVOID pParam)
 
 		pSys->Lock4();
 		if( pSys->m_S1SetBuff != NULL ){
-			if( pSys->CheckReady(pSys->m_S1SetBuff, pSys->m_S1WriteIndex) == true ){
-				if( pSys->ReadAddBuff(pSys->m_S1SetBuff, pSys->m_S1WriteIndex, pSys->m_S1Buff) == true ){
+			if( pSys->CheckReady(pSys->m_S1SetBuff, pSys->m_S1WriteIndex) ){
+				if( pSys->ReadAddBuff(pSys->m_S1SetBuff, pSys->m_S1WriteIndex, pSys->m_S1Buff) ){
 					if( pSys->m_S1Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_S1Buff.front();
 						pSys->m_S1Buff.pop_front();

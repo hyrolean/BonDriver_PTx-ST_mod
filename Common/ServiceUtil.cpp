@@ -99,7 +99,7 @@ BOOL IsStopService(LPCWSTR lpcwszName)
 		return FALSE;
 	}
 	SERVICE_STATUS stStatus;
-	if( QueryServiceStatus(hSrv, &stStatus) == TRUE ){
+	if( QueryServiceStatus(hSrv, &stStatus) ){
 		if(stStatus.dwCurrentState == SERVICE_STOPPED){
 			bRet = TRUE;
 		}

@@ -62,13 +62,13 @@ BOOL CParseChSet::ParseText(LPCWSTR filePath)
 				if( parseLine.find("$") == 0 ){
 					//チューナー空間
 					SPACE_DATA item;
-					if( Parse1Line(parseLine, &item) == TRUE ){
+					if( Parse1Line(parseLine, &item) ){
 						this->spaceMap.insert( pair<DWORD, SPACE_DATA>(item.dwSpace,item) );
 					}
 				}else{
 					//チャンネル
 					CH_DATA item;
-					if( Parse1Line(parseLine, &item) == TRUE ){
+					if( Parse1Line(parseLine, &item) ){
 						DWORD iKey = (item.dwSpace<<16) | item.dwCh;
 						this->chMap.insert( pair<DWORD, CH_DATA>(iKey,item) );
 					}
@@ -82,7 +82,7 @@ BOOL CParseChSet::ParseText(LPCWSTR filePath)
 
 BOOL CParseChSet::Parse1Line(string parseLine, SPACE_DATA* info )
 {
-	if( parseLine.empty() == true || info == NULL ){
+	if( parseLine.empty() || info == NULL ){
 		return FALSE;
 	}
 	Replace(parseLine, "$", "");
@@ -139,7 +139,7 @@ BOOL CParseChSet::Parse1Line(string parseLine, CH_DATA* chInfo )
 		return ch | WORD(offset)<<16 ;
 	};
 
-	if( parseLine.empty() == true || chInfo == NULL ){
+	if( parseLine.empty() || chInfo == NULL ){
 		return FALSE;
 	}
 	string strBuff="";

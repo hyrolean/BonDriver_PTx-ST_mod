@@ -65,7 +65,7 @@ BOOL CPT3Manager::LoadSDK()
 void CPT3Manager::FreeSDK()
 {
 	for( int i=0; i<(int)m_EnumDev.size(); i++ ){
-		if( m_EnumDev[i]->bOpen == TRUE ){
+		if( m_EnumDev[i]->bOpen ){
 			m_EnumDev[i]->cDataIO.Stop();
 			m_EnumDev[i]->pcDevice->Close();
 			m_EnumDev[i]->pcDevice->Delete();
@@ -112,7 +112,7 @@ BOOL CPT3Manager::IsFindOpen()
 {
 	BOOL bFind = FALSE;
 	for( int i=0; i<(int)m_EnumDev.size(); i++ ){
-		if( m_EnumDev[i]->bOpen == TRUE ){
+		if( m_EnumDev[i]->bOpen ){
 			bFind = TRUE;
 		}
 	}
@@ -215,7 +215,7 @@ int CPT3Manager::OpenTuner(BOOL bSate)
 		return -1;
 	}
 
-	if( m_bUseLNB == TRUE && enISDB == PT::Device::ISDB_S){
+	if( m_bUseLNB && enISDB == PT::Device::ISDB_S){
 		m_EnumDev[iDevID]->pcDevice->SetLnbPower(PT::Device::LNB_POWER_15V);
 	}
 
@@ -272,7 +272,7 @@ BOOL CPT3Manager::CloseTuner(int iID)
 		}
 	}
 
-	if (m_bUseLNB == TRUE && m_EnumDev[iDevID]->bUseS0 == FALSE && m_EnumDev[iDevID]->bUseS1 == FALSE){
+	if (m_bUseLNB && m_EnumDev[iDevID]->bUseS0 == FALSE && m_EnumDev[iDevID]->bUseS1 == FALSE){
 		m_EnumDev[iDevID]->pcDevice->SetLnbPower(PT::Device::LNB_POWER_OFF);
 	}
 
@@ -418,28 +418,28 @@ BOOL CPT3Manager::CloseChk()
 	BOOL bRet = FALSE;
 	int iID;
 	for(int i=0; i<(int)m_EnumDev.size(); i++ ){
-		if( m_EnumDev[i]->bUseT0 == TRUE ){
+		if( m_EnumDev[i]->bUseT0 ){
 			iID = (i<<16) | (PT::Device::ISDB_T<<8) | 0;
 			if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) > 100){
 				OutputDebugString(L"T0 OverFlow Close");
 				CloseTuner(iID);
 			}
 		}
-		if( m_EnumDev[i]->bUseT1 == TRUE ){
+		if( m_EnumDev[i]->bUseT1 ){
 			iID = (i<<16) | (PT::Device::ISDB_T<<8) | 1;
 			if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) > 100){
 				OutputDebugString(L"T1 OverFlow Close");
 				CloseTuner(iID);
 			}
 		}
-		if( m_EnumDev[i]->bUseS0 == TRUE ){
+		if( m_EnumDev[i]->bUseS0 ){
 			iID = (i<<16) | (PT::Device::ISDB_S<<8) | 0;
 			if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) > 100){
 				OutputDebugString(L"S0 OverFlow Close");
 				CloseTuner(iID);
 			}
 		}
-		if( m_EnumDev[i]->bUseS1 == TRUE ){
+		if( m_EnumDev[i]->bUseS1 ){
 			iID = (i<<16) | (PT::Device::ISDB_S<<8) | 1;
 			if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) > 100){
 				OutputDebugString(L"S1 OverFlow Close");
@@ -448,7 +448,7 @@ BOOL CPT3Manager::CloseChk()
 		}
 	}
 	for(int i=0; i<(int)m_EnumDev.size(); i++ ){
-		if( m_EnumDev[i]->bOpen == TRUE ){
+		if( m_EnumDev[i]->bOpen ){
 			bRet = TRUE;
 		}
 	}
@@ -566,7 +566,7 @@ int CPT3Manager::OpenTuner2(BOOL bSate, int iTunerID)
 		return -1;
 	}
 
-	if( m_bUseLNB == TRUE && enISDB == PT::Device::ISDB_S){
+	if( m_bUseLNB && enISDB == PT::Device::ISDB_S){
 		m_EnumDev[iDevID]->pcDevice->SetLnbPower(PT::Device::LNB_POWER_15V);
 	}
 
