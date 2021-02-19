@@ -6,13 +6,48 @@
 #define SEND_BUFF_SIZE 1024*64
 #define RES_BUFF_SIZE 1024*64
 
-//パイプ名
-#define CMD_PT1_CTRL_PIPE _T("\\\\.\\pipe\\PT3CtrlPipe")
-#define CMD_PT1_DATA_PIPE _T("\\\\.\\pipe\\PT3DataPipe_")
 
-//接続待機用イベント
-#define CMD_PT1_CTRL_EVENT_WAIT_CONNECT _T("Global\\PT3CtrlConnect")
-#define CMD_PT1_DATA_EVENT_WAIT_CONNECT _T("Global\\PT3DataConnect_")
+#ifdef PT_VER
+
+	#if PT_VER==1		// PT1/PT2 (PTCtrl.exe)
+
+		//パイプ名
+		#define CMD_PT1_CTRL_PIPE _T("\\\\.\\pipe\\PT1CtrlPipe")
+		#define CMD_PT1_DATA_PIPE _T("\\\\.\\pipe\\PT1DataPipe_")
+
+		//接続待機用イベント
+		#define CMD_PT1_CTRL_EVENT_WAIT_CONNECT _T("Global\\PT1CtrlConnect")
+		#define CMD_PT1_DATA_EVENT_WAIT_CONNECT _T("Global\\PT1DataConnect_")
+
+	#elif PT_VER==3		// PT3 (PT3Ctrl.exe)
+
+		//パイプ名
+		#define CMD_PT1_CTRL_PIPE _T("\\\\.\\pipe\\PT3CtrlPipe")
+		#define CMD_PT1_DATA_PIPE _T("\\\\.\\pipe\\PT3DataPipe_")
+
+		//接続待機用イベント
+		#define CMD_PT1_CTRL_EVENT_WAIT_CONNECT _T("Global\\PT3CtrlConnect")
+		#define CMD_PT1_DATA_EVENT_WAIT_CONNECT _T("Global\\PT3DataConnect_")
+
+	#else
+
+		#error 判別出来ない PT_VER
+
+	#endif
+
+#else
+
+	// PT1/PT2 or PT3  (BonDriver_PTx.dll)
+
+	//パイプ名
+	extern LPCTSTR CMD_PT1_CTRL_PIPE, CMD_PT1_DATA_PIPE;
+
+	//接続待機用イベント
+	extern LPCTSTR CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_DATA_EVENT_WAIT_CONNECT;
+
+#endif
+
+
 
 //モジュール内コマンド実行イベント
 #define CMD_CTRL_EVENT_WAIT _T("CtrlCmdEvent")

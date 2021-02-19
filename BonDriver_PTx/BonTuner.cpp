@@ -2,9 +2,8 @@
 #include <Windows.h>
 #include <process.h>
 
-#include "inc/EARTH_PT3.h"
-#include "inc/OS_Library.h"
-using namespace EARTH;
+#include <Shlwapi.h>
+#pragma comment(lib, "Shlwapi.lib")
 
 #include "BonTuner.h"
 
@@ -28,6 +27,27 @@ extern "C" __declspec(dllexport) IBonDriver * CreateBonDriver()
 
 CBonTuner * CBonTuner::m_pThis = NULL;
 HINSTANCE CBonTuner::m_hModule = NULL;
+
+
+	//パイプ名
+	LPCTSTR CMD_PT1_CTRL_PIPE, CMD_PT1_DATA_PIPE;
+
+	//接続待機用イベント
+	LPCTSTR CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_DATA_EVENT_WAIT_CONNECT;
+
+	static void SetupCmdPt1Defs(int iPTVer) {
+	#define MK_CMD_PT1_DEF(def, format) do { \
+					wsprintf(defs[n],format,iPTVer); \
+					CMD_PT1_##def=const_cast<LPCTSTR>(defs[n++]); \
+				}while(0)
+		static wchar_t defs[4][32];
+		int n=0;
+		MK_CMD_PT1_DEF(CTRL_PIPE,_T("\\\\.\\pipe\\PT%dCtrlPipe"));
+		MK_CMD_PT1_DEF(DATA_PIPE,_T("\\\\.\\pipe\\PT%dDataPipe_"));
+		MK_CMD_PT1_DEF(CTRL_EVENT_WAIT_CONNECT,_T("Global\\PT%dCtrlConnect"));
+		MK_CMD_PT1_DEF(DATA_EVENT_WAIT_CONNECT,_T("Global\\PT%dDataConnect_"));
+	#undef MK_CMD_PT1_DEF
+	}
 
 
 CBonTuner::CBonTuner()
@@ -58,42 +78,90 @@ CBonTuner::CBonTuner()
 	_tsplitpath_s( strExePath, szDrive, _MAX_DRIVE, szDir, _MAX_DIR, szFname, _MAX_FNAME, szExt, _MAX_EXT );
 	_tmakepath_s(  szPath, _MAX_PATH, szDrive, szDir, NULL, NULL );
 
-	m_strPT1CtrlExe = szPath;
-	m_strPT1CtrlExe += L"PT3Ctrl.exe";
-
 	wstring strIni;
 	strIni = szPath;
-	strIni += L"BonDriver_PT3-ST.ini";
+	strIni += L"BonDriver_PTx-ST.ini";
 
-	m_dwSetChDelay = GetPrivateProfileIntW(L"SET", L"SetChDelay", 0, strIni.c_str());
+	int iPTVer=1;
+
+	wstring strPT3Prefix = L"BonDriver_PT3";
+	if(!CompareNoCase(strPT3Prefix,wstring(szFname).substr(strPT3Prefix.length())))
+		iPTVer=3;
 
 	isISDB_S = TRUE;
-
 	WCHAR szName[256];
 	m_iTunerID = -1;
-	if( wcslen(szFname) == wcslen(L"BonDriver_PT3-**") ){
-		const WCHAR *TUNER_NAME2;
-		if (szFname[14] == L'T'){
-			isISDB_S = FALSE;
-			TUNER_NAME2 = L"PT3 ISDB-T (%d)";
+
+	if(iPTVer==3) { // PT3
+
+		wstring strPT3ini = wstring(szPath) + L"BonDriver_PT3-ST.ini";
+		if(PathFileExists(strPT3ini.c_str())) strIni = strPT3ini;
+
+		m_strPT1CtrlExe = wstring(szPath) + L"PT3Ctrl.exe";
+
+		if( wcslen(szFname) == wcslen(L"BonDriver_PT3-**") ){
+			const WCHAR *TUNER_NAME2;
+			if (szFname[14] == L'T'){
+				isISDB_S = FALSE;
+				TUNER_NAME2 = L"PT3 ISDB-T (%d)";
+			}else{
+				TUNER_NAME2 = L"PT3 ISDB-S (%d)";
+			}
+			m_iTunerID = _wtoi(szFname+wcslen(L"BonDriver_PT3-*"));
+			wsprintfW(szName, TUNER_NAME2, m_iTunerID);
+			m_strTunerName = szName;
+		}else if( wcslen(szFname) == wcslen(L"BonDriver_PT3-*") ){
+			const WCHAR *TUNER_NAME;
+			if (szFname[14] == L'T'){
+				isISDB_S = FALSE;
+				TUNER_NAME = L"PT3 ISDB-T";
+			}else{
+				TUNER_NAME = L"PT3 ISDB-S";
+			}
+			m_strTunerName = TUNER_NAME;
 		}else{
-			TUNER_NAME2 = L"PT3 ISDB-S (%d)";
+			m_strTunerName = L"PT3 ISDB-S";
 		}
-		m_iTunerID = _wtoi(szFname+wcslen(L"BonDriver_PT3-*"));
-		wsprintfW(szName, TUNER_NAME2, m_iTunerID);
-		m_strTunerName = szName;
-	}else if( wcslen(szFname) == wcslen(L"BonDriver_PT3-*") ){
-		const WCHAR *TUNER_NAME;
-		if (szFname[14] == L'T'){
-			isISDB_S = FALSE;
-			TUNER_NAME = L"PT3 ISDB-T";
+
+	}else {  // PT1/2
+
+		wstring strPTini = wstring(szPath) + L"BonDriver_PT-ST.ini";
+		if(PathFileExists(strPTini.c_str())) strIni = strPTini;
+
+		m_strPT1CtrlExe = wstring(szPath) + L"PTCtrl.exe";
+
+		int iPTn = GetPrivateProfileIntW(L"SET", L"PT1Ver", 2, strIni.c_str());
+		if(iPTn<1||iPTn>2) iPTn=2;
+
+		if( wcslen(szFname) == wcslen(L"BonDriver_PT-**") ){
+			const WCHAR *TUNER_NAME2;
+			if (szFname[13] == L'T'){
+				isISDB_S = FALSE;
+				TUNER_NAME2 = L"PT%d ISDB-T (%d)";
+			}else{
+				TUNER_NAME2 = L"PT%d ISDB-S (%d)";
+			}
+			m_iTunerID = _wtoi(szFname+wcslen(L"BonDriver_PT-*"));
+			wsprintfW(szName, TUNER_NAME2, iPTn, m_iTunerID);
+			m_strTunerName = szName;
+		}else if( wcslen(szFname) == wcslen(L"BonDriver_PT-*") ){
+			const WCHAR *TUNER_NAME;
+			if (szFname[13] == L'T'){
+				isISDB_S = FALSE;
+				TUNER_NAME = L"PT%d ISDB-T";
+			}else{
+				TUNER_NAME = L"PT%d ISDB-S";
+			}
+			wsprintfW(szName, TUNER_NAME, iPTn);
+			m_strTunerName = szName;
 		}else{
-			TUNER_NAME = L"PT3 ISDB-S";
+			wsprintfW(szName, L"PT%d ISDB-S", iPTn);
+			m_strTunerName = szName;
 		}
-		m_strTunerName = TUNER_NAME;
-	}else{
-		m_strTunerName = L"PT3 ISDB-S";
+
 	}
+
+	m_dwSetChDelay = GetPrivateProfileIntW(L"SET", L"SetChDelay", 0, strIni.c_str());
 
 	wstring strChSet;
 
@@ -102,13 +170,29 @@ CBonTuner::CBonTuner()
 	strChSet = szPath;	strChSet += szFname;	strChSet += L".ChSet.txt";
 	if(!m_chSet.ParseText(strChSet.c_str())) {
 		strChSet = szPath;
-		if (isISDB_S)
-			strChSet += L"BonDriver_PT3-S.ChSet.txt";
-		else
-			strChSet += L"BonDriver_PT3-T.ChSet.txt";
-		if(!m_chSet.ParseText(strChSet.c_str()))
-			BuildDefSpace(strIni);
+		if(iPTVer==3) {
+			if (isISDB_S)
+				strChSet += L"BonDriver_PT3-S.ChSet.txt";
+			else
+				strChSet += L"BonDriver_PT3-T.ChSet.txt";
+		}else {
+			if (isISDB_S)
+				strChSet += L"BonDriver_PT-S.ChSet.txt";
+			else
+				strChSet += L"BonDriver_PT-T.ChSet.txt";
+		}
+		if(!m_chSet.ParseText(strChSet.c_str())) {
+			strChSet = szPath;
+			if (isISDB_S)
+				strChSet += L"BonDriver_PTx-S.ChSet.txt";
+			else
+				strChSet += L"BonDriver_PTx-T.ChSet.txt";
+			if(!m_chSet.ParseText(strChSet.c_str()))
+				BuildDefSpace(strIni);
+		}
 	}
+
+	SetupCmdPt1Defs(iPTVer);
 }
 
 CBonTuner::~CBonTuner()
@@ -205,7 +289,7 @@ void CBonTuner::BuildDefSpace(wstring strIni)
 	}else { // 地デジ
 
 		DWORD i,offs,C;
-		auto entry_ch = [&](int (*pt1conv)(int i)) {
+		auto entry_ch = [&](DWORD (*pt1conv)(DWORD i)) {
 			CH_DATA item;
 			Format(item.wszName,C?L"C%dCh":L"%dCh",i+offs);
 			item.dwSpace=spc;
@@ -216,17 +300,17 @@ void CBonTuner::BuildDefSpace(wstring strIni)
 		};
 
 		if(UHF) {
-			for(offs=13,C=i=0;i<50;i++) entry_ch([](int i){return i+63;});
+			for(offs=13,C=i=0;i<50;i++) entry_ch([](DWORD i){return i+63;});
 			entry_spc(L"地デジ(UHF)") ;
 		}
 
 		if(CATV) {
-			for(offs=13,C=1,i=0;i<51;i++) entry_ch([](int i){return i+(i>=10?12:3);});
+			for(offs=13,C=1,i=0;i<51;i++) entry_ch([](DWORD i){return i+(i>=10?12:3);});
 			entry_spc(L"地デジ(CATV)") ;
 		}
 
 		if(VHF) {
-			for(offs=1,C=i=0;i<12;i++) entry_ch([](int i){return i+(i>=3?10:0);});
+			for(offs=1,C=i=0;i<12;i++) entry_ch([](DWORD i){return i+(i>=3?10:0);});
 			entry_spc(L"地デジ(VHF)") ;
 		}
 

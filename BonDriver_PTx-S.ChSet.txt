@@ -1,4 +1,4 @@
-; BonDriver_PT3-S.ChSet.txt BS Almighty 版
+; BonDriver_PTx-S.ChSet.txt BS Almighty 版
 ;   Described by 2020-2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg
 ;
 ; ※ TSIDの検出に稀に時間がかかることがある為か、EDCB10系でチャンネルスキャン

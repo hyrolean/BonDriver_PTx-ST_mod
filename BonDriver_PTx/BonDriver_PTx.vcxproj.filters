@@ -39,18 +39,6 @@
     <ClInclude Include="ParseChSet.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="inc\EARTH_PT3.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\OS_Library.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\Prefix.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\Prefix_Integer.h">
-      <Filter>inc</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\Util.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -77,7 +65,7 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="BonDriver_PT3.cpp">
+    <ClCompile Include="BonDriver_PTx.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="dllmain.cpp">
@@ -106,7 +94,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="BonDriver_PT3.rc">
+    <ResourceCompile Include="BonDriver_PTx.rc">
       <Filter>リソース ファイル</Filter>
     </ResourceCompile>
   </ItemGroup>

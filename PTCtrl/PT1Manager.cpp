@@ -2,10 +2,10 @@
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
 
-#include "PT3Manager.h"
+#include "PT1Manager.h"
 
 
-CPT3Manager::CPT3Manager(void)
+CPT1Manager::CPT1Manager(void)
 {
 	m_cLibrary = NULL;
 	m_cBus = NULL;
@@ -22,28 +22,27 @@ CPT3Manager::CPT3Manager(void)
 	_tmakepath_s(  szPath, _MAX_PATH, szDrive, szDir, NULL, NULL );
 
 	wstring strIni;
-
 	strIni = szPath;
-	strIni += L"\\BonDriver_PT3-ST.ini";
+	strIni += L"\\BonDriver_PT-ST.ini";
 
 	if(!PathFileExists(strIni.c_str())) {
 		strIni = szPath;
 		strIni += L"\\BonDriver_PTx-ST.ini";
 	}
 
-	m_bUseLNB = GetPrivateProfileInt(L"SET", L"UseLNB", 0, strIni.c_str());
-	m_uiVirtualCount = GetPrivateProfileInt(L"SET", L"DMABuff", 8, strIni.c_str());
+	m_bUseLNB = GetPrivateProfileIntW(L"SET", L"UseLNB", 0, strIni.c_str());
+	m_uiVirtualCount = GetPrivateProfileIntW(L"SET", L"DMABuff", 8, strIni.c_str());
 	if( m_uiVirtualCount == 0 ){
 		m_uiVirtualCount = 8;
 	}
 }
 
-CPT3Manager::~CPT3Manager(void)
+CPT1Manager::~CPT1Manager(void)
 {
 	FreeSDK();
 }
 
-BOOL CPT3Manager::LoadSDK()
+BOOL CPT1Manager::LoadSDK()
 {
 	if( m_cLibrary == NULL ){
 		m_cLibrary = new OS::Library();
@@ -60,7 +59,7 @@ BOOL CPT3Manager::LoadSDK()
 		}
 
 		//バージョンチェック
-		uint32 version;
+		uint version;
 		m_cBus->GetVersion(&version);
 		if ((version >> 8) != 2) {
 			m_cBus->Delete();
@@ -72,7 +71,7 @@ BOOL CPT3Manager::LoadSDK()
 	return TRUE;
 }
 
-void CPT3Manager::FreeSDK()
+void CPT1Manager::FreeSDK()
 {
 	for( int i=0; i<(int)m_EnumDev.size(); i++ ){
 		if( m_EnumDev[i]->bOpen ){
@@ -93,7 +92,7 @@ void CPT3Manager::FreeSDK()
 	}
 }
 
-BOOL CPT3Manager::Init()
+BOOL CPT1Manager::Init()
 {
 	if( m_cBus == NULL ){
 		return FALSE;
@@ -101,24 +100,26 @@ BOOL CPT3Manager::Init()
 	m_EnumDev.clear();
 
 	PT::Bus::DeviceInfo deviceInfo[9];
-	uint32 deviceInfoCount = sizeof(deviceInfo)/sizeof(*deviceInfo);
-	m_cBus->Scan(deviceInfo, &deviceInfoCount);
+	uint deviceInfoCount = sizeof(deviceInfo)/sizeof(*deviceInfo);
+	m_cBus->Scan(deviceInfo, &deviceInfoCount, 3);
 
-	for (uint32 i=0; i<deviceInfoCount; i++) {
-		DEV_STATUS* pItem = new DEV_STATUS;
-		pItem->stDevInfo = deviceInfo[i];
-		m_EnumDev.push_back(pItem);
+	for (uint i=0; i<deviceInfoCount; i++) {
+		if( deviceInfo[i].BadBitCount == 0 ){
+			DEV_STATUS* pItem = new DEV_STATUS;
+			pItem->stDevInfo = deviceInfo[i];
+			m_EnumDev.push_back(pItem);
+		}
 	}
 
 	return TRUE;
 }
 
-void CPT3Manager::UnInit()
+void CPT1Manager::UnInit()
 {
 	FreeSDK();
 }
 
-BOOL CPT3Manager::IsFindOpen()
+BOOL CPT1Manager::IsFindOpen()
 {
 	BOOL bFind = FALSE;
 	for( int i=0; i<(int)m_EnumDev.size(); i++ ){
@@ -129,12 +130,12 @@ BOOL CPT3Manager::IsFindOpen()
 	return bFind;
 }
 
-int CPT3Manager::OpenTuner(BOOL bSate)
+int CPT1Manager::OpenTuner(BOOL bSate)
 {
 	int iID = -1;
 	int iDevID = -1;
 	PT::Device::ISDB enISDB;
-	uint32 iTuner = -1;
+	uint iTuner = -1;
 	//空きを探す
 	if( bSate == FALSE ){
 		//地デジ
@@ -195,17 +196,34 @@ int CPT3Manager::OpenTuner(BOOL bSate)
 			return -1;
 		}
 
-		enStatus = m_EnumDev[iDevID]->pcDevice->InitTuner();
+		enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerPowerReset(PT::Device::TUNER_POWER_ON_RESET_ENABLE);
 		if( enStatus != PT::STATUS_OK ){
 			m_EnumDev[iDevID]->pcDevice->Close();
 			m_EnumDev[iDevID]->pcDevice->Delete();
 			m_EnumDev[iDevID]->pcDevice = NULL;
 			return -1;
 		}
-
-		for (uint32 i=0; i<2; i++) {
-			for (uint32 j=0; j<2; j++) {
-				enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerSleep(static_cast<PT::Device::ISDB>(j), i, true);
+		Sleep(21);
+		enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerPowerReset(PT::Device::TUNER_POWER_ON_RESET_DISABLE);
+		if( enStatus != PT::STATUS_OK ){
+			m_EnumDev[iDevID]->pcDevice->Close();
+			m_EnumDev[iDevID]->pcDevice->Delete();
+			m_EnumDev[iDevID]->pcDevice = NULL;
+			return -1;
+		}
+		Sleep(2);
+		for( uint i=0; i<2; i++ ){
+			enStatus = m_EnumDev[iDevID]->pcDevice->InitTuner(i);
+			if( enStatus != PT::STATUS_OK ){
+				m_EnumDev[iDevID]->pcDevice->Close();
+				m_EnumDev[iDevID]->pcDevice->Delete();
+				m_EnumDev[iDevID]->pcDevice = NULL;
+				return -1;
+			}
+		}
+		for (uint i=0; i<2; i++) {
+			for (uint j=0; j<2; j++) {
+				enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerSleep(i, static_cast<PT::Device::ISDB>(j), true);
 				if( enStatus != PT::STATUS_OK ){
 					m_EnumDev[iDevID]->pcDevice->Close();
 					m_EnumDev[iDevID]->pcDevice->Delete();
@@ -220,7 +238,7 @@ int CPT3Manager::OpenTuner(BOOL bSate)
 		m_EnumDev[iDevID]->cDataIO.Run();
 	}
 	//スリープから復帰
-	enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerSleep(enISDB, iTuner, false);
+	enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerSleep(iTuner, enISDB, false);
 	if( enStatus != PT::STATUS_OK ){
 		return -1;
 	}
@@ -229,12 +247,18 @@ int CPT3Manager::OpenTuner(BOOL bSate)
 		m_EnumDev[iDevID]->pcDevice->SetLnbPower(PT::Device::LNB_POWER_15V);
 	}
 
+	enStatus = m_EnumDev[iDevID]->pcDevice->SetStreamEnable(iTuner, enISDB, true);
+	if( enStatus != PT::STATUS_OK ){
+		return -1;
+	}
+
 	if( enISDB == PT::Device::ISDB_T ){
 		if( iTuner == 0 ){
 			m_EnumDev[iDevID]->bUseT0 = TRUE;
 		}else{
 			m_EnumDev[iDevID]->bUseT1 = TRUE;
 		}
+		Sleep(10);	// PT1/2のT側はこの後の選局までが早すぎるとエラーになる場合があるので
 	}else{
 		if( iTuner == 0 ){
 			m_EnumDev[iDevID]->bUseS0 = TRUE;
@@ -242,31 +266,32 @@ int CPT3Manager::OpenTuner(BOOL bSate)
 			m_EnumDev[iDevID]->bUseS1 = TRUE;
 		}
 	}
-	m_EnumDev[iDevID]->cDataIO.StartPipeServer(iID);
 	m_EnumDev[iDevID]->cDataIO.EnableTuner(iID, TRUE);
 
 	return iID;
 }
 
-BOOL CPT3Manager::CloseTuner(int iID)
+BOOL CPT1Manager::CloseTuner(int iID)
 {
 	int iDevID = iID>>16;
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
-	uint32 iTuner = iID&0x000000FF;
+	uint iTuner = iID&0x000000FF;
 
 	if( (int)m_EnumDev.size() <= iDevID ){
 		return FALSE;
 	}
 
 	status enStatus;
-
-	m_EnumDev[iDevID]->cDataIO.EnableTuner(iID, FALSE);
-	m_EnumDev[iDevID]->cDataIO.StopPipeServer(iID);
-
-	enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerSleep(enISDB, iTuner, true);
+	enStatus = m_EnumDev[iDevID]->pcDevice->SetStreamEnable(iTuner, enISDB, false);
 	if( enStatus != PT::STATUS_OK ){
 		return FALSE;
 	}
+
+	enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerSleep(iTuner, enISDB, true);
+	if( enStatus != PT::STATUS_OK ){
+		return FALSE;
+	}
+	m_EnumDev[iDevID]->cDataIO.EnableTuner(iID, FALSE);
 
 	if( enISDB == PT::Device::ISDB_T ){
 		if( iTuner == 0 ){
@@ -282,7 +307,7 @@ BOOL CPT3Manager::CloseTuner(int iID)
 		}
 	}
 
-	if (m_bUseLNB && m_EnumDev[iDevID]->bUseS0 == FALSE && m_EnumDev[iDevID]->bUseS1 == FALSE){
+	if( m_bUseLNB && m_EnumDev[iDevID]->bUseS0 == FALSE && m_EnumDev[iDevID]->bUseS1 == FALSE ){
 		m_EnumDev[iDevID]->pcDevice->SetLnbPower(PT::Device::LNB_POWER_OFF);
 	}
 
@@ -292,6 +317,8 @@ BOOL CPT3Manager::CloseTuner(int iID)
 		m_EnumDev[iDevID]->bUseS1 == FALSE ){
 			//全部使ってなければクローズ
 			m_EnumDev[iDevID]->cDataIO.Stop();
+			m_EnumDev[iDevID]->pcDevice->SetTransferEnable(false);
+			m_EnumDev[iDevID]->pcDevice->SetBufferInfo(NULL);
 			m_EnumDev[iDevID]->pcDevice->Close();
 			m_EnumDev[iDevID]->pcDevice->Delete();
 			m_EnumDev[iDevID]->pcDevice = NULL;
@@ -301,8 +328,9 @@ BOOL CPT3Manager::CloseTuner(int iID)
 	return TRUE;
 }
 
-// MARK : BOOL CPT3Manager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream)
-BOOL CPT3Manager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream)
+
+// MARK : BOOL CPT1Manager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream)
+BOOL CPT1Manager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream)
 {
 	const DWORD MAXDUR_FREQ = 1000; //周波数調整に費やす最大時間(msec)
 	const DWORD MAXDUR_TMCC = 1500; //TMCC取得に費やす最大時間(msec)
@@ -313,17 +341,17 @@ BOOL CPT3Manager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 		return s <= e ? e - s : 0xFFFFFFFFUL - s + 1 + e;
 	};
 
-	uint32 ch = ulCh & 0xffff;
-	sint32 offset = (ulCh >> 16) & 0xffff;
+	uint ch = ulCh & 0xffff;
+	int offset = (ulCh >> 16) & 0xffff;
 	if (offset >= 32768) offset -= 65536;
 
-	_OutputDebugString(L"CPT3Manager::SetCh: iID=%d ch=%d offset=%d dwTSID=%d\n",iID,ch,offset,dwTSID) ;
+	_OutputDebugString(L"CPT1Manager::SetCh: iID=%d ch=%d offset=%d dwTSID=%d\n",iID,ch,offset,dwTSID) ;
 
 	int iDevID = iID>>16;
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
-	uint32 iTuner = iID&0x000000FF;
+	uint iTuner = iID&0x000000FF;
 
-    hasStream = TRUE ;
+	hasStream = TRUE ;
 
 	if( (int)m_EnumDev.size() <= iDevID ){
 		return FALSE;
@@ -331,17 +359,12 @@ BOOL CPT3Manager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 
 	status enStatus;
 	for (DWORD t=0,s=dur(),n=0; t<MAXDUR_FREQ; t=dur(s)) {
-		enStatus = m_EnumDev[iDevID]->pcDevice->SetFrequency(enISDB, iTuner, ch, offset);
-		if( enStatus == PT::STATUS_OK ) {
-			if(++n>=2) {
-				_OutputDebugString(L"CPT3Manager::SetCh: Device::SetFrequency: ISDB:%d tuner:%d ch:%d\n",enISDB,iTuner,ch);
-				break ;
-			}
-		}
+		enStatus = m_EnumDev[iDevID]->pcDevice->SetFrequency(iTuner, enISDB, ch, offset);
+		if( enStatus == PT::STATUS_OK ) { if(++n>=2) break ; }
 		Sleep(50);
 	}
 	if( enStatus != PT::STATUS_OK ) {
-		_OutputDebugString(L"CPT3Manager::SetCh: Device::SetFrequency failure!\n") ;
+		_OutputDebugString(L"CPT1Manager::SetCh: SetFreq failure!\n") ;
 		return FALSE ;
 	}
 	if( enISDB == PT::Device::ISDB_S ){
@@ -357,13 +380,13 @@ BOOL CPT3Manager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 				//std::fill_n(tmcc.Id,8,0xffff) ;
 				enStatus = m_EnumDev[iDevID]->pcDevice->GetTmccS(iTuner, &tmcc);
 				if (enStatus == PT::STATUS_OK) {
-					for (uint32 i=0; i<8; i++) {
-						uint32 id = tmcc.Id[i]&0xffff;
+					for (uint i=0; i<8; i++) {
+						uint id = tmcc.Id[i]&0xffff;
 						if ((id&0xff00) && (id^0xffff)) {
 							if( (id&7) == dwTSID ) { //ストリームに一致した
 								//一致したidに書き換える
 								dwTSID = id ;
-								_OutputDebugString(L"CPT3Manager::SetCh: replaced TSID=%d\n",id) ;
+								_OutputDebugString(L"CPT1Manager::SetCh: TSID=%d\n",id) ;
 								break;
 							}
 						}
@@ -374,7 +397,7 @@ BOOL CPT3Manager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 			}
 		}
 		if(dwTSID&~7UL) {
-			uint32 uiGetID=0xffff;
+			uint uiGetID=0xffff;
 			Sleep(50);
 			for (DWORD t=0,s=dur(),n=0; t<MAXDUR_TSID ; t=dur(s)) {
 				enStatus = m_EnumDev[iDevID]->pcDevice->SetIdS(iTuner, dwTSID);
@@ -388,7 +411,7 @@ BOOL CPT3Manager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 			}
 			if(dwTSID==uiGetID) hasStream = TRUE ;
 			if( !hasStream && enStatus != PT::STATUS_OK ){
-				_OutputDebugString(L"CPT3Manager::SetCh: failure!\n") ;
+				_OutputDebugString(L"CPT1Manager::SetCh: failure!\n") ;
 				return FALSE;
 			}
 		}
@@ -396,26 +419,26 @@ BOOL CPT3Manager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 
 	m_EnumDev[iDevID]->cDataIO.ClearBuff(iID);
 
-	_OutputDebugString(L"CPT3Manager::SetCh: success!\n") ;
+	_OutputDebugString(L"CPT1Manager::SetCh: success!\n") ;
 	return TRUE;
 }
 
-DWORD CPT3Manager::GetSignal(int iID)
+DWORD CPT1Manager::GetSignal(int iID)
 {
 	int iDevID = iID>>16;
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
-	uint32 iTuner = iID&0x000000FF;
+	uint iTuner = iID&0x000000FF;
 
 	if( (int)m_EnumDev.size() <= iDevID ){
-		return 0;
+		return FALSE;
 	}
 
-	uint32 cn100;
-	uint32 currentAgc;
-	uint32 maxAgc;
+	uint cn100;
+	uint currentAgc;
+	uint maxAgc;
 
 	status enStatus;
-	enStatus = m_EnumDev[iDevID]->pcDevice->GetCnAgc(enISDB, iTuner, &cn100, &currentAgc, &maxAgc);
+	enStatus = m_EnumDev[iDevID]->pcDevice->GetCnAgc(iTuner, enISDB, &cn100, &currentAgc, &maxAgc);
 	if( enStatus != PT::STATUS_OK ){
 		return 0;
 	}
@@ -423,7 +446,7 @@ DWORD CPT3Manager::GetSignal(int iID)
 	return cn100;
 }
 
-BOOL CPT3Manager::CloseChk()
+BOOL CPT1Manager::CloseChk()
 {
 	BOOL bRet = FALSE;
 	int iID;
@@ -465,12 +488,12 @@ BOOL CPT3Manager::CloseChk()
 	return bRet;
 }
 
-int CPT3Manager::OpenTuner2(BOOL bSate, int iTunerID)
+int CPT1Manager::OpenTuner2(BOOL bSate, int iTunerID)
 {
 	int iID = -1;
 	int iDevID = -1;
 	PT::Device::ISDB enISDB;
-	uint32 iTuner = -1;
+	uint iTuner = -1;
 	char log[256];
 
 	//指定チューナーが空いてるか確認
@@ -511,7 +534,7 @@ int CPT3Manager::OpenTuner2(BOOL bSate, int iTunerID)
 			}
 		}
 	}
-	_RPT3(_CRT_WARN, "*** CPT3Manager::OpenTuner2() : iDevID[%d] bSate[%d] iTunerID[%d] ***\n", iDevID, bSate, iTunerID);
+	_RPT3(_CRT_WARN, "*** CPT1Manager::OpenTuner2() : iDevID[%d] bSate[%d] iTunerID[%d] ***\n", iDevID, bSate, iTunerID);
 	if( iTuner == -1 ){
 		OutputDebugStringA("unused tuner not found\n");
 		return -1;
@@ -541,23 +564,46 @@ int CPT3Manager::OpenTuner2(BOOL bSate, int iTunerID)
 			m_EnumDev[iDevID]->pcDevice = NULL;
 			return -1;
 		}
-		enStatus = m_EnumDev[iDevID]->pcDevice->InitTuner();
+
+		enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerPowerReset(PT::Device::TUNER_POWER_ON_RESET_ENABLE);
 		if( enStatus != PT::STATUS_OK ){
 			m_EnumDev[iDevID]->pcDevice->Close();
 			m_EnumDev[iDevID]->pcDevice->Delete();
 			m_EnumDev[iDevID]->pcDevice = NULL;
-			wsprintfA(log, "pcDevice->InitTuner() error : enStatus[0x%x]\n", enStatus);
+			wsprintfA(log, "pcDevice->SetTunerPowerReset(ENABLE) error : enStatus[0x%x]\n", enStatus);
 			OutputDebugStringA(log);
 			return -1;
 		}
-		for (uint32 i=0; i<2; i++) {
-			for (uint32 j=0; j<2; j++) {
-				enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerSleep(static_cast<PT::Device::ISDB>(j), i, true);
+		Sleep(20);
+		enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerPowerReset(PT::Device::TUNER_POWER_ON_RESET_DISABLE);
+		if( enStatus != PT::STATUS_OK ){
+			m_EnumDev[iDevID]->pcDevice->Close();
+			m_EnumDev[iDevID]->pcDevice->Delete();
+			m_EnumDev[iDevID]->pcDevice = NULL;
+			wsprintfA(log, "pcDevice->SetTunerPowerReset(DISABLE) error : enStatus[0x%x]\n", enStatus);
+			OutputDebugStringA(log);
+			return -1;
+		}
+		Sleep(1);
+		for( uint i=0; i<2; i++ ){
+			enStatus = m_EnumDev[iDevID]->pcDevice->InitTuner(i);
+			if( enStatus != PT::STATUS_OK ){
+				m_EnumDev[iDevID]->pcDevice->Close();
+				m_EnumDev[iDevID]->pcDevice->Delete();
+				m_EnumDev[iDevID]->pcDevice = NULL;
+				wsprintfA(log, "pcDevice->InitTuner(%d) error : enStatus[0x%x]\n", i, enStatus);
+				OutputDebugStringA(log);
+				return -1;
+			}
+		}
+		for (uint i=0; i<2; i++) {
+			for (uint j=0; j<2; j++) {
+				enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerSleep(i, static_cast<PT::Device::ISDB>(j), true);
 				if( enStatus != PT::STATUS_OK ){
 					m_EnumDev[iDevID]->pcDevice->Close();
 					m_EnumDev[iDevID]->pcDevice->Delete();
 					m_EnumDev[iDevID]->pcDevice = NULL;
-					wsprintfA(log, "pcDevice->SetTunerSleep(%d, %d, true) error : enStatus[0x%x]\n", j, i, enStatus);
+					wsprintfA(log, "pcDevice->SetTunerSleep(%d, %d, true) error : enStatus[0x%x]\n", i, j, enStatus);
 					OutputDebugStringA(log);
 					return -1;
 				}
@@ -569,9 +615,9 @@ int CPT3Manager::OpenTuner2(BOOL bSate, int iTunerID)
 		m_EnumDev[iDevID]->cDataIO.Run();
 	}
 	//スリープから復帰
-	enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerSleep(enISDB, iTuner, false);
+	enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerSleep(iTuner, enISDB, false);
 	if( enStatus != PT::STATUS_OK ){
-		wsprintfA(log, "pcDevice->SetTunerSleep(%d, %d, false) error : enStatus[0x%x]\n", enISDB, iTuner, enStatus);
+		wsprintfA(log, "pcDevice->SetTunerSleep(%d, %d, false) error : enStatus[0x%x]\n", iTuner, enISDB, enStatus);
 		OutputDebugStringA(log);
 		return -1;
 	}
@@ -580,12 +626,20 @@ int CPT3Manager::OpenTuner2(BOOL bSate, int iTunerID)
 		m_EnumDev[iDevID]->pcDevice->SetLnbPower(PT::Device::LNB_POWER_15V);
 	}
 
+	enStatus = m_EnumDev[iDevID]->pcDevice->SetStreamEnable(iTuner, enISDB, true);
+	if( enStatus != PT::STATUS_OK ){
+		wsprintfA(log, "pcDevice->SetStreamEnable(%d, %d, true) error : enStatus[0x%x]\n", iTuner, enISDB, enStatus);
+		OutputDebugStringA(log);
+		return -1;
+	}
+
 	if( enISDB == PT::Device::ISDB_T ){
 		if( iTuner == 0 ){
 			m_EnumDev[iDevID]->bUseT0 = TRUE;
 		}else{
 			m_EnumDev[iDevID]->bUseT1 = TRUE;
 		}
+		Sleep(10);	// PT1/2のT側はこの後の選局までが早すぎるとエラーになる場合があるので
 	}else{
 		if( iTuner == 0 ){
 			m_EnumDev[iDevID]->bUseS0 = TRUE;
@@ -593,7 +647,7 @@ int CPT3Manager::OpenTuner2(BOOL bSate, int iTunerID)
 			m_EnumDev[iDevID]->bUseS1 = TRUE;
 		}
 	}
-	m_EnumDev[iDevID]->cDataIO.StartPipeServer(iID);
 	m_EnumDev[iDevID]->cDataIO.EnableTuner(iID, TRUE);
+
 	return iID;
 }
