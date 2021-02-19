@@ -85,7 +85,7 @@ CBonTuner::CBonTuner()
 	int iPTVer=1;
 
 	wstring strPT3Prefix = L"BonDriver_PT3";
-	if(!CompareNoCase(strPT3Prefix,wstring(szFname).substr(strPT3Prefix.length())))
+	if(!CompareNoCase(strPT3Prefix,wstring(szFname).substr(0,strPT3Prefix.length())))
 		iPTVer=3;
 
 	isISDB_S = TRUE;
