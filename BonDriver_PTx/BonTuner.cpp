@@ -401,7 +401,7 @@ const BOOL CBonTuner::OpenTuner(void)
 			LaunchPTCtrl(iPT);
 			DWORD dwNumTuner=0;
 			if(SendGetTunerCount(&dwNumTuner) == CMD_SUCCESS) {
-				if(tid> 0 && DWORD(tid)>=dwNumTuner) {
+				if(tid>=0 && DWORD(tid)>=dwNumTuner) {
 					tid-=dwNumTuner ;
 					continue;
 				}
