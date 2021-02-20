@@ -65,6 +65,9 @@ int CALLBACK CPT1CtrlMain::OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdPara
 		case CMD_CLOSE_EXE:
 			pSys->CmdCloseExe(pCmdParam, pResParam);
 			break;
+		case CMD_GET_TUNER_COUNT:
+			pSys->CmdGetTunerCount(pCmdParam, pResParam);
+			break;
 		case CMD_OPEN_TUNER:
 			pSys->CmdOpenTuner(pCmdParam, pResParam);
 			break;
@@ -92,6 +95,16 @@ void CPT1CtrlMain::CmdCloseExe(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	pResParam->dwParam = CMD_SUCCESS;
 	StopMain();
+}
+
+//CMD_GET_TUNER_COUNT GetTunerCount
+void CPT1CtrlMain::CmdGetTunerCount(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+{
+	DWORD dwNumTuner;
+	dwNumTuner = m_cPT1.GetTunerCount();
+
+	pResParam->dwParam = CMD_SUCCESS;
+	CreateDefStream(dwNumTuner, pResParam);
 }
 
 //CMD_OPEN_TUNER OpenTuner

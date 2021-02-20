@@ -95,6 +95,21 @@ DWORD SendCloseExe(DWORD dwConnectTimeOut)
 	return dwRet;
 }
 
+DWORD SendGetTunerCount(DWORD* pdwNumTuner, DWORD dwConnectTimeOut)
+{
+	CMD_STREAM stSend;
+	CMD_STREAM stRes;
+
+	stSend.dwParam = CMD_GET_TUNER_COUNT;
+
+	DWORD dwRet = SendDefCmd(CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_CTRL_PIPE, dwConnectTimeOut, &stSend, &stRes);
+	if( dwRet == CMD_SUCCESS ){
+		CopyDefData(pdwNumTuner, stRes.bData);
+	}
+
+	return dwRet;
+}
+
 DWORD SendOpenTuner(BOOL bSate, int* piID, DWORD dwConnectTimeOut)
 {
 	CMD_STREAM stSend;

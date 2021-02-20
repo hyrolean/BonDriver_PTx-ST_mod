@@ -17,6 +17,8 @@ public:
 	BOOL Init();
 	void UnInit();
 
+	DWORD GetTunerCount() { return DWORD(m_EnumDev.size()<<1) ; }
+
 	int OpenTuner(BOOL bSate);
 	int OpenTuner2(BOOL bSate, int iTunerID);
 	BOOL CloseTuner(int iID);

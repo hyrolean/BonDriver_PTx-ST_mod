@@ -75,16 +75,21 @@ protected:
 	HANDLE m_hStopEvent;
 	HANDLE m_hThread;
 
+	int m_iPT;
 	int m_iID;
 	int m_iTunerID;
+	BOOL m_bXFirstPT3;
 	DWORD m_dwSetChDelay;
 
-	wstring m_strPT1CtrlExe;
-
+	//wstring m_strPT1CtrlExe;
+	wstring m_strDirPath;
 	wstring m_strTunerName;
 
 	CParseChSet m_chSet;
 	void BuildDefSpace(wstring strIni);
+
+	BOOL LaunchPTCtrl(int iPT);
+	BOOL TryOpenTuner(int iTunerID, int *piID);
 
 protected:
 	static UINT WINAPI RecvThread(LPVOID pParam);

@@ -8,6 +8,7 @@
 #define CONNECT_TIMEOUT 30*1000
 
 DWORD SendCloseExe(DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
+DWORD SendGetTunerCount(DWORD* pdwNumTuner, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
 DWORD SendOpenTuner(BOOL bSate, int* piID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
 DWORD SendOpenTuner2(BOOL bSate, int iTunerID, int* piID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
 DWORD SendCloseTuner(int iID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
