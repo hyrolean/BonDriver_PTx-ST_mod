@@ -65,8 +65,14 @@ int CALLBACK CPT3CtrlMain::OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdPara
 		case CMD_CLOSE_EXE:
 			pSys->CmdCloseExe(pCmdParam, pResParam);
 			break;
-		case CMD_GET_TUNER_COUNT:
-			pSys->CmdGetTunerCount(pCmdParam, pResParam);
+		case CMD_GET_TOTAL_TUNER_COUNT:
+			pSys->CmdGetTotalTunerCount(pCmdParam, pResParam);
+			break;
+		case CMD_GET_ACTIVE_TUNER_COUNT:
+			pSys->CmdGetActiveTunerCount(pCmdParam, pResParam);
+			break;
+		case CMD_SET_LNB_POWER:
+			pSys->CmdSetLnbPower(pCmdParam, pResParam);
 			break;
 		case CMD_OPEN_TUNER:
 			pSys->CmdOpenTuner(pCmdParam, pResParam);
@@ -97,14 +103,43 @@ void CPT3CtrlMain::CmdCloseExe(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 	StopMain();
 }
 
-//CMD_GET_TUNER_COUNT GetTunerCount
-void CPT3CtrlMain::CmdGetTunerCount(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+//CMD_GET_TOTAL_TUNER_COUNT GetTotalTunerCount
+void CPT3CtrlMain::CmdGetTotalTunerCount(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	DWORD dwNumTuner;
-	dwNumTuner = m_cPT3.GetTunerCount();
+	dwNumTuner = m_cPT3.GetTotalTunerCount();
 
 	pResParam->dwParam = CMD_SUCCESS;
 	CreateDefStream(dwNumTuner, pResParam);
+}
+
+//CMD_GET_ACTIVE_TUNER_COUNT GetActiveTunerCount
+void CPT3CtrlMain::CmdGetActiveTunerCount(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+{
+	BOOL bSate;
+	CopyDefData((DWORD*)&bSate, pCmdParam->bData);
+
+	DWORD dwNumTuner;
+	dwNumTuner = m_cPT3.GetActiveTunerCount(bSate);
+
+	pResParam->dwParam = CMD_SUCCESS;
+	CreateDefStream(dwNumTuner, pResParam);
+}
+
+//CMD_SET_LNB_POWER SetLnbPower
+void CPT3CtrlMain::CmdSetLnbPower(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+{
+	int iID;
+	BOOL bEnabled;
+	CopyDefData2((DWORD*)&iID, (DWORD*)&bEnabled, pCmdParam->bData);
+
+	BOOL r = m_cPT3.SetLnbPower(iID, bEnabled);
+
+	if( r ){
+		pResParam->dwParam = CMD_SUCCESS;
+	}else{
+		pResParam->dwParam = CMD_ERR;
+	}
 }
 
 //CMD_OPEN_TUNER OpenTuner

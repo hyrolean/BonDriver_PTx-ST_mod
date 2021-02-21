@@ -26,8 +26,12 @@ protected:
 
 	//CMD_CLOSE_EXE PT1Ctrl.exeの強制終了コマンド 通常は使用しない
 	void CmdCloseExe(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
-	//CMD_GET_TUNER_COUNT GetTunerCount
-	void CmdGetTunerCount(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
+	//CMD_GET_TOTAL_TUNER_COUNT GetTotalTunerCount
+	void CmdGetTotalTunerCount(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
+	//CMD_GET_ACTIVE_TUNER_COUNT GetActiveTunerCount
+	void CmdGetActiveTunerCount(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
+	//CMD_SET_LNB_POWER SetLnbPower
+	void CmdSetLnbPower(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
 	//CMD_OPEN_TUNER OpenTuner
 	void CmdOpenTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
 	//CMD_CLOSE_TUNER CloseTuner

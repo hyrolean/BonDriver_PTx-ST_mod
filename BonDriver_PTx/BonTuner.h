@@ -5,14 +5,14 @@
 #pragma once
 
 
-#include "IBonDriver2.h"
+#include "IBonDriver3.h"
 #include "../Common/PT1SendCtrlCmdUtil.h"
 #include "ParseChSet.h"
 
 #define BUFF_SIZE (188*256)
 
 
-class CBonTuner : public IBonDriver2
+class CBonTuner : public IBonDriver3
 {
 public:
 	CBonTuner();
@@ -46,6 +46,11 @@ public:
 	const DWORD GetCurSpace(void);
 	const DWORD GetCurChannel(void);
 
+// IBonDriver3(êßå¿ït)
+	const DWORD GetTotalDeviceNum(void);
+	const DWORD GetActiveDeviceNum(void);
+	const BOOL SetLnbPower(const BOOL bEnable);
+
 	void Release(void);
 
 	static CBonTuner * m_pThis;
@@ -78,8 +83,14 @@ protected:
 	int m_iPT;
 	int m_iID;
 	int m_iTunerID;
+	BOOL m_bBon3Lnb;
+	BOOL m_bTrySpares;
 	BOOL m_bXFirstPT3;
 	DWORD m_dwSetChDelay;
+
+	DWORD m_dwTotalTunerCount;
+	DWORD m_dwActiveTunerCount;
+	void UpdateTunerCounters();
 
 	//wstring m_strPT1CtrlExe;
 	wstring m_strDirPath;

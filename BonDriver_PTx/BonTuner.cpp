@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include <Windows.h>
 #include <process.h>
+#include <algorithm>
 
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
@@ -28,6 +29,9 @@ extern "C" __declspec(dllexport) IBonDriver * CreateBonDriver()
 CBonTuner * CBonTuner::m_pThis = NULL;
 HINSTANCE CBonTuner::m_hModule = NULL;
 
+	//PTxCtrl実行ファイルのミューテックス名
+	#define PT3_CTRL_MUTEX L"PT3_CTRL_EXE_MUTEX"
+	#define PT1_CTRL_MUTEX L"PT1_CTRL_EXE_MUTEX"
 
 	//パイプ名
 	LPCTSTR CMD_PT1_CTRL_PIPE, CMD_PT1_DATA_PIPE;
@@ -40,12 +44,16 @@ HINSTANCE CBonTuner::m_hModule = NULL;
 					wsprintf(defs[n],format,iPTVer); \
 					CMD_PT1_##def=const_cast<LPCTSTR>(defs[n++]); \
 				}while(0)
+		static int iLastPTVer=0;
 		static wchar_t defs[4][32];
 		int n=0;
-		MK_CMD_PT1_(CTRL_PIPE,_T("\\\\.\\pipe\\PT%dCtrlPipe"));
-		MK_CMD_PT1_(DATA_PIPE,_T("\\\\.\\pipe\\PT%dDataPipe_"));
-		MK_CMD_PT1_(CTRL_EVENT_WAIT_CONNECT,_T("Global\\PT%dCtrlConnect"));
-		MK_CMD_PT1_(DATA_EVENT_WAIT_CONNECT,_T("Global\\PT%dDataConnect_"));
+		if(iLastPTVer!=iPTVer) {
+			MK_CMD_PT1_(CTRL_PIPE,_T("\\\\.\\pipe\\PT%dCtrlPipe"));
+			MK_CMD_PT1_(DATA_PIPE,_T("\\\\.\\pipe\\PT%dDataPipe_"));
+			MK_CMD_PT1_(CTRL_EVENT_WAIT_CONNECT,_T("Global\\PT%dCtrlConnect"));
+			MK_CMD_PT1_(DATA_EVENT_WAIT_CONNECT,_T("Global\\PT%dDataConnect_"));
+			iLastPTVer=iPTVer;
+		}
 	#undef MK_CMD_PT1_
 	}
 
@@ -59,6 +67,9 @@ CBonTuner::CBonTuner()
 	m_dwCurSpace = 0xFF;
 	m_dwCurChannel = 0xFF;
 	m_hasStream = TRUE ;
+
+	m_dwTotalTunerCount = 0 ;
+	m_dwActiveTunerCount = 0 ;
 
 	m_iID = -1;
 	m_hStopEvent = _CreateEvent(FALSE, FALSE, NULL);
@@ -97,58 +108,45 @@ CBonTuner::CBonTuner()
 	WCHAR szName[256];
 	m_iTunerID = -1;
 
-    _wcsupr_s( szFname, sizeof(szFname) ) ;
+	_wcsupr_s( szFname, sizeof(szFname) ) ;
 
-	if(m_iPT==0) { // PTx ( auto detect )
+	auto parse_fname = [&](wstring ptx, wstring prefix=L"") -> void {
+	    WCHAR cTS=L'S'; int id=-1;
+		wstring ident = L"BONDRIVER_" + ptx ;
+		for(auto &v: ident) v=towupper(v);
+		wchar_t wcsID[11]; wcsID[0]=wcsID[10]=0;
+		if(swscanf_s(szFname,(ident+L"-%1c%[0-9]%*s").c_str(),&cTS,1,wcsID,10)!=2) {
+			id = -1 ;
+			if(swscanf_s(szFname,(ident+L"-%1c%*s").c_str(),&cTS,1)!=1)
+				cTS = L'S' ;
+		}else if(wcsID[0]>=L'0'&&wcsID[0]<=L'9')
+			id = _wtoi(wcsID);
+	    if(prefix==L"") prefix=ptx ;
+		if(cTS==L'T')	m_strTunerName = prefix + L" ISDB-T" , isISDB_S = FALSE ;
+		else 			m_strTunerName = prefix + L" ISDB-S" ;
+		if(id>=0) {
+			wsprintfW(szName, L" (%d)", id);
+			m_strTunerName += szName ;
+			m_iTunerID = id ;
+		}
+	};
+
+	if(m_iPT==0) { // PTx Tuner ( auto detect )
 
 		int detection = GetPrivateProfileIntW(L"SET", L"xFirstPT3", -1, strIni.c_str());
 		m_bXFirstPT3 = detection>=0 ? BOOL(detection) :
 			PathFileExists((m_strDirPath+L"PT3Ctrl.exe").c_str()) ;
 
-		WCHAR cTS=L'S'; int id=-1;
-		if(swscanf_s(szFname,L"BONDRIVER_PTX-%1c%d",&cTS,1,&id)!=2) {
-			id = -1 ;
-			if(swscanf_s(szFname,L"BONDRIVER_PTX-%1c",&cTS,1)!=1)
-				cTS = L'S' ;
-		}
-		if(cTS==L'T')	m_strTunerName = L"PTx ISDB-T" , isISDB_S = FALSE ;
-		else 			m_strTunerName = L"PTx ISDB-S" ;
-		if(id>=0) {
-			wsprintfW(szName, L" (%d)", id);
-		    m_strTunerName += szName ;
-			m_iTunerID = id ;
-		}
+		parse_fname(L"PTx");
 
-	}else if(m_iPT==3) { // PT3
+	}else if(m_iPT==3) { // PT3 Tuner
 
 		wstring strPT3ini = m_strDirPath + L"BonDriver_PT3-ST.ini";
 		if(PathFileExists(strPT3ini.c_str())) strIni = strPT3ini;
 
-		if( wcslen(szFname) == wcslen(L"BonDriver_PT3-**") ){
-			const WCHAR *TUNER_NAME2;
-			if (szFname[14] == L'T'){
-				isISDB_S = FALSE;
-				TUNER_NAME2 = L"PT3 ISDB-T (%d)";
-			}else{
-				TUNER_NAME2 = L"PT3 ISDB-S (%d)";
-			}
-			m_iTunerID = _wtoi(szFname+wcslen(L"BonDriver_PT3-*"));
-			wsprintfW(szName, TUNER_NAME2, m_iTunerID);
-			m_strTunerName = szName;
-		}else if( wcslen(szFname) == wcslen(L"BonDriver_PT3-*") ){
-			const WCHAR *TUNER_NAME;
-			if (szFname[14] == L'T'){
-				isISDB_S = FALSE;
-				TUNER_NAME = L"PT3 ISDB-T";
-			}else{
-				TUNER_NAME = L"PT3 ISDB-S";
-			}
-			m_strTunerName = TUNER_NAME;
-		}else{
-			m_strTunerName = L"PT3 ISDB-S";
-		}
+		parse_fname(L"PT3");
 
-	}else {  // PT1/2
+	}else {  // PT Tuner (PT1/2)
 
 		wstring strPTini = wstring(szPath) + L"BonDriver_PT-ST.ini";
 		if(PathFileExists(strPTini.c_str())) strIni = strPTini;
@@ -156,34 +154,11 @@ CBonTuner::CBonTuner()
 		int iPTn = GetPrivateProfileIntW(L"SET", L"PT1Ver", 2, strIni.c_str());
 		if(iPTn<1||iPTn>2) iPTn=2;
 
-		if( wcslen(szFname) == wcslen(L"BonDriver_PT-**") ){
-			const WCHAR *TUNER_NAME2;
-			if (szFname[13] == L'T'){
-				isISDB_S = FALSE;
-				TUNER_NAME2 = L"PT%d ISDB-T (%d)";
-			}else{
-				TUNER_NAME2 = L"PT%d ISDB-S (%d)";
-			}
-			m_iTunerID = _wtoi(szFname+wcslen(L"BonDriver_PT-*"));
-			wsprintfW(szName, TUNER_NAME2, iPTn, m_iTunerID);
-			m_strTunerName = szName;
-		}else if( wcslen(szFname) == wcslen(L"BonDriver_PT-*") ){
-			const WCHAR *TUNER_NAME;
-			if (szFname[13] == L'T'){
-				isISDB_S = FALSE;
-				TUNER_NAME = L"PT%d ISDB-T";
-			}else{
-				TUNER_NAME = L"PT%d ISDB-S";
-			}
-			wsprintfW(szName, TUNER_NAME, iPTn);
-			m_strTunerName = szName;
-		}else{
-			wsprintfW(szName, L"PT%d ISDB-S", iPTn);
-			m_strTunerName = szName;
-		}
-
+		parse_fname(L"PT", iPTn==1 ? L"PT1" : L"PT2");
 	}
 
+	m_bTrySpares = GetPrivateProfileIntW(L"SET", L"TrySpares", 0, strIni.c_str());
+	m_bBon3Lnb = GetPrivateProfileIntW(L"SET", L"Bon3Lnb", 0, strIni.c_str());
 	m_dwSetChDelay = GetPrivateProfileIntW(L"SET", L"SetChDelay", 0, strIni.c_str());
 
 	wstring strChSet;
@@ -350,10 +325,28 @@ BOOL CBonTuner::LaunchPTCtrl(int iPT)
 	si.cb=sizeof(si);
 
 	wstring strPTCtrlExe = m_strDirPath ;
+	wstring mutexName ;
 
 	switch(iPT) {
-	case 1: strPTCtrlExe += L"PTCtrl.exe" ; break ;
-	case 3: strPTCtrlExe += L"PT3Ctrl.exe" ; break ;
+	case 1:
+		strPTCtrlExe += L"PTCtrl.exe" ;
+		mutexName = PT1_CTRL_MUTEX ;
+		break ;
+	case 3:
+		strPTCtrlExe += L"PT3Ctrl.exe" ;
+		mutexName = PT3_CTRL_MUTEX ;
+		break ;
+	}
+
+	if(HANDLE Mutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, mutexName.c_str())) {
+		// 既に起動中
+		CloseHandle(Mutex) ;
+		return TRUE ;
+	}
+
+	if(!PathFileExists(strPTCtrlExe.c_str())) {
+		// 実行ファイルが存在しない
+		return FALSE;
 	}
 
 	BOOL bRet = CreateProcessW( NULL, (LPWSTR)strPTCtrlExe.c_str(), NULL, NULL, FALSE, GetPriorityClass(GetCurrentProcess()), NULL, NULL, &si, &pi );
@@ -390,6 +383,8 @@ const BOOL CBonTuner::OpenTuner(void)
 
 	_RPT3(_CRT_WARN, "*** CBonTuner::OpenTuner() ***\nm_hOnStreamEvent[%p]\n", m_hOnStreamEvent);
 
+	UpdateTunerCounters();
+
 	if(!m_iPT) { // PTx ( PT1/2/3 - auto detect )
 
 		//PTx自動検出機能の追加
@@ -398,9 +393,10 @@ const BOOL CBonTuner::OpenTuner(void)
 		int tid = m_iTunerID ;
 		for(int i=0;i<2;i++) {
 			int iPT = m_bXFirstPT3 ? (i?1:3) : (i?3:1) ;
-			LaunchPTCtrl(iPT);
+			if(!LaunchPTCtrl(iPT))
+				continue;
 			DWORD dwNumTuner=0;
-			if(SendGetTunerCount(&dwNumTuner) == CMD_SUCCESS) {
+			if(SendGetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS) {
 				if(tid>=0 && DWORD(tid)>=dwNumTuner) {
 					tid-=dwNumTuner ;
 					continue;
@@ -408,6 +404,8 @@ const BOOL CBonTuner::OpenTuner(void)
 				m_iID=-1 ;
 				if(TryOpenTuner(tid, &m_iID)) {
 					opened = TRUE; break;
+				}else if(m_bTrySpares) {
+					if(tid>=0) tid=-1, i=-1 ;
 				}
 			}
 		}
@@ -415,15 +413,18 @@ const BOOL CBonTuner::OpenTuner(void)
 
 	}else { // PT1/2/3 ( manual )
 
-		LaunchPTCtrl(m_iPT);
+		if(!LaunchPTCtrl(m_iPT)) return FALSE;
 		if(!TryOpenTuner(m_iTunerID, &m_iID)){
-			return FALSE;
+			if(m_iTunerID<0 || !m_bTrySpares || !TryOpenTuner(-1, &m_iID))
+				return FALSE;
+
 		}
 
 	}
 
 	m_hThread = (HANDLE)_beginthreadex(NULL, 0, RecvThread, (LPVOID)this, CREATE_SUSPENDED, NULL);
 	ResumeThread(m_hThread);
+	if(!m_iPT) m_dwActiveTunerCount++;
 
 	return TRUE;
 }
@@ -438,11 +439,12 @@ void CBonTuner::CloseTuner(void)
 		}
 		CloseHandle(m_hThread);
 		m_hThread = NULL;
+		if(!m_iPT) m_dwActiveTunerCount--;
 	}
 
 	m_dwCurSpace = 0xFF;
 	m_dwCurChannel = 0xFF;
-    m_hasStream = TRUE;
+	m_hasStream = TRUE;
 
 	::CloseHandle(m_hOnStreamEvent);
 	m_hOnStreamEvent = NULL;
@@ -683,3 +685,58 @@ UINT WINAPI CBonTuner::RecvThread(LPVOID pParam)
 
 	return 0;
 }
+
+void CBonTuner::UpdateTunerCounters()
+{
+	if(m_iTunerID>=0) { // ID固定チューナー
+		m_dwTotalTunerCount = 1 ;
+		m_dwActiveTunerCount = m_hThread ? 1 : 0 ;
+	}else if(!m_hThread||m_iPT>0) { // ID自動割り当てチューナー
+		m_dwTotalTunerCount=0;
+		m_dwActiveTunerCount=0;
+		for(int i=1;i<=3;i+=2) {
+			if(!m_iPT||m_iPT==i) {
+				if(LaunchPTCtrl(i)) {
+					DWORD dwNumTuner=0;
+					if(SendGetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS) {
+						m_dwTotalTunerCount += dwNumTuner ;
+					}
+					dwNumTuner=0;
+					if(SendGetActiveTunerCount(isISDB_S,&dwNumTuner) == CMD_SUCCESS) {
+						m_dwActiveTunerCount += dwNumTuner ;
+					}
+				}
+			}
+		}
+	}
+}
+
+	//IBonDriver3の機能を追加
+	//(added by 2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+
+const DWORD CBonTuner::GetTotalDeviceNum(void)
+{
+	//PTx制限：チューナーをオープンする前に呼ばないと正しい値は取得できない
+	// ※ PT/PT3 チューナーは制限なし
+	UpdateTunerCounters();
+	return m_dwTotalTunerCount;
+}
+
+const DWORD CBonTuner::GetActiveDeviceNum(void)
+{
+	//PTx制限：チューナーをオープンする前に呼ばないと正しい値は取得できない
+	// ※ PT/PT3 チューナーは制限なし
+	UpdateTunerCounters();
+	return m_dwActiveTunerCount;
+}
+
+const BOOL CBonTuner::SetLnbPower(const BOOL bEnable)
+{
+	//チューナーをオープンした状態で呼ばないと正しいbehaviorは期待できない
+	if(!isISDB_S) return FALSE;
+	if(!m_bBon3Lnb) return TRUE;
+	if(!m_hThread) return FALSE;
+	if(m_iID<0) return FALSE;
+	return SendSetLnbPower(m_iID,bEnable) == CMD_SUCCESS ? TRUE : FALSE ;
+}
+

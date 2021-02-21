@@ -36,6 +36,9 @@
     <ClInclude Include="IBonDriver2.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="IBonDriver3.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
     <ClInclude Include="ParseChSet.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>

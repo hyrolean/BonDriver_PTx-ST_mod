@@ -17,7 +17,9 @@ public:
 	BOOL Init();
 	void UnInit();
 
-	DWORD GetTunerCount() { return DWORD(m_EnumDev.size()<<1) ; }
+	DWORD GetTotalTunerCount() { return DWORD(m_EnumDev.size()<<1) ; }
+    DWORD GetActiveTunerCount(BOOL bSate);
+	BOOL SetLnbPower(int iID, BOOL bEnabled);
 
 	int OpenTuner(BOOL bSate);
 	int OpenTuner2(BOOL bSate, int iTunerID);
@@ -42,6 +44,8 @@ protected:
 		BOOL bUseT1;
 		BOOL bUseS0;
 		BOOL bUseS1;
+		BOOL bLnbS0;
+		BOOL bLnbS1;
 		CDataIO cDataIO;
 		_DEV_STATUS(void){
 			bOpen = FALSE;
@@ -50,6 +54,8 @@ protected:
 			bUseT1 = FALSE;
 			bUseS0 = FALSE;
 			bUseS1 = FALSE;
+			bLnbS0 = FALSE;
+			bLnbS1 = FALSE;
 		}
 	}DEV_STATUS;
 	vector<DEV_STATUS*> m_EnumDev;

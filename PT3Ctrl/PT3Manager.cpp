@@ -129,6 +129,49 @@ BOOL CPT3Manager::IsFindOpen()
 	return bFind;
 }
 
+DWORD CPT3Manager::GetActiveTunerCount(BOOL bSate)
+{
+	DWORD total_used=0;
+	for( int i=0; i<(int)m_EnumDev.size(); i++ ){
+		if( bSate == FALSE ){
+			if(m_EnumDev[i]->bUseT0) total_used++;
+			if(m_EnumDev[i]->bUseT1) total_used++;
+		}else {
+			if(m_EnumDev[i]->bUseS0) total_used++;
+			if(m_EnumDev[i]->bUseS1) total_used++;
+		}
+	}
+	return total_used;
+}
+
+BOOL CPT3Manager::SetLnbPower(int iID, BOOL bEnabled)
+{
+	size_t iDevID = iID>>16;
+	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
+	uint32 iTuner = iID&0x000000FF;
+
+	if( enISDB != PT::Device::ISDB_S || iDevID>=m_EnumDev.size() )
+		return FALSE;
+
+	if( !m_EnumDev[iDevID]->bUseS0 && !m_EnumDev[iDevID]->bUseS1 )
+		return FALSE;
+
+	BOOL bCurLnb = m_EnumDev[iDevID]->bLnbS0 || m_EnumDev[iDevID]->bLnbS1 ;
+	if( iTuner == 0 )	m_EnumDev[iDevID]->bLnbS0 = bEnabled ;
+	else				m_EnumDev[iDevID]->bLnbS1 = bEnabled ;
+	BOOL bNewLnb = m_EnumDev[iDevID]->bLnbS0 || m_EnumDev[iDevID]->bLnbS1 ;
+
+	if(bCurLnb != bNewLnb) {
+		m_EnumDev[iDevID]->pcDevice->SetLnbPower(
+			bNewLnb ?
+				PT::Device::LNB_POWER_15V :
+				PT::Device::LNB_POWER_OFF
+		);
+	}
+
+	return TRUE;
+}
+
 int CPT3Manager::OpenTuner(BOOL bSate)
 {
 	int iID = -1;
@@ -226,6 +269,8 @@ int CPT3Manager::OpenTuner(BOOL bSate)
 	}
 
 	if( m_bUseLNB && enISDB == PT::Device::ISDB_S){
+		if( iTuner == 0 )	m_EnumDev[iDevID]->bLnbS0 = TRUE;
+		else				m_EnumDev[iDevID]->bLnbS1 = TRUE;
 		m_EnumDev[iDevID]->pcDevice->SetLnbPower(PT::Device::LNB_POWER_15V);
 	}
 
@@ -282,8 +327,13 @@ BOOL CPT3Manager::CloseTuner(int iID)
 		}
 	}
 
-	if (m_bUseLNB && m_EnumDev[iDevID]->bUseS0 == FALSE && m_EnumDev[iDevID]->bUseS1 == FALSE){
-		m_EnumDev[iDevID]->pcDevice->SetLnbPower(PT::Device::LNB_POWER_OFF);
+	if (m_bUseLNB) {
+		if(enISDB == PT::Device::ISDB_S) {
+			if( iTuner == 0 )	m_EnumDev[iDevID]->bLnbS0 = FALSE;
+			else				m_EnumDev[iDevID]->bLnbS1 = FALSE;
+		}
+		if(m_EnumDev[iDevID]->bLnbS0 == FALSE && m_EnumDev[iDevID]->bLnbS1 == FALSE)
+			m_EnumDev[iDevID]->pcDevice->SetLnbPower(PT::Device::LNB_POWER_OFF);
 	}
 
 	if( m_EnumDev[iDevID]->bUseT0 == FALSE &&
