@@ -18,7 +18,7 @@ public:
 	void UnInit();
 
 	DWORD GetTotalTunerCount() { return DWORD(m_EnumDev.size()<<1) ; }
-    DWORD GetActiveTunerCount(BOOL bSate);
+	DWORD GetActiveTunerCount(BOOL bSate);
 	BOOL SetLnbPower(int iID, BOOL bEnabled);
 
 	int OpenTuner(BOOL bSate);

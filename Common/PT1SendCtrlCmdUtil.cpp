@@ -95,17 +95,46 @@ DWORD SendCloseExe(DWORD dwConnectTimeOut)
 	return dwRet;
 }
 
-DWORD SendGetTunerCount(DWORD* pdwNumTuner, DWORD dwConnectTimeOut)
+DWORD SendGetTotalTunerCount(DWORD* pdwNumTuner, DWORD dwConnectTimeOut)
 {
 	CMD_STREAM stSend;
 	CMD_STREAM stRes;
 
-	stSend.dwParam = CMD_GET_TUNER_COUNT;
+	stSend.dwParam = CMD_GET_TOTAL_TUNER_COUNT;
 
 	DWORD dwRet = SendDefCmd(CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_CTRL_PIPE, dwConnectTimeOut, &stSend, &stRes);
 	if( dwRet == CMD_SUCCESS ){
 		CopyDefData(pdwNumTuner, stRes.bData);
 	}
+
+	return dwRet;
+}
+
+DWORD SendGetActiveTunerCount(BOOL bSate, DWORD* pdwNumTuner, DWORD dwConnectTimeOut)
+{
+	CMD_STREAM stSend;
+	CMD_STREAM stRes;
+
+	stSend.dwParam = CMD_GET_ACTIVE_TUNER_COUNT;
+	CreateDefStream(bSate, &stSend);
+
+	DWORD dwRet = SendDefCmd(CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_CTRL_PIPE, dwConnectTimeOut, &stSend, &stRes);
+	if( dwRet == CMD_SUCCESS ){
+		CopyDefData(pdwNumTuner, stRes.bData);
+	}
+
+	return dwRet;
+}
+
+DWORD SendSetLnbPower(int iID, BOOL bEnabled, DWORD dwConnectTimeOut)
+{
+	CMD_STREAM stSend;
+	CMD_STREAM stRes;
+
+	stSend.dwParam = CMD_SET_LNB_POWER;
+	CreateDefStream2(iID, bEnabled, &stSend);
+
+	DWORD dwRet = SendDefCmd(CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_CTRL_PIPE, dwConnectTimeOut, &stSend, &stRes);
 
 	return dwRet;
 }

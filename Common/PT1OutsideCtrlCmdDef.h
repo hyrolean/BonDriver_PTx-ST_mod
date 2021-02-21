@@ -59,7 +59,9 @@
 #define CMD_SET_CH 4
 #define CMD_GET_SIGNAL 5
 #define CMD_OPEN_TUNER2 6
-#define CMD_GET_TUNER_COUNT 7
+#define CMD_GET_TOTAL_TUNER_COUNT 7
+#define CMD_GET_ACTIVE_TUNER_COUNT 8
+#define CMD_SET_LNB_POWER 9
 #define CMD_SEND_DATA 10
 
 //エラーコード
