@@ -189,15 +189,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Common\PipeServer.cpp" />
-    <ClCompile Include="..\Common\PT1CreateCtrlCmdUtil.cpp" />
-    <ClCompile Include="..\Common\PT1SendCtrlCmdUtil.cpp" />
+    <ClCompile Include="..\Common\PTCreateCtrlCmdUtil.cpp" />
+    <ClCompile Include="..\Common\PTCtrlMain.cpp" />
+    <ClCompile Include="..\Common\PTSendCtrlCmdUtil.cpp" />
     <ClCompile Include="..\Common\ServiceUtil.cpp" />
     <ClCompile Include="..\Common\StringUtil.cpp" />
     <ClCompile Include="..\Common\Util.cpp" />
     <ClCompile Include="DataIO.cpp" />
     <ClCompile Include="MicroPacketUtil.cpp" />
     <ClCompile Include="PT1Ctrl.cpp" />
-    <ClCompile Include="PT1CtrlMain.cpp" />
     <ClCompile Include="PT1Manager.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -208,9 +208,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\PipeServer.h" />
-    <ClInclude Include="..\Common\PT1CreateCtrlCmdUtil.h" />
-    <ClInclude Include="..\Common\PT1OutsideCtrlCmdDef.h" />
-    <ClInclude Include="..\Common\PT1SendCtrlCmdUtil.h" />
+    <ClInclude Include="..\Common\PTCreateCtrlCmdUtil.h" />
+    <ClInclude Include="..\Common\PTCtrlMain.h" />
+    <ClInclude Include="..\Common\PTManager.h" />
+    <ClInclude Include="..\Common\PTOutsideCtrlCmdDef.h" />
+    <ClInclude Include="..\Common\PTSendCtrlCmdUtil.h" />
     <ClInclude Include="..\Common\ServiceUtil.h" />
     <ClInclude Include="..\Common\StringUtil.h" />
     <ClInclude Include="..\Common\Util.h" />
@@ -221,7 +223,6 @@
     <ClInclude Include="inc\Prefix_Integer.h" />
     <ClInclude Include="MicroPacketUtil.h" />
     <ClInclude Include="PT1Ctrl.h" />
-    <ClInclude Include="PT1CtrlMain.h" />
     <ClInclude Include="PT1Manager.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />

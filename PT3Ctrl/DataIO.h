@@ -3,7 +3,7 @@
 #include "inc/EARTH_PT3.h"
 #include "inc/Prefix.h"
 #include "inc/EX_Buffer.h"
-#include "../Common/PT1OutsideCtrlCmdDef.h"
+#include "../Common/PTOutsideCtrlCmdDef.h"
 #include "../Common/PipeServer.h"
 
 using namespace EARTH;
@@ -91,7 +91,7 @@ protected:
 	static int CALLBACK OutsideCmdCallbackT1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
 	static int CALLBACK OutsideCmdCallbackS0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
 	static int CALLBACK OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
-	
+
 	void CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
 
 	bool CheckReady(EARTH::EX::Buffer* buffer, uint32 index);

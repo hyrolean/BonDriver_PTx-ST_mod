@@ -1,13 +1,15 @@
 #include "StdAfx.h"
-#include "PT1CtrlMain.h"
+#include "PTCtrlMain.h"
 
-CPT1CtrlMain::CPT1CtrlMain(void)
+CPTCtrlMain::CPTCtrlMain(std::wstring strGlobalLockMutex)
 {
-	m_hStopEvent = _CreateEvent(TRUE, FALSE, NULL);
+	m_pManager = NULL;
+	m_strGlobalLockMutex = strGlobalLockMutex;
+	m_hStopEvent = _CreateEvent(TRUE, FALSE,NULL);
 	m_bService = FALSE;
 }
 
-CPT1CtrlMain::~CPT1CtrlMain(void)
+CPTCtrlMain::~CPTCtrlMain(void)
 {
 	StopMain();
 	if( m_hStopEvent != NULL ){
@@ -16,15 +18,18 @@ CPT1CtrlMain::~CPT1CtrlMain(void)
 //	m_cPipeserver.StopServer();
 }
 
-void CPT1CtrlMain::StartMain(BOOL bService)
+void CPTCtrlMain::StartMain(BOOL bService, IPTManager *pManager)
 {
+	if(!pManager) return;
+	m_pManager = pManager;
+
 	BOOL bInit = TRUE;
-	if( m_cPT1.LoadSDK() == FALSE ){
-		OutputDebugString(L"PT SDKのロードに失敗");
+	if( m_pManager->LoadSDK() == FALSE ){
+		OutputDebugString(L"PTx SDKのロードに失敗");
 		bInit = FALSE;
 	}
 	if( bInit ){
-		m_cPT1.Init();
+		m_pManager->Init();
 	}
 	m_bService = bService;
 
@@ -37,7 +42,7 @@ void CPT1CtrlMain::StartMain(BOOL bService)
 			break;
 		}else{
 			//アプリ層死んだ時用のチェック
-			if( m_cPT1.CloseChk() == FALSE && m_bService == FALSE){
+			if( m_pManager->CloseChk() == FALSE && m_bService == FALSE){
 				break;
 			}
 		}
@@ -47,19 +52,20 @@ void CPT1CtrlMain::StartMain(BOOL bService)
 	}
 
 	cPipeserver.StopServer();
-	m_cPT1.UnInit();
+	m_pManager->UnInit();
+	m_pManager=NULL;
 }
 
-void CPT1CtrlMain::StopMain()
+void CPTCtrlMain::StopMain()
 {
 	if( m_hStopEvent != NULL ){
 		SetEvent(m_hStopEvent);
 	}
 }
 
-int CALLBACK CPT1CtrlMain::OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+int CALLBACK CPTCtrlMain::OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
-	CPT1CtrlMain* pSys = (CPT1CtrlMain*)pParam;
+	CPTCtrlMain* pSys = (CPTCtrlMain*)pParam;
 
 	switch( pCmdParam->dwParam ){
 		case CMD_CLOSE_EXE:
@@ -96,44 +102,44 @@ int CALLBACK CPT1CtrlMain::OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdPara
 	return 0;
 }
 
-//CMD_CLOSE_EXE PT1Ctrl.exeの終了
-void CPT1CtrlMain::CmdCloseExe(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+//CMD_CLOSE_EXE PT3Ctrl.exeの終了
+void CPTCtrlMain::CmdCloseExe(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	pResParam->dwParam = CMD_SUCCESS;
 	StopMain();
 }
 
 //CMD_GET_TOTAL_TUNER_COUNT GetTotalTunerCount
-void CPT1CtrlMain::CmdGetTotalTunerCount(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+void CPTCtrlMain::CmdGetTotalTunerCount(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	DWORD dwNumTuner;
-	dwNumTuner = m_cPT1.GetTotalTunerCount();
+	dwNumTuner = m_pManager->GetTotalTunerCount();
 
 	pResParam->dwParam = CMD_SUCCESS;
 	CreateDefStream(dwNumTuner, pResParam);
 }
 
 //CMD_GET_ACTIVE_TUNER_COUNT GetActiveTunerCount
-void CPT1CtrlMain::CmdGetActiveTunerCount(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+void CPTCtrlMain::CmdGetActiveTunerCount(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	BOOL bSate;
 	CopyDefData((DWORD*)&bSate, pCmdParam->bData);
 
 	DWORD dwNumTuner;
-	dwNumTuner = m_cPT1.GetActiveTunerCount(bSate);
+	dwNumTuner = m_pManager->GetActiveTunerCount(bSate);
 
 	pResParam->dwParam = CMD_SUCCESS;
 	CreateDefStream(dwNumTuner, pResParam);
 }
 
 //CMD_SET_LNB_POWER SetLnbPower
-void CPT1CtrlMain::CmdSetLnbPower(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+void CPTCtrlMain::CmdSetLnbPower(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	int iID;
 	BOOL bEnabled;
 	CopyDefData2((DWORD*)&iID, (DWORD*)&bEnabled, pCmdParam->bData);
 
-	BOOL r = m_cPT1.SetLnbPower(iID, bEnabled);
+	BOOL r = m_pManager->SetLnbPower(iID, bEnabled);
 
 	if( r ){
 		pResParam->dwParam = CMD_SUCCESS;
@@ -143,11 +149,11 @@ void CPT1CtrlMain::CmdSetLnbPower(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 }
 
 //CMD_OPEN_TUNER OpenTuner
-void CPT1CtrlMain::CmdOpenTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+void CPTCtrlMain::CmdOpenTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	BOOL bSate;
 	CopyDefData((DWORD*)&bSate, pCmdParam->bData);
-	int iID = m_cPT1.OpenTuner(bSate);
+	int iID = m_pManager->OpenTuner(bSate);
 	if( iID != -1 ){
 		pResParam->dwParam = CMD_SUCCESS;
 	}else{
@@ -157,15 +163,15 @@ void CPT1CtrlMain::CmdOpenTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 }
 
 //CMD_CLOSE_TUNER CloseTuner
-void CPT1CtrlMain::CmdCloseTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+void CPTCtrlMain::CmdCloseTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	int iID;
 	CopyDefData((DWORD*)&iID, pCmdParam->bData);
-	m_cPT1.CloseTuner(iID);
+	m_pManager->CloseTuner(iID);
 	pResParam->dwParam = CMD_SUCCESS;
 	if (m_bService == FALSE) {
-		HANDLE h = _CreateMutex(TRUE, PT1_GLOBAL_LOCK_MUTEX);
-		if (m_cPT1.IsFindOpen() == FALSE) {
+		HANDLE h = _CreateMutex(TRUE, m_strGlobalLockMutex.c_str());
+		if (m_pManager->IsFindOpen() == FALSE) {
 			// 今から終了するので問題が無くなるタイミングまで別プロセスの開始を抑制
 			ResetEvent(g_hStartEnableEvent);
 			StopMain();
@@ -176,15 +182,15 @@ void CPT1CtrlMain::CmdCloseTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 }
 
 //CMD_SET_CH SetChannel
-// MARK : void CPT1CtrlMain::CmdSetCh(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
-void CPT1CtrlMain::CmdSetCh(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+// MARK : void CPTCtrlMain::CmdSetCh(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+void CPTCtrlMain::CmdSetCh(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	int iID;
 	DWORD dwCh;
 	DWORD dwTSID;
-	BOOL hasStream = FALSE;
+	BOOL hasStream=FALSE;
 	CopyDefData3((DWORD*)&iID, &dwCh, &dwTSID, pCmdParam->bData);
-	if( m_cPT1.SetCh(iID,dwCh,dwTSID,hasStream) ){
+	if( m_pManager->SetCh(iID,dwCh,dwTSID,hasStream) ){
 		pResParam->dwParam = CMD_SUCCESS;
 	}else{
 		pResParam->dwParam = CMD_ERR;
@@ -195,23 +201,24 @@ void CPT1CtrlMain::CmdSetCh(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 }
 
 //CMD_GET_SIGNAL GetSignalLevel
-void CPT1CtrlMain::CmdGetSignal(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+void CPTCtrlMain::CmdGetSignal(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	int iID;
 	DWORD dwCn100;
 	CopyDefData((DWORD*)&iID, pCmdParam->bData);
-	dwCn100 = m_cPT1.GetSignal(iID);
+	dwCn100 = m_pManager->GetSignal(iID);
 
 	pResParam->dwParam = CMD_SUCCESS;
 	CreateDefStream(dwCn100, pResParam);
 }
 
-void CPT1CtrlMain::CmdOpenTuner2(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+//CMD_OPEN_TUNER2 OpenTuner2
+void CPTCtrlMain::CmdOpenTuner2(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	BOOL bSate;
 	int iTunerID;
 	CopyDefData2((DWORD*)&bSate, (DWORD*)&iTunerID, pCmdParam->bData);
-	int iID = m_cPT1.OpenTuner2(bSate, iTunerID);
+	int iID = m_pManager->OpenTuner2(bSate, iTunerID);
 	if( iID != -1 ){
 		pResParam->dwParam = CMD_SUCCESS;
 	}else{
@@ -220,7 +227,8 @@ void CPT1CtrlMain::CmdOpenTuner2(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 	CreateDefStream(iID, pResParam);
 }
 
-BOOL CPT1CtrlMain::IsFindOpen()
+BOOL CPTCtrlMain::IsFindOpen()
 {
-	return m_cPT1.IsFindOpen();
+	if(m_pManager==NULL) return FALSE ;
+	return m_pManager->IsFindOpen();
 }

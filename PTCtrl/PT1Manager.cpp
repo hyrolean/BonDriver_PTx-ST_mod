@@ -37,11 +37,6 @@ CPT1Manager::CPT1Manager(void)
 	}
 }
 
-CPT1Manager::~CPT1Manager(void)
-{
-	FreeSDK();
-}
-
 BOOL CPT1Manager::LoadSDK()
 {
 	if( m_cLibrary == NULL ){

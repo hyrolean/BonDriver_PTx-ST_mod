@@ -3,11 +3,11 @@
 
 #include "stdafx.h"
 #include "PT1Ctrl.h"
-
-#include "PT1CtrlMain.h"
+#include "PT1Manager.h"
+#include "../Common/PTCtrlMain.h"
 #include "../Common/ServiceUtil.h"
 
-CPT1CtrlMain g_cMain;
+CPTCtrlMain g_cMain(PT1_GLOBAL_LOCK_MUTEX);
 HANDLE g_hMutex;
 SERVICE_STATUS_HANDLE g_hStatusHandle;
 
@@ -168,7 +168,8 @@ BOOL SendStatusScm(int iState, int iExitcode, int iProgress)
 
 void StartMain(BOOL bService)
 {
-	g_cMain.StartMain(bService);
+	CPT1Manager pt1_manager;
+	g_cMain.StartMain(bService, &pt1_manager);
 }
 
 void StopMain()

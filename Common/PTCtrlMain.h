@@ -1,25 +1,28 @@
 #pragma once
 
-#include "../Common/PT1SendCtrlCmdUtil.h"
-#include "../Common/PipeServer.h"
-#include "PT1Manager.h"
+#include "PTSendCtrlCmdUtil.h"
+#include "PipeServer.h"
+#include "PTManager.h"
+#include <string>
 
-class CPT1CtrlMain
+class CPTCtrlMain
 {
 public:
-	CPT1CtrlMain(void);
-	~CPT1CtrlMain(void);
+	CPTCtrlMain(std::wstring strGlobalLockMutex);
+	~CPTCtrlMain(void);
 
-	void StartMain(BOOL bService);
+	void StartMain(BOOL bService, IPTManager *pManager);
 	void StopMain();
 
 	BOOL IsFindOpen();
 
 protected:
 	HANDLE m_hStopEvent;
-	CPT1Manager m_cPT1;
+	IPTManager *m_pManager;
 
 	BOOL m_bService;
+
+	wstring m_strGlobalLockMutex ;
 
 protected:
 	static int CALLBACK OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);

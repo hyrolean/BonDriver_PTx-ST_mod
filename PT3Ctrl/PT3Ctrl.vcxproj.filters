@@ -38,9 +38,6 @@
     <ClInclude Include="PT3Ctrl.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="PT3CtrlMain.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="PT3Manager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -62,13 +59,13 @@
     <ClInclude Include="..\Common\PipeServer.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\PT1CreateCtrlCmdUtil.h">
+    <ClInclude Include="..\Common\PTCreateCtrlCmdUtil.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\PT1OutsideCtrlCmdDef.h">
+    <ClInclude Include="..\Common\PTOutsideCtrlCmdDef.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\PT1SendCtrlCmdUtil.h">
+    <ClInclude Include="..\Common\PTSendCtrlCmdUtil.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\ServiceUtil.h">
@@ -89,15 +86,18 @@
     <ClInclude Include="inc\OS_Memory.h">
       <Filter>inc</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\PTCtrlMain.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\PTManager.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="PT3Ctrl.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="PT3CtrlMain.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="PT3Manager.cpp">
@@ -109,10 +109,10 @@
     <ClCompile Include="..\Common\PipeServer.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="..\Common\PT1CreateCtrlCmdUtil.cpp">
+    <ClCompile Include="..\Common\PTCreateCtrlCmdUtil.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="..\Common\PT1SendCtrlCmdUtil.cpp">
+    <ClCompile Include="..\Common\PTSendCtrlCmdUtil.cpp">
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\ServiceUtil.cpp">
@@ -122,6 +122,9 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\Util.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\PTCtrlMain.cpp">
       <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>

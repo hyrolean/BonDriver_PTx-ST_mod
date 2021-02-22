@@ -147,9 +147,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\PipeServer.h" />
-    <ClInclude Include="..\Common\PT1CreateCtrlCmdUtil.h" />
-    <ClInclude Include="..\Common\PT1OutsideCtrlCmdDef.h" />
-    <ClInclude Include="..\Common\PT1SendCtrlCmdUtil.h" />
+    <ClInclude Include="..\Common\PTCreateCtrlCmdUtil.h" />
+    <ClInclude Include="..\Common\PTOutsideCtrlCmdDef.h" />
+    <ClInclude Include="..\Common\PTSendCtrlCmdUtil.h" />
     <ClInclude Include="..\Common\StringUtil.h" />
     <ClInclude Include="..\Common\Util.h" />
     <ClInclude Include="BonTuner.h" />
@@ -163,8 +163,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Common\PipeServer.cpp" />
-    <ClCompile Include="..\Common\PT1CreateCtrlCmdUtil.cpp" />
-    <ClCompile Include="..\Common\PT1SendCtrlCmdUtil.cpp" />
+    <ClCompile Include="..\Common\PTCreateCtrlCmdUtil.cpp" />
+    <ClCompile Include="..\Common\PTSendCtrlCmdUtil.cpp" />
     <ClCompile Include="..\Common\StringUtil.cpp" />
     <ClCompile Include="..\Common\Util.cpp" />
     <ClCompile Include="BonDriver_PTx.cpp" />

@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "PT1SendCtrlCmdUtil.h"
+#include "PTSendCtrlCmdUtil.h"
 
 DWORD WaitConnect(LPCWSTR lpwszName, DWORD dwConnectTimeOut)
 {

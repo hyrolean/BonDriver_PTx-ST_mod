@@ -1,7 +1,7 @@
 #ifndef __PT1_CREATE_CTRL_CMD_UTIL_H__
 #define __PT1_CREATE_CTRL_CMD_UTIL_H__
 
-#include "PT1OutsideCtrlCmdDef.h"
+#include "PTOutsideCtrlCmdDef.h"
 
 BOOL CreateDefStream(DWORD dwValue, CMD_STREAM* pCmd);
 BOOL CopyDefData(DWORD* pdwValue, BYTE* pBuff);

@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "PT1CreateCtrlCmdUtil.h"
+#include "PTCreateCtrlCmdUtil.h"
 
 BOOL CreateDefStream(DWORD dwValue, CMD_STREAM* pCmd)
 {

@@ -1,8 +1,8 @@
 #ifndef __PT1_SEND_CTRL_CMD_UTIL_H__
 #define __PT1_SEND_CTRL_CMD_UTIL_H__
 
-#include "PT1OutsideCtrlCmdDef.h"
-#include "PT1CreateCtrlCmdUtil.h"
+#include "PTOutsideCtrlCmdDef.h"
+#include "PTCreateCtrlCmdUtil.h"
 #include "StringUtil.h"
 
 #define CONNECT_TIMEOUT 30*1000

@@ -38,11 +38,6 @@ CPT3Manager::CPT3Manager(void)
 	}
 }
 
-CPT3Manager::~CPT3Manager(void)
-{
-	FreeSDK();
-}
-
 BOOL CPT3Manager::LoadSDK()
 {
 	if( m_cLibrary == NULL ){

@@ -36,9 +36,6 @@
     <ClCompile Include="PT1Ctrl.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="PT1CtrlMain.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="PT1Manager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -48,10 +45,10 @@
     <ClCompile Include="..\Common\PipeServer.cpp">
       <Filter>ソース ファイル\Common</Filter>
     </ClCompile>
-    <ClCompile Include="..\Common\PT1CreateCtrlCmdUtil.cpp">
+    <ClCompile Include="..\Common\PTCreateCtrlCmdUtil.cpp">
       <Filter>ソース ファイル\Common</Filter>
     </ClCompile>
-    <ClCompile Include="..\Common\PT1SendCtrlCmdUtil.cpp">
+    <ClCompile Include="..\Common\PTSendCtrlCmdUtil.cpp">
       <Filter>ソース ファイル\Common</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\ServiceUtil.cpp">
@@ -63,6 +60,9 @@
     <ClCompile Include="..\Common\Util.cpp">
       <Filter>ソース ファイル\Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\Common\PTCtrlMain.cpp">
+      <Filter>ソース ファイル\Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DataIO.h">
@@ -72,9 +72,6 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="PT1Ctrl.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="PT1CtrlMain.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="PT1Manager.h">
@@ -101,13 +98,13 @@
     <ClInclude Include="..\Common\PipeServer.h">
       <Filter>ヘッダー ファイル\Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\PT1CreateCtrlCmdUtil.h">
+    <ClInclude Include="..\Common\PTCreateCtrlCmdUtil.h">
       <Filter>ヘッダー ファイル\Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\PT1OutsideCtrlCmdDef.h">
+    <ClInclude Include="..\Common\PTOutsideCtrlCmdDef.h">
       <Filter>ヘッダー ファイル\Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\PT1SendCtrlCmdUtil.h">
+    <ClInclude Include="..\Common\PTSendCtrlCmdUtil.h">
       <Filter>ヘッダー ファイル\Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\ServiceUtil.h">
@@ -117,6 +114,12 @@
       <Filter>ヘッダー ファイル\Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\Util.h">
+      <Filter>ヘッダー ファイル\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\PTCtrlMain.h">
+      <Filter>ヘッダー ファイル\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\PTManager.h">
       <Filter>ヘッダー ファイル\Common</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "StringUtil.h"
-#include "PT1OutsideCtrlCmdDef.h"
+#include "PTOutsideCtrlCmdDef.h"
 
 typedef int (CALLBACK *CMD_CALLBACK_PROC)(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
 

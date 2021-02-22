@@ -3,15 +3,15 @@
 #include "inc/EARTH_PT3.h"
 #include "inc/OS_Library.h"
 #include "../Common/Util.h"
+#include "../Common/PTManager.h"
 #include "DataIO.h"
 
 using namespace EARTH;
 
-class CPT3Manager
+class CPT3Manager : public IPTManager
 {
 public:
 	CPT3Manager(void);
-	~CPT3Manager(void);
 
 	BOOL LoadSDK();
 	BOOL Init();
