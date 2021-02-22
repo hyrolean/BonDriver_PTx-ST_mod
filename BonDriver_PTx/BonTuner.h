@@ -11,6 +11,8 @@
 
 #define BUFF_SIZE (188*256)
 
+void InitializeBonTuners(HMODULE hModule);
+void FinalizeBonTuners();
 
 class CBonTuner : public IBonDriver3
 {
@@ -46,14 +48,13 @@ public:
 	const DWORD GetCurSpace(void);
 	const DWORD GetCurChannel(void);
 
-// IBonDriver3(êßå¿ït)
+// IBonDriver3
 	const DWORD GetTotalDeviceNum(void);
 	const DWORD GetActiveDeviceNum(void);
 	const BOOL SetLnbPower(const BOOL bEnable);
 
 	void Release(void);
 
-	static CBonTuner * m_pThis;
 	static HINSTANCE m_hModule;
 
 protected:
@@ -83,14 +84,15 @@ protected:
 	int m_iPT;
 	int m_iID;
 	int m_iTunerID;
+	BOOL m_isISDB_S;
 	BOOL m_bBon3Lnb;
 	BOOL m_bTrySpares;
 	BOOL m_bXFirstPT3;
 	DWORD m_dwSetChDelay;
 
-	DWORD m_dwTotalTunerCount;
-	DWORD m_dwActiveTunerCount;
-	void UpdateTunerCounters();
+	CPTSendCtrlCmd *m_pCmdSender ;
+
+	void GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive);
 
 	//wstring m_strPT1CtrlExe;
 	wstring m_strDirPath;

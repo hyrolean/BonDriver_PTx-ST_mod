@@ -2,64 +2,64 @@
 #include <Windows.h>
 #include <process.h>
 #include <algorithm>
+#include <iterator>
+#include <vector>
+#include <set>
 
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
 
 #include "BonTuner.h"
 
-static BOOL isISDB_S;
+using namespace std;
 
 #define DATA_BUFF_SIZE	(188*256)
 #define MAX_BUFF_COUNT	500
 
+static CRITICAL_SECTION secBonTuners;
+static set<CBonTuner*> BonTuners ;
+
+void InitializeBonTuners(HMODULE hModule)
+{
+	::InitializeCriticalSection(&secBonTuners);
+	CBonTuner::m_hModule = hModule;
+}
+
+void FinalizeBonTuners()
+{
+	::EnterCriticalSection(&secBonTuners);
+	vector<CBonTuner*> clone;
+	copy(BonTuners.begin(),BonTuners.end(),back_inserter(clone));
+	for(auto bon: clone) if(bon!=NULL) bon->Release();
+	::LeaveCriticalSection(&secBonTuners);
+	::DeleteCriticalSection(&secBonTuners);
+}
+
 #pragma warning( disable : 4273 )
 extern "C" __declspec(dllexport) IBonDriver * CreateBonDriver()
 {
-	// 同一プロセスからの複数インスタンス取得禁止
-	// (非同期で取得された場合の排他処理がちゃんと出来ていないが放置)
-	CBonTuner *p = NULL;
-	if (CBonTuner::m_pThis == NULL) {
-		p = new CBonTuner;
-	}
+	// 同一プロセスからの複数インスタンス取得可能(IBonDriver3対応により)
+	::EnterCriticalSection(&secBonTuners);
+	CBonTuner *p = new CBonTuner ;
+	if(p!=NULL) BonTuners.insert(p);
+	::LeaveCriticalSection(&secBonTuners);
 	return p;
 }
 #pragma warning( default : 4273 )
 
-CBonTuner * CBonTuner::m_pThis = NULL;
+
 HINSTANCE CBonTuner::m_hModule = NULL;
 
 	//PTxCtrl実行ファイルのミューテックス名
 	#define PT3_CTRL_MUTEX L"PT3_CTRL_EXE_MUTEX"
 	#define PT1_CTRL_MUTEX L"PT1_CTRL_EXE_MUTEX"
 
-	//パイプ名
-	LPCTSTR CMD_PT1_CTRL_PIPE, CMD_PT1_DATA_PIPE;
+	//PTxCtrlへのコマンド送信用オブジェクト
+	CPTSendCtrlCmd PT1CmdSender(1), PT3CmdSender(3);
 
-	//接続待機用イベント
-	LPCTSTR CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_DATA_EVENT_WAIT_CONNECT;
-
-	static void SetupCmdPt1Defs(int iPTVer) {
-	#define MK_CMD_PT1_(def, format) do { \
-					wsprintf(defs[n],format,iPTVer); \
-					CMD_PT1_##def=const_cast<LPCTSTR>(defs[n++]); \
-				}while(0)
-		static int iLastPTVer=0;
-		static wchar_t defs[4][32];
-		int n=0;
-		if(iLastPTVer!=iPTVer) {
-			MK_CMD_PT1_(CTRL_PIPE,_T("\\\\.\\pipe\\PT%dCtrlPipe"));
-			MK_CMD_PT1_(DATA_PIPE,_T("\\\\.\\pipe\\PT%dDataPipe_"));
-			MK_CMD_PT1_(CTRL_EVENT_WAIT_CONNECT,_T("Global\\PT%dCtrlConnect"));
-			MK_CMD_PT1_(DATA_EVENT_WAIT_CONNECT,_T("Global\\PT%dDataConnect_"));
-			iLastPTVer=iPTVer;
-		}
-	#undef MK_CMD_PT1_
-	}
 
 CBonTuner::CBonTuner()
 {
-	m_pThis = this;
 	m_hOnStreamEvent = NULL;
 
 	m_LastBuff = NULL;
@@ -67,9 +67,6 @@ CBonTuner::CBonTuner()
 	m_dwCurSpace = 0xFF;
 	m_dwCurChannel = 0xFF;
 	m_hasStream = TRUE ;
-
-	m_dwTotalTunerCount = 0 ;
-	m_dwActiveTunerCount = 0 ;
 
 	m_iID = -1;
 	m_hStopEvent = _CreateEvent(FALSE, FALSE, NULL);
@@ -104,7 +101,7 @@ CBonTuner::CBonTuner()
 	else
 		m_iPT=1;
 
-	isISDB_S = TRUE;
+	m_isISDB_S = TRUE;
 	WCHAR szName[256];
 	m_iTunerID = -1;
 
@@ -122,7 +119,7 @@ CBonTuner::CBonTuner()
 		}else if(wcsID[0]>=L'0'&&wcsID[0]<=L'9')
 			id = _wtoi(wcsID);
 	    if(prefix==L"") prefix=ptx ;
-		if(cTS==L'T')	m_strTunerName = prefix + L" ISDB-T" , isISDB_S = FALSE ;
+		if(cTS==L'T')	m_strTunerName = prefix + L" ISDB-T" , m_isISDB_S = FALSE ;
 		else 			m_strTunerName = prefix + L" ISDB-S" ;
 		if(id>=0) {
 			wsprintfW(szName, L" (%d)", id);
@@ -169,19 +166,19 @@ CBonTuner::CBonTuner()
 	if(!m_chSet.ParseText(strChSet.c_str())) {
 		strChSet = szPath;
 		if(m_iPT==3) {
-			if (isISDB_S)
+			if (m_isISDB_S)
 				strChSet += L"BonDriver_PT3-S.ChSet.txt";
 			else
 				strChSet += L"BonDriver_PT3-T.ChSet.txt";
 		}else if(m_iPT==1) {
-			if (isISDB_S)
+			if (m_isISDB_S)
 				strChSet += L"BonDriver_PT-S.ChSet.txt";
 			else
 				strChSet += L"BonDriver_PT-T.ChSet.txt";
 		}
 		if(!m_iPT||!m_chSet.ParseText(strChSet.c_str())) {
 			strChSet = szPath;
-			if (isISDB_S)
+			if (m_isISDB_S)
 				strChSet += L"BonDriver_PTx-S.ChSet.txt";
 			else
 				strChSet += L"BonDriver_PTx-T.ChSet.txt";
@@ -190,7 +187,10 @@ CBonTuner::CBonTuner()
 		}
 	}
 
-	SetupCmdPt1Defs( m_iPT ? m_iPT : m_bXFirstPT3 ? 3 : 1 );
+	switch(m_iPT ? m_iPT : m_bXFirstPT3 ? 3 : 1) {
+	case 1:	m_pCmdSender = &PT1CmdSender; break;
+	case 3:	m_pCmdSender = &PT3CmdSender; break;
+	}
 }
 
 CBonTuner::~CBonTuner()
@@ -206,7 +206,9 @@ CBonTuner::~CBonTuner()
 
 	::DeleteCriticalSection(&m_CriticalSection);
 
-	m_pThis = NULL;
+	::EnterCriticalSection(&secBonTuners);
+	BonTuners.erase(this);
+	::LeaveCriticalSection(&secBonTuners);
 }
 
 void CBonTuner::BuildDefSpace(wstring strIni)
@@ -242,7 +244,7 @@ void CBonTuner::BuildDefSpace(wstring strIni)
 		m_chSet.spaceMap.insert( pair<DWORD, SPACE_DATA>(item.dwSpace,item) );
 	};
 
-	if(isISDB_S) {  // BS / CS110
+	if(m_isISDB_S) {  // BS / CS110
 
 		DWORD i,ch,ts,pt1offs;
 		auto entry_ch = [&](const wchar_t *prefix, bool suffix) {
@@ -317,8 +319,6 @@ void CBonTuner::BuildDefSpace(wstring strIni)
 
 BOOL CBonTuner::LaunchPTCtrl(int iPT)
 {
-	SetupCmdPt1Defs(iPT);
-
 	PROCESS_INFORMATION pi;
 	STARTUPINFO si;
 	ZeroMemory(&si,sizeof(si));
@@ -362,9 +362,9 @@ BOOL CBonTuner::TryOpenTuner(int iTunerID, int *piID)
 {
 	DWORD dwRet;
 	if( iTunerID >= 0 ){
-		dwRet = SendOpenTuner2(isISDB_S, iTunerID, piID);
+		dwRet = m_pCmdSender->OpenTuner2(m_isISDB_S, iTunerID, piID);
 	}else{
-		dwRet = SendOpenTuner(isISDB_S, piID);
+		dwRet = m_pCmdSender->OpenTuner(m_isISDB_S, piID);
 	}
 
 	_RPT3(_CRT_WARN, "*** CBonTuner::TryOpenTuner() ***\ndwRet[%u]\n", dwRet);
@@ -383,8 +383,6 @@ const BOOL CBonTuner::OpenTuner(void)
 
 	_RPT3(_CRT_WARN, "*** CBonTuner::OpenTuner() ***\nm_hOnStreamEvent[%p]\n", m_hOnStreamEvent);
 
-	UpdateTunerCounters();
-
 	if(!m_iPT) { // PTx ( PT1/2/3 - auto detect )
 
 		//PTx自動検出機能の追加
@@ -395,8 +393,12 @@ const BOOL CBonTuner::OpenTuner(void)
 			int iPT = m_bXFirstPT3 ? (i?1:3) : (i?3:1) ;
 			if(!LaunchPTCtrl(iPT))
 				continue;
+			switch(iPT) {
+			case 1:	m_pCmdSender = &PT1CmdSender; break;
+			case 3:	m_pCmdSender = &PT3CmdSender; break;
+			}
 			DWORD dwNumTuner=0;
-			if(SendGetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS) {
+			if(m_pCmdSender->GetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS) {
 				if(tid>=0 && DWORD(tid)>=dwNumTuner) {
 					tid-=dwNumTuner ;
 					continue;
@@ -424,7 +426,6 @@ const BOOL CBonTuner::OpenTuner(void)
 
 	m_hThread = (HANDLE)_beginthreadex(NULL, 0, RecvThread, (LPVOID)this, CREATE_SUSPENDED, NULL);
 	ResumeThread(m_hThread);
-	if(!m_iPT) m_dwActiveTunerCount++;
 
 	return TRUE;
 }
@@ -439,7 +440,6 @@ void CBonTuner::CloseTuner(void)
 		}
 		CloseHandle(m_hThread);
 		m_hThread = NULL;
-		if(!m_iPT) m_dwActiveTunerCount--;
 	}
 
 	m_dwCurSpace = 0xFF;
@@ -450,7 +450,7 @@ void CBonTuner::CloseTuner(void)
 	m_hOnStreamEvent = NULL;
 
 	if( m_iID != -1 ){
-		SendCloseTuner(m_iID);
+		m_pCmdSender->CloseTuner(m_iID);
 		m_iID = -1;
 	}
 
@@ -475,7 +475,7 @@ const float CBonTuner::GetSignalLevel(void)
 		return 0;
 	}
 	DWORD dwCn100;
-	if( SendGetSignal(m_iID, &dwCn100) == CMD_SUCCESS ){
+	if( m_pCmdSender->GetSignal(m_iID, &dwCn100) == CMD_SUCCESS ){
 		return ((float)dwCn100) / 100.0f;
 	}else{
 		return 0;
@@ -608,7 +608,7 @@ const BOOL CBonTuner::SetChannel(const DWORD dwSpace, const DWORD dwChannel)
 
 	DWORD dwRet=CMD_ERR;
 	if( m_iID != -1 ){
-		dwRet=SendSetCh(m_iID, itr->second.dwPT1Ch, itr->second.dwTSID);
+		dwRet=m_pCmdSender->SetCh(m_iID, itr->second.dwPT1Ch, itr->second.dwTSID);
 	}else{
 		return FALSE;
 	}
@@ -649,10 +649,6 @@ UINT WINAPI CBonTuner::RecvThread(LPVOID pParam)
 {
 	CBonTuner* pSys = (CBonTuner*)pParam;
 
-	wstring strEvent;
-	wstring strPipe;
-	Format(strEvent, L"%s%d", CMD_PT1_DATA_EVENT_WAIT_CONNECT, pSys->m_iID);
-	Format(strPipe, L"%s%d", CMD_PT1_DATA_PIPE, pSys->m_iID);
 
 	while (1) {
 		if (::WaitForSingleObject( pSys->m_hStopEvent, 0 ) != WAIT_TIMEOUT) {
@@ -661,7 +657,7 @@ UINT WINAPI CBonTuner::RecvThread(LPVOID pParam)
 		}
 		DWORD dwSize;
 		BYTE *pbBuff;
-		if ((SendSendData(pSys->m_iID, &pbBuff, &dwSize, strEvent, strPipe) == CMD_SUCCESS) && (dwSize != 0)) {
+		if ((pSys->m_pCmdSender->SendData(pSys->m_iID, &pbBuff, &dwSize) == CMD_SUCCESS) && (dwSize != 0)) {
 			if(pSys->m_hasStream) {
 				TS_DATA *pData = new TS_DATA(pbBuff, dwSize);
 				::EnterCriticalSection(&pSys->m_CriticalSection);
@@ -686,24 +682,29 @@ UINT WINAPI CBonTuner::RecvThread(LPVOID pParam)
 	return 0;
 }
 
-void CBonTuner::UpdateTunerCounters()
+void CBonTuner::GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive)
 {
 	if(m_iTunerID>=0) { // ID固定チューナー
-		m_dwTotalTunerCount = 1 ;
-		m_dwActiveTunerCount = m_hThread ? 1 : 0 ;
-	}else if(!m_hThread||m_iPT>0) { // ID自動割り当てチューナー
-		m_dwTotalTunerCount=0;
-		m_dwActiveTunerCount=0;
+		if(lpdwTotal) *lpdwTotal = 1 ;
+		if(lpdwActive) *lpdwActive = m_hThread ? 1 : 0 ;
+	}else { // ID自動割り当てチューナー
+		if(lpdwTotal) *lpdwTotal=0;
+		if(lpdwActive) *lpdwActive=0;
 		for(int i=1;i<=3;i+=2) {
 			if(!m_iPT||m_iPT==i) {
 				if(LaunchPTCtrl(i)) {
+					CPTSendCtrlCmd *sender;
+					switch(i) {
+					case 1:	sender = &PT1CmdSender; break;
+					case 3:	sender = &PT3CmdSender; break;
+					}
 					DWORD dwNumTuner=0;
-					if(SendGetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS) {
-						m_dwTotalTunerCount += dwNumTuner ;
+					if(lpdwTotal && sender->GetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS) {
+						*lpdwTotal += dwNumTuner ;
 					}
 					dwNumTuner=0;
-					if(SendGetActiveTunerCount(isISDB_S,&dwNumTuner) == CMD_SUCCESS) {
-						m_dwActiveTunerCount += dwNumTuner ;
+					if(lpdwActive && sender->GetActiveTunerCount(m_isISDB_S,&dwNumTuner) == CMD_SUCCESS) {
+						*lpdwActive += dwNumTuner ;
 					}
 				}
 			}
@@ -716,27 +717,25 @@ void CBonTuner::UpdateTunerCounters()
 
 const DWORD CBonTuner::GetTotalDeviceNum(void)
 {
-	//PTx制限：チューナーをオープンする前に呼ばないと正しい値は取得できない
-	// ※ PT/PT3 チューナーは制限なし
-	UpdateTunerCounters();
-	return m_dwTotalTunerCount;
+	DWORD nTotal=0;
+	GetTunerCounters(&nTotal,NULL);
+	return nTotal;
 }
 
 const DWORD CBonTuner::GetActiveDeviceNum(void)
 {
-	//PTx制限：チューナーをオープンする前に呼ばないと正しい値は取得できない
-	// ※ PT/PT3 チューナーは制限なし
-	UpdateTunerCounters();
-	return m_dwActiveTunerCount;
+	DWORD nActive=0;
+	GetTunerCounters(NULL,&nActive);
+	return nActive;
 }
 
 const BOOL CBonTuner::SetLnbPower(const BOOL bEnable)
 {
 	//チューナーをオープンした状態で呼ばないと正しいbehaviorは期待できない
-	if(!isISDB_S) return FALSE;
+	if(!m_isISDB_S) return FALSE;
 	if(!m_bBon3Lnb) return TRUE;
 	if(!m_hThread) return FALSE;
 	if(m_iID<0) return FALSE;
-	return SendSetLnbPower(m_iID,bEnable) == CMD_SUCCESS ? TRUE : FALSE ;
+	return m_pCmdSender->SetLnbPower(m_iID,bEnable) == CMD_SUCCESS ? TRUE : FALSE ;
 }
 

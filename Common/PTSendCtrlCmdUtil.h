@@ -7,15 +7,33 @@
 
 #define CONNECT_TIMEOUT 30*1000
 
-DWORD SendCloseExe(DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-DWORD SendGetTotalTunerCount(DWORD* pdwNumTuner, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-DWORD SendGetActiveTunerCount(BOOL bSate, DWORD* pdwNumTuner, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-DWORD SendSetLnbPower(int iID, BOOL bEnabled, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-DWORD SendOpenTuner(BOOL bSate, int* piID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-DWORD SendOpenTuner2(BOOL bSate, int iTunerID, int* piID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-DWORD SendCloseTuner(int iID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-DWORD SendSetCh(int iID, DWORD dwCh, DWORD dwTSID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-DWORD SendGetSignal(int iID, DWORD* pdwCn100, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-DWORD SendSendData(int iID, BYTE** pbData, DWORD* pdwSize, wstring strEvent, wstring strPipe, DWORD dwConnectTimeOut = CONNECT_TIMEOUT );
+class CPTSendCtrlCmd
+{
+public:
+	/*
+	CPTSendCtrlCmdUtil(
+		int iPT, wstring strCmdEvent=CMD_PT1_CTRL_EVENT_WAIT_CONNECT,
+		wstring strCmdPipe=CMD_PT1_CTRL_PIPE)
+		: m_iPT(iPT), m_strCmdEvent(strCmdEvent), m_strCmdPipe(strCmdPipe) {}
+                                                                           */
+	CPTSendCtrlCmd(int iPT);
+
+protected:
+	int m_iPT;
+	wstring m_strCmdEvent, m_strCmdPipe;
+
+public:
+	DWORD CloseExe(DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
+	DWORD GetTotalTunerCount(DWORD* pdwNumTuner, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
+	DWORD GetActiveTunerCount(BOOL bSate, DWORD* pdwNumTuner, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
+	DWORD SetLnbPower(int iID, BOOL bEnabled, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
+	DWORD OpenTuner(BOOL bSate, int* piID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
+	DWORD OpenTuner2(BOOL bSate, int iTunerID, int* piID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
+	DWORD CloseTuner(int iID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
+	DWORD SetCh(int iID, DWORD dwCh, DWORD dwTSID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
+	DWORD GetSignal(int iID, DWORD* pdwCn100, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
+	DWORD SendData(int iID, BYTE** pbData, DWORD* pdwSize, DWORD dwConnectTimeOut = CONNECT_TIMEOUT );
+
+};
 
 #endif

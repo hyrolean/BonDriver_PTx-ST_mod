@@ -35,18 +35,15 @@
 
 	#endif
 
-#else
-
-	// PT1/PT2 or PT3  (BonDriver_PTx.dll)
-
-	//パイプ名
-	extern LPCTSTR CMD_PT1_CTRL_PIPE, CMD_PT1_DATA_PIPE;
-
-	//接続待機用イベント
-	extern LPCTSTR CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_DATA_EVENT_WAIT_CONNECT;
-
 #endif
 
+	//パイプ名 (書式指定出力文字列形式)
+	#define CMD_PT1_CTRL_PIPE_FORMAT _T("\\\\.\\pipe\\PT%dCtrlPipe")
+	#define CMD_PT1_DATA_PIPE_FORMAT _T("\\\\.\\pipe\\PT%dDataPipe_%d")
+
+	//接続待機用イベント (書式指定出力文字列形式)
+	#define CMD_PT1_CTRL_EVENT_WAIT_CONNECT_FORMAT _T("Global\\PT%dCtrlConnect")
+	#define CMD_PT1_DATA_EVENT_WAIT_CONNECT_FORMAT _T("Global\\PT%dDataConnect_%d")
 
 
 //モジュール内コマンド実行イベント
