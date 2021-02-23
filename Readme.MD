@@ -4,6 +4,7 @@
 
 ### ■ BonDriver_PT-STとBonDriver_PT3-STを統合しました。
 
+  BonDriverを統合し、IBonDriver3(Bonドライバインタフェース3)にも対応しました。
   今回、BonDriverを統合したことにより、たとえば、PT2とPT3をミックスして使っているような違うチューナーの種類をBonDriverで分別することによって発生していた煩わしいコストを削減できます。
   
   たとえば、EDCBを利用する場合、最悪以下の5ファイルをEDCBのBonDriverディレクトリに配置し、チャンネルスキャンした後に、EpgTimerの設定画面|基本設定|チューナー|の各々の**チューナー数**の項目を運用しているPT1/2/3の種類に関わらず、運用しているPTx全個体数(PT1/2/3を嵌めているPCIカード数)の2倍に調整すればインストール完了です。
@@ -46,7 +47,7 @@
   BonDriver_PTx-T5.dll ← 地デジ 複合チューナーの三枚目のチューナーのT2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
   ```
   
-  - [mod3.1 BSAlmighty+DeltaHz+DefSpace+PTx fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod3.1)
+  - [mod3.2 BSAlmighty+DeltaHz+DefSpace+PTx fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod3.2)
     (Described by 2021/02/20 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
   
     **※PTx複合チューナーが PT3、PT1/PT2、どちらを優先的にチューナーを開くかは、BonDriver_PTx-ST.ini の xFirstPT3 項目の値を変えることによって挙動を変更出来ます。**
