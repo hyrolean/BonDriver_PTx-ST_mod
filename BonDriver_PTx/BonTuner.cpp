@@ -409,6 +409,7 @@ const BOOL CBonTuner::OpenTuner(void)
 				}else if(m_bTrySpares) {
 					if(tid>=0) tid=-1, i=-1 ;
 				}
+				if(tid>=0) break;
 			}
 		}
 		if(!opened) return FALSE ;
