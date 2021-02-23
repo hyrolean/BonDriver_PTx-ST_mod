@@ -31,7 +31,7 @@ CPTxManager::CPTxManager(void)
 
 	strIni = szPath;
 #if PT_VER==1
-	strIni += L"\\BonDriver_PT1-ST.ini";
+	strIni += L"\\BonDriver_PT-ST.ini";
 #elif PT_VER==3
 	strIni += L"\\BonDriver_PT3-ST.ini";
 #endif
