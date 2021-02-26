@@ -34,4 +34,44 @@ BOOL _CreateDirectory( LPCTSTR lpPathName );
 HANDLE _CreateFile2( LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile );
 
 void _OutputDebugString(const TCHAR *pOutputString, ...);
+
+
+#ifdef _DEBUG
+#include <stdio.h>
+#include <stdarg.h>
+#include <malloc.h>
+
+	//#define DEBUG_TO_X_DRIVE
+
+	void __inline DBGOUT( const char* format,... )
+	{
+		va_list marker ;
+		va_start( marker, format ) ;
+		int edit_ln = _vscprintf(format, marker);
+		if(edit_ln++>0) {
+			char *edit_str = static_cast<char*>(alloca(edit_ln)) ;
+			vsprintf_s( edit_str, edit_ln, format, marker ) ;
+			va_end( marker ) ;
+			#ifndef DEBUG_TO_X_DRIVE
+			OutputDebugStringA(edit_str) ;
+			#else
+			{
+				FILE *fp = NULL ;
+				fopen_s(&fp,"X:\\Debug.txt","a+t") ;
+				if(fp) {
+					fputs(edit_str,fp) ;
+					fclose(fp) ;
+				}
+			}
+			#endif
+		}
+	}
+
+#else
+
+	#define DBGOUT(...) /*empty*/
+
+#endif
+
+
 #endif

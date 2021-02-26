@@ -51,11 +51,14 @@ extern "C" __declspec(dllexport) IBonDriver * CreateBonDriver()
 HINSTANCE CBonTuner::m_hModule = NULL;
 
 	//PTxCtrl実行ファイルのミューテックス名
-	#define PT3_CTRL_MUTEX L"PT3_CTRL_EXE_MUTEX"
-	#define PT1_CTRL_MUTEX L"PT1_CTRL_EXE_MUTEX"
+	#define PT1_CTRL_MUTEX L"PT1_CTRL_EXE_MUTEX" // PTCtrl.exe
+	#define PT3_CTRL_MUTEX L"PT3_CTRL_EXE_MUTEX" // PT3Ctrl.exe
+	#define PT2_CTRL_MUTEX L"PT2_CTRL_EXE_MUTEX" // PTwCtrl.exe
 
 	//PTxCtrlへのコマンド送信用オブジェクト
-	CPTSendCtrlCmd PT1CmdSender(1), PT3CmdSender(3);
+	CPTSendCtrlCmd
+        PT1CmdSender(1), PT3CmdSender(3), // PT1/2/3
+        PTwCmdSender(2); // pt2wdm
 
 
 CBonTuner::CBonTuner()
@@ -96,6 +99,8 @@ CBonTuner::CBonTuner()
 
 	if(has_prefix(szFname,L"BonDriver_PTx"))
 		m_iPT=0;
+	else if(has_prefix(szFname,L"BonDriver_PTw"))
+		m_iPT=2;
 	else if(has_prefix(szFname,L"BonDriver_PT3"))
 		m_iPT=3;
 	else
@@ -136,7 +141,14 @@ CBonTuner::CBonTuner()
 
 		parse_fname(L"PTx");
 
-	}else if(m_iPT==3) { // PT3 Tuner
+	}else if(m_iPT==2) { // pt2wdm Tuner
+
+		wstring strPTwini = m_strDirPath + L"BonDriver_PTw-ST.ini";
+		if(PathFileExists(strPTwini.c_str())) strIni = strPTwini;
+
+		parse_fname(L"PTw");
+
+    }else if(m_iPT==3) { // PT3 Tuner
 
 		wstring strPT3ini = m_strDirPath + L"BonDriver_PT3-ST.ini";
 		if(PathFileExists(strPT3ini.c_str())) strIni = strPT3ini;
@@ -175,7 +187,12 @@ CBonTuner::CBonTuner()
 				strChSet += L"BonDriver_PT-S.ChSet.txt";
 			else
 				strChSet += L"BonDriver_PT-T.ChSet.txt";
-		}
+		}else if(m_iPT==2) {
+			if (m_isISDB_S)
+				strChSet += L"BonDriver_PTw-S.ChSet.txt";
+			else
+				strChSet += L"BonDriver_PTw-T.ChSet.txt";
+        }
 		if(!m_iPT||!m_chSet.ParseText(strChSet.c_str())) {
 			strChSet = szPath;
 			if (m_isISDB_S)
@@ -190,6 +207,7 @@ CBonTuner::CBonTuner()
 	switch(m_iPT ? m_iPT : m_bXFirstPT3 ? 3 : 1) {
 	case 1:	m_pCmdSender = &PT1CmdSender; break;
 	case 3:	m_pCmdSender = &PT3CmdSender; break;
+	case 2:	m_pCmdSender = &PTwCmdSender; break; // pt2wdm
 	}
 }
 
@@ -336,6 +354,10 @@ BOOL CBonTuner::LaunchPTCtrl(int iPT)
 		strPTCtrlExe += L"PT3Ctrl.exe" ;
 		mutexName = PT3_CTRL_MUTEX ;
 		break ;
+	case 2:
+		strPTCtrlExe += L"PTwCtrl.exe" ;
+		mutexName = PT2_CTRL_MUTEX ;
+		break ;
 	}
 
 	if(HANDLE Mutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, mutexName.c_str())) {
@@ -414,7 +436,7 @@ const BOOL CBonTuner::OpenTuner(void)
 		}
 		if(!opened) return FALSE ;
 
-	}else { // PT1/2/3 ( manual )
+	}else { // PT1/2/3 or pt2wdm ( manual )
 
 		if(!LaunchPTCtrl(m_iPT)) return FALSE;
 		if(!TryOpenTuner(m_iTunerID, &m_iID)){
@@ -691,13 +713,14 @@ void CBonTuner::GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive)
 	}else { // ID自動割り当てチューナー
 		if(lpdwTotal) *lpdwTotal=0;
 		if(lpdwActive) *lpdwActive=0;
-		for(int i=1;i<=3;i+=2) {
-			if(!m_iPT||m_iPT==i) {
+		for(int i=1;i<=3;i++) {
+			if((!m_iPT&&i!=2)||m_iPT==i) {
 				if(LaunchPTCtrl(i)) {
 					CPTSendCtrlCmd *sender;
 					switch(i) {
 					case 1:	sender = &PT1CmdSender; break;
 					case 3:	sender = &PT3CmdSender; break;
+					case 2:	sender = &PTwCmdSender; break;
 					}
 					DWORD dwNumTuner=0;
 					if(lpdwTotal && sender->GetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS) {

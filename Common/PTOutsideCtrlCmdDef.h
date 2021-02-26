@@ -29,6 +29,16 @@
 		#define CMD_PT1_CTRL_EVENT_WAIT_CONNECT _T("Global\\PT3CtrlConnect")
 		#define CMD_PT1_DATA_EVENT_WAIT_CONNECT _T("Global\\PT3DataConnect_")
 
+	#elif PT_VER==2		// pt2wdm (PTwCtrl.exe)
+
+		//パイプ名
+		#define CMD_PT1_CTRL_PIPE _T("\\\\.\\pipe\\PT2CtrlPipe")
+		#define CMD_PT1_DATA_PIPE _T("\\\\.\\pipe\\PT2DataPipe_")
+
+		//接続待機用イベント
+		#define CMD_PT1_CTRL_EVENT_WAIT_CONNECT _T("Global\\PT2CtrlConnect")
+		#define CMD_PT1_DATA_EVENT_WAIT_CONNECT _T("Global\\PT2DataConnect_")
+
 	#else
 
 		#error 判別出来ない PT_VER
