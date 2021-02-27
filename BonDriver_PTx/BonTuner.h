@@ -87,6 +87,7 @@ protected:
 	BOOL m_isISDB_S;
 	BOOL m_bBon3Lnb;
 	BOOL m_bTrySpares;
+	BOOL m_bSpeedyScan;
 	BOOL m_bXFirstPT3;
 	DWORD m_dwSetChDelay;
 

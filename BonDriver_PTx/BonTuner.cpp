@@ -168,6 +168,7 @@ CBonTuner::CBonTuner()
 
 	m_bTrySpares = GetPrivateProfileIntW(L"SET", L"TrySpares", 0, strIni.c_str());
 	m_bBon3Lnb = GetPrivateProfileIntW(L"SET", L"Bon3Lnb", 0, strIni.c_str());
+	m_bSpeedyScan = GetPrivateProfileIntW(L"SET", L"SpeedyScan", 0, strIni.c_str());
 	m_dwSetChDelay = GetPrivateProfileIntW(L"SET", L"SetChDelay", 0, strIni.c_str());
 
 	wstring strChSet;
@@ -647,7 +648,8 @@ const BOOL CBonTuner::SetChannel(const DWORD dwSpace, const DWORD dwChannel)
 	if( dwRet==CMD_SUCCESS ){
 		m_dwCurSpace = dwSpace;
 		m_dwCurChannel = dwChannel;
-		return m_hasStream ? TRUE : FALSE ;
+		if(m_bSpeedyScan) return m_hasStream ? TRUE : FALSE ;
+		return TRUE ;
 	}
 
 	return FALSE;

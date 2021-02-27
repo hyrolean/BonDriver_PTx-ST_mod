@@ -491,7 +491,7 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
 	uint32 iTuner = iID&0x000000FF;
 
-    hasStream = TRUE ;
+	hasStream = FALSE ;
 
 	if( (int)m_EnumDev.size() <= iDevID ){
 		return FALSE;
@@ -517,7 +517,6 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 		return FALSE ;
 	}
 	if( enISDB == PT::Device::ISDB_S ){
-		hasStream = FALSE ;
 		if(!(dwTSID&~7UL)) {
 			//dwTSIDに0～7が指定された場合は、TSIDをチューナーから取得して
 			//下位３ビットと一致するものに書き換える
@@ -562,6 +561,17 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 			if( !hasStream && enStatus != PT::STATUS_OK ){
 				_OutputDebugString(L"CPT%dManager::SetCh: failure!\n",PT_VER) ;
 				return FALSE;
+			}
+		}
+	}else {
+		Sleep(50);
+		for (DWORD t=0,s=dur(); t<MAXDUR_TMCC; t=dur(s)) {
+			PT::Device::TmccT tmcc;
+			ZeroMemory(&tmcc,sizeof(tmcc));
+			//std::fill_n(tmcc.Id,8,0xffff) ;
+			enStatus = m_EnumDev[iDevID]->pcDevice->GetTmccT(iTuner, &tmcc);
+			if (enStatus == PT::STATUS_OK) {
+				hasStream = TRUE ; break;
 			}
 		}
 	}
