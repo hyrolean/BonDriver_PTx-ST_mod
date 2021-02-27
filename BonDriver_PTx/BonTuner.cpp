@@ -647,7 +647,7 @@ const BOOL CBonTuner::SetChannel(const DWORD dwSpace, const DWORD dwChannel)
 	if( dwRet==CMD_SUCCESS ){
 		m_dwCurSpace = dwSpace;
 		m_dwCurChannel = dwChannel;
-		return TRUE;
+		return m_hasStream ? TRUE : FALSE ;
 	}
 
 	return FALSE;
