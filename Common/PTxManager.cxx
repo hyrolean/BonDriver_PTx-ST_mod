@@ -573,6 +573,7 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 			if (enStatus == PT::STATUS_OK) {
 				hasStream = TRUE ; break;
 			}
+			Sleep(50);
 		}
 	}
 
