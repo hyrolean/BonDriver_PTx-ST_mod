@@ -110,7 +110,7 @@ CBonTuner::CBonTuner()
 	WCHAR szName[256];
 	m_iTunerID = -1;
 
-	_wcsupr_s( szFname, sizeof(szFname) ) ;
+	_wcsupr_s( szFname, sizeof(szFname) / sizeof(WCHAR) ) ;
 
 	auto parse_fname = [&](wstring ptx, wstring prefix=L"") -> void {
 	    WCHAR cTS=L'S'; int id=-1;
