@@ -6,7 +6,7 @@
 
   BonDriverを統合し、IBonDriver3(Bonドライバインタフェース3)にも対応しました。
   今回、BonDriverを統合したことにより、たとえば、PT2とPT3をミックスして使っているような違うチューナーの種類をBonDriverで分別することによって発生していた煩わしいコストを削減できます。
-  
+
   IBonDriver3に対応したことにより、たとえば、EDCBを利用する場合、最悪以下の5ファイルをEDCBのBonDriverディレクトリに配置し、チャンネルスキャンした後に、EpgTimerの設定画面|基本設定|チューナー|の各々の**チューナー数**の項目を運用しているPT1/2/3の種類に関わらず、運用しているPTx全個体数(PT1/2/3を嵌めているPCIカード数)の2倍に調整すればインストール完了です。
   ```
   [EPGDataCap_BonのBonDriverフォルダ内]
@@ -18,7 +18,7 @@
   ```
   あとは、順次使用するチューナーを自動判別してくれます。
   PT1/PT2/PT3などのチューナーの種類を意識する必要はなくなります。
-  
+
   また、いままで通りの連番や固有名でも以前と変わりなくそのまま運用可能です。
   ```
   BonDriver_PT-S0.dll ← BS/CS110 PT1/PT2の最初のチューナーのS1端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
@@ -30,7 +30,7 @@
   BonDriver_PT-ST.ini ← PT1/PT2用設定ファイル (BonDriver_PTx-ST.iniをリネームしたもの)
   BonDriver_PT3-ST.ini ← PT3用設定ファイル (BonDriver_PTx-ST.iniをリネームしたもの)
   ```
-  
+
   PTxで連番を利用する場合は以下の通りです。
   ```
   BonDriver_PTx-S0.dll ← BS/CS110 複合チューナーの最初のチューナーのS1端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
@@ -46,10 +46,10 @@
   BonDriver_PTx-S5.dll ← BS/CS110 複合チューナーの三枚目のチューナーのS2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
   BonDriver_PTx-T5.dll ← 地デジ 複合チューナーの三枚目のチューナーのT2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
   ```
-  
-  - [mod3.2 BSAlmighty+DeltaHz+DefSpace+PTx fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod3.2)
+
+  - [mod3.3 BSAlmighty+DeltaHz+DefSpace+PTx fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod3.3)
     (Described by 2021/02/20 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-  
+
     **※PTx複合チューナーが PT3、PT1/PT2、どちらを優先的にチューナーを開くかは、BonDriver_PTx-ST.ini の xFirstPT3 項目の値を変えることによって挙動を変更出来ます。**
 
 ### ■ チャンネルファイル.ChSet.txtファイルに -/+ を値欄に記述することにより、直近に登録したチャンネルの値を参照できるようになりました。
@@ -68,9 +68,9 @@
   特殊な受信環境でなければ、.ChSet.txtファイルの複雑怪奇な編集作業を実質まったく行う必要がなくなり、チャンネル情報書き換えによる煩わしいコストを省けます。
   - [mod2α2 BSAlmighty+DeltaHz+DefSpace fixes](https://github.com/hyrolean/BonDriver_PT3-ST_mod/releases/tag/mod2_alpha2)
     (Described by 2021/02/04 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-  
+
     **※既定のチャンネル情報を有効にするには、いままで利用していた.ChSet.txtファイルを抹消し、代替に添付のBonDriver_PT3-ST.iniファイルをBonDriverと同じフォルダに置いてDefSpaceセクションをチューナー環境に応じて適切に編集してみて下さい。**
-  
+
 ### ■ ヘタってきたチューナー用に周波数を微調整する機能を追加しました。
 
   チャンネルファイルの"PTxとしてのチャンネル"部分にch番号±δで調整できます。
@@ -96,13 +96,13 @@
   ヘタったチューナーの周波数を微調整したい場合や、地上波とCATVに分けたい場合などに個別のチャンネルファイルとして取扱う目的で利用できるようになります。
   - [mod BSAlmighty+DeltaHz fixes](https://github.com/hyrolean/BonDriver_PT3-ST_mod/releases/tag/mod)
     (Described by 2020/01/08 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-    
+
 ### ■ BonDriver_PT3-S.ChSet.txtのTSID項目に0～7の値を指定するとチューナーからTSIDを抜き取って下位3ビットがその値と一致するTSIDを持つストリームを自動選択します。
 
   トランスポンダの再編などによりチャンネル情報が変更された場合にチャンネルファイルのTSIDを実質一々書き換える必要がなくなりアプリケーション側のチャンネルスキャンだけで事が足りるようになります。
   - [mod BSAlmighty+DeltaHz fixes](https://github.com/hyrolean/BonDriver_PT3-ST_mod/releases/tag/mod)
     (Described by 2020/01/07 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-  
+
     **※機能を有効にするには、添付のBonDriver_PT3-S.ChSet.txtを差し替えてください。また、添付のBonDriver_PT3-S.ChSet.txtを差し替えた結果、EDCBでのチャンネルのスキャン時に抜けが発生する場合は、下記のようにEDCBのディレクトリ上に存在する設定ファイルBonCtrl.iniのServiceChkTimeOutの値を15くらいに上げて再スキャンしてみてください。**
     ```
     ;チャンネルスキャン時の動作設定

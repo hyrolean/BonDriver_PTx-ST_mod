@@ -10,10 +10,9 @@ namespace EARTH {
 		class Library {
 			static	status NewBusFunction_(PT::Bus **lplpBus) {
 				*lplpBus = new PT::Bus ;
-				if(*lplpBus!=nullptr)
-					return PT::STATUS_OK;
-				else
+				if(*lplpBus==nullptr)
 					return PT::STATUS_OUT_OF_MEMORY_ERROR;
+				return PT::STATUS_OK;
 			}
 		public:
 			PT::Bus::NewBusFunction Function() const {

@@ -183,13 +183,13 @@ BOOL CPTxManager::SetLnbPower(int iID, BOOL bEnabled)
 	if( enISDB != PT::Device::ISDB_S || iDevID>=m_EnumDev.size() )
 		return FALSE;
 
-	if( !m_EnumDev[iDevID]->bUseS0 && !m_EnumDev[iDevID]->bUseS1 )
+	if( m_EnumDev[iDevID]->pcDevice == NULL )
 		return FALSE;
 
-	BOOL bCurLnb = m_EnumDev[iDevID]->bLnbS0 || m_EnumDev[iDevID]->bLnbS1 ;
+	bool bCurLnb = m_EnumDev[iDevID]->bLnbS0 || m_EnumDev[iDevID]->bLnbS1 ;
 	if( iTuner == 0 )	m_EnumDev[iDevID]->bLnbS0 = bEnabled ;
 	else				m_EnumDev[iDevID]->bLnbS1 = bEnabled ;
-	BOOL bNewLnb = m_EnumDev[iDevID]->bLnbS0 || m_EnumDev[iDevID]->bLnbS1 ;
+	bool bNewLnb = m_EnumDev[iDevID]->bLnbS0 || m_EnumDev[iDevID]->bLnbS1 ;
 
 	if(bCurLnb != bNewLnb) {
 		m_EnumDev[iDevID]->pcDevice->SetLnbPower(
@@ -356,11 +356,7 @@ int CPTxManager::OpenTuner(BOOL bSate)
 		return -1;
 	}
 
-	if( m_bUseLNB && enISDB == PT::Device::ISDB_S){
-		if( iTuner == 0 )	m_EnumDev[iDevID]->bLnbS0 = TRUE;
-		else				m_EnumDev[iDevID]->bLnbS1 = TRUE;
-		m_EnumDev[iDevID]->pcDevice->SetLnbPower(PT::Device::LNB_POWER_15V);
-	}
+	if( m_bUseLNB ) SetLnbPower(iID, TRUE);
 
 #if PT_VER==1 || PT_VER==2
 	enStatus = m_EnumDev[iDevID]->pcDevice->SetStreamEnable(iTuner, enISDB, true);
@@ -441,14 +437,7 @@ BOOL CPTxManager::CloseTuner(int iID)
 		}
 	}
 
-	if (m_bUseLNB) {
-		if(enISDB == PT::Device::ISDB_S) {
-			if( iTuner == 0 )	m_EnumDev[iDevID]->bLnbS0 = FALSE;
-			else				m_EnumDev[iDevID]->bLnbS1 = FALSE;
-		}
-		if(m_EnumDev[iDevID]->bLnbS0 == FALSE && m_EnumDev[iDevID]->bLnbS1 == FALSE)
-			m_EnumDev[iDevID]->pcDevice->SetLnbPower(PT::Device::LNB_POWER_OFF);
-	}
+	if( m_bUseLNB ) SetLnbPower(iID, FALSE);
 
 	if( m_EnumDev[iDevID]->bUseT0 == FALSE &&
 		m_EnumDev[iDevID]->bUseT1 == FALSE &&
@@ -812,9 +801,8 @@ int CPTxManager::OpenTuner2(BOOL bSate, int iTunerID)
 		return -1;
 	}
 
-	if( m_bUseLNB && enISDB == PT::Device::ISDB_S){
-		m_EnumDev[iDevID]->pcDevice->SetLnbPower(PT::Device::LNB_POWER_15V);
-	}
+	if( m_bUseLNB ) SetLnbPower(iID, TRUE);
+
 #if PT_VER==1 || PT_VER==2
 	enStatus = m_EnumDev[iDevID]->pcDevice->SetStreamEnable(iTuner, enISDB, true);
 	if( enStatus != PT::STATUS_OK ){

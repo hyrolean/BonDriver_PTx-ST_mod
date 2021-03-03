@@ -41,7 +41,7 @@ void _OutputDebugString(const TCHAR *pOutputString, ...);
 #include <stdarg.h>
 #include <malloc.h>
 
-	//#define DEBUG_TO_X_DRIVE
+	#define DEBUG_TO_X_DRIVE
 
 	void __inline DBGOUT( const char* format,... )
 	{
@@ -66,10 +66,12 @@ void _OutputDebugString(const TCHAR *pOutputString, ...);
 			#endif
 		}
 	}
+	#define LINEDEBUG DBGOUT("%s(%d): passed.\n",__FILE__,__LINE__)
 
 #else
 
 	#define DBGOUT(...) /*empty*/
+	#define LINEDEBUG   /*empty*/
 
 #endif
 

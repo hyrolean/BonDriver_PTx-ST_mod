@@ -262,6 +262,7 @@ int CompareNoCase(string str1, string str2)
 
 int CompareNoCase(wstring str1, wstring str2)
 {
+#if 0
 	DWORD dwSize1 = (DWORD)str1.length()+1;
 	DWORD dwSize2 = (DWORD)str2.length()+1;
 
@@ -282,6 +283,12 @@ int CompareNoCase(wstring str1, wstring str2)
 
 	delete[] szBuff1;
 	delete[] szBuff2;
+#else
+	wstring strBuff1 = str1;
+	wstring strBuff2 = str2;
+	for(auto &v: strBuff1) v=towupper(v);
+	for(auto &v: strBuff2) v=towupper(v);
+#endif
 
 	return strBuff1.compare(strBuff2);
 }
