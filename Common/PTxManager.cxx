@@ -53,6 +53,10 @@ CPTxManager::CPTxManager(void)
 	if( m_uiVirtualCount == 0 ){
 		m_uiVirtualCount = 8;
 	}
+
+	m_dwMaxDurFREQ = GetPrivateProfileInt(L"SET", L"MAXDUR_FREQ", 1000, strIni.c_str() ); //ü”g”’²®‚É”ï‚â‚·Å‘åŠÔ(msec)
+	m_dwMaxDurTMCC = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC", 1500, strIni.c_str() ); //TMCCæ“¾‚É”ï‚â‚·Å‘åŠÔ(msec)
+	m_dwMaxDurTSID = GetPrivateProfileInt(L"SET", L"MAXDUR_TSID", 3000, strIni.c_str() ); //TSIDİ’è‚É”ï‚â‚·Å‘åŠÔ(msec)
 }
 
 BOOL CPTxManager::LoadSDK()
@@ -162,13 +166,13 @@ BOOL CPTxManager::IsFindOpen()
 DWORD CPTxManager::GetActiveTunerCount(BOOL bSate)
 {
 	DWORD total_used=0;
-	for( int i=0; i<(int)m_EnumDev.size(); i++ ){
+	for( auto dev : m_EnumDev ){
 		if( bSate == FALSE ){
-			if(m_EnumDev[i]->bUseT0) total_used++;
-			if(m_EnumDev[i]->bUseT1) total_used++;
+			if(dev->bUseT0) total_used++;
+			if(dev->bUseT1) total_used++;
 		}else {
-			if(m_EnumDev[i]->bUseS0) total_used++;
-			if(m_EnumDev[i]->bUseS1) total_used++;
+			if(dev->bUseS0) total_used++;
+			if(dev->bUseS1) total_used++;
 		}
 	}
 	return total_used;
@@ -461,10 +465,6 @@ BOOL CPTxManager::CloseTuner(int iID)
 // MARK : BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream)
 BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream)
 {
-	const DWORD MAXDUR_FREQ = 1000; //ü”g”’²®‚É”ï‚â‚·Å‘åŠÔ(msec)
-	const DWORD MAXDUR_TMCC = 1500; //TMCCæ“¾‚É”ï‚â‚·Å‘åŠÔ(msec)
-	const DWORD MAXDUR_TSID = 3000; //TSIDİ’è‚É”ï‚â‚·Å‘åŠÔ(msec)
-
 	auto dur =[](DWORD s=0, DWORD e=GetTickCount()) -> DWORD {
 		// duration ( s -> e )
 		return s <= e ? e - s : 0xFFFFFFFFUL - s + 1 + e;
@@ -487,7 +487,7 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 	}
 
 	status enStatus;
-	for (DWORD t=0,s=dur(),n=0; t<MAXDUR_FREQ; t=dur(s)) {
+	for (DWORD t=0,s=dur(),n=0; t<m_dwMaxDurFREQ; t=dur(s)) {
 #if PT_VER==1 || PT_VER==2
 		enStatus = m_EnumDev[iDevID]->pcDevice->SetFrequency(iTuner, enISDB, ch, offset);
 #elif PT_VER==3
@@ -511,7 +511,7 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 			//‰ºˆÊ‚Rƒrƒbƒg‚Æˆê’v‚·‚é‚à‚Ì‚É‘‚«Š·‚¦‚é
 			// by 2020 LVhJPic0JSk5LiQ1ITskKVk9UGBg
 			Sleep(50);
-			for (DWORD t=0,s=dur(); t<MAXDUR_TMCC; t=dur(s)) {
+			for (DWORD t=0,s=dur(); t<m_dwMaxDurTMCC; t=dur(s)) {
 				PT::Device::TmccS tmcc;
 				ZeroMemory(&tmcc,sizeof(tmcc));
 				//std::fill_n(tmcc.Id,8,0xffff) ;
@@ -536,13 +536,13 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 		if(dwTSID&~7UL) {
 			uint32 uiGetID=0xffff;
 			Sleep(50);
-			for (DWORD t=0,s=dur(),n=0; t<MAXDUR_TSID ; t=dur(s)) {
+			for (DWORD t=0,s=dur(),n=0; t<m_dwMaxDurTSID ; t=dur(s)) {
 				enStatus = m_EnumDev[iDevID]->pcDevice->SetIdS(iTuner, dwTSID);
 				if( enStatus == PT::STATUS_OK ) { if(++n>=2) break ; }
 				Sleep(50);
 			}
 			Sleep(10);
-			for (DWORD t=0,s=dur(); t<MAXDUR_TSID && dwTSID != uiGetID ; t=dur(s)) {
+			for (DWORD t=0,s=dur(); t<m_dwMaxDurTSID && dwTSID != uiGetID ; t=dur(s)) {
 				enStatus = m_EnumDev[iDevID]->pcDevice->GetIdS(iTuner, &uiGetID);
 				Sleep(10);
 			}
@@ -554,7 +554,7 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 		}
 	}else {
 		Sleep(50);
-		for (DWORD t=0,s=dur(); t<MAXDUR_TMCC; t=dur(s)) {
+		for (DWORD t=0,s=dur(); t<m_dwMaxDurTMCC; t=dur(s)) {
 			PT::Device::TmccT tmcc;
 			ZeroMemory(&tmcc,sizeof(tmcc));
 			//std::fill_n(tmcc.Id,8,0xffff) ;

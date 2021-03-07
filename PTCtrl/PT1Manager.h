@@ -60,9 +60,6 @@ protected:
 	}DEV_STATUS;
 	vector<DEV_STATUS*> m_EnumDev;
 
-	BOOL m_bUseLNB;
-	UINT m_uiVirtualCount;
-
 protected:
 	void FreeSDK();
 };

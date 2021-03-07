@@ -24,7 +24,7 @@
   BonDriver_PT-S0.dll ← BS/CS110 PT1/PT2の最初のチューナーのS1端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
   BonDriver_PT-T1.dll ← 地デジ PT1/PT2の最初のチューナーのT2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
   BonDriver_PT3-S2.dll ← BS/CS110 PT3の二枚目のチューナーのS側1番目のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PT3-T3.dll ← 地デジ PT3チュの二枚目のチューナーのT側2番目のチューナー (BonDriver_PTx.dllをリネームしたもの)
+  BonDriver_PT3-T3.dll ← 地デジ PT3の二枚目のチューナーのT側2番目のチューナー (BonDriver_PTx.dllをリネームしたもの)
   BonDriver_PT3-S.dll ← BS/CS110 PT3のS側ID自動判別チューナー (BonDriver_PTx.dllをリネームしたもの)
   BonDriver_PT-T.dll ← 地デジ PT1/PT2のT側ID自動判別チューナー (BonDriver_PTx.dllをリネームしたもの)
   BonDriver_PT-ST.ini ← PT1/PT2用設定ファイル (BonDriver_PTx-ST.iniをリネームしたもの)
@@ -48,7 +48,7 @@
   ```
 
   - [mod3.3 BSAlmighty+DeltaHz+DefSpace+PTx fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod3.3)
-    (Described by 2021/02/20 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+    (Described by 2021/03/03 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 
     **※PTx複合チューナーが PT3、PT1/PT2、どちらを優先的にチューナーを開くかは、BonDriver_PTx-ST.ini の xFirstPT3 項目の値を変えることによって挙動を変更出来ます。**
 

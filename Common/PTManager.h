@@ -29,6 +29,13 @@ public:
 
 protected:
 
+	BOOL m_bUseLNB;
+	UINT m_uiVirtualCount;
+
+	DWORD m_dwMaxDurFREQ;
+	DWORD m_dwMaxDurTMCC;
+	DWORD m_dwMaxDurTSID;
+
 	virtual void FreeSDK() {}
 };
 

@@ -236,6 +236,7 @@ void ChkFileName(wstring& strPath)
 
 int CompareNoCase(string str1, string str2)
 {
+#if 0
 	DWORD dwSize1 = (DWORD)str1.length()+1;
 	DWORD dwSize2 = (DWORD)str2.length()+1;
 
@@ -258,6 +259,12 @@ int CompareNoCase(string str1, string str2)
 	delete[] szBuff2;
 
 	return strBuff1.compare(strBuff2);
+#else
+	wstring strBuff1, strBuff2 ;
+	AtoW(str1, strBuff1);
+	AtoW(str2, strBuff2);
+	return CompareNoCase(strBuff1, strBuff2);
+#endif
 }
 
 int CompareNoCase(wstring str1, wstring str2)
