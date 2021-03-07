@@ -107,7 +107,6 @@
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalLibraryDirectories>.\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>EarthIfLib.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -137,7 +136,6 @@
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalLibraryDirectories>.\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>EarthIfLib.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -163,7 +161,6 @@
       <TargetMachine>MachineX64</TargetMachine>
       <AdditionalLibraryDirectories>.\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>EarthIfLib64.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -196,7 +193,6 @@
       <TargetMachine>MachineX64</TargetMachine>
       <AdditionalLibraryDirectories>.\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>EarthIfLib64.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
