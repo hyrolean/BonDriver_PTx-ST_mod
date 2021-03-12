@@ -47,8 +47,8 @@
   BonDriver_PTx-T5.dll ← 地デジ 複合チューナーの三枚目のチューナーのT2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
   ```
 
-  - [mod3.3 BSAlmighty+DeltaHz+DefSpace+PTx fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod3.3)
-    (Described by 2021/03/03 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+  - [mod3.4 BSAlmighty+DeltaHz+DefSpace+PTx fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod3.4)
+    (Described by 2021/03/13 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 
     **※PTx複合チューナーが PT3、PT1/PT2、どちらを優先的にチューナーを開くかは、BonDriver_PTx-ST.ini の xFirstPT3 項目の値を変えることによって挙動を変更出来ます。**
 
