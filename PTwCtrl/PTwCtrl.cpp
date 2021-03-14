@@ -14,6 +14,131 @@ SERVICE_STATUS_HANDLE g_hStatusHandle;
 #define PT1_CTRL_MUTEX L"PT2_CTRL_EXE_MUTEX"
 #define SERVICE_NAME L"PT2Ctrl Service"
 
+#ifdef PTW_GALAPAGOS // begin of PTW_GALAPAGOS
+
+#include <process.h>
+#include "PTxWDMCmdSrv.h"
+
+#define AuxiliaryMaxWait	5000
+#define AuxiliaryMaxAlive	30000
+
+class CPTxWDMCtrlAuxiliary
+{
+protected:
+	CPTxWDMCmdServiceOperator	Op;
+	CSharedTransportStreamer	*St;
+	DWORD CmdWait, Timeout;
+	HANDLE Thread;
+	BOOL ThTerm;
+
+private:
+	BOOL TxWriteDone;
+	static BOOL __stdcall TxDirectWriteProc(LPVOID dst, DWORD &sz, PVOID arg) {
+		auto this_ = static_cast<CPTxWDMCtrlAuxiliary*>(arg) ;
+		return (this_->TxWriteDone = this_->Op.GetStreamData(dst, sz)) ;
+	}
+
+	int StreamingThreadProcMain() {
+		const DWORD szp = Op.StreamerPacketSize() ;
+		bool retry=false;
+		while(!ThTerm) {
+			if(!retry) {
+				if(Op.CurStreamSize()<szp) {Sleep(10);continue;}
+			}
+			TxWriteDone = FALSE;
+			BOOL r = retry ?
+				St->TxDirect(NULL, &TxWriteDone, Timeout):
+				St->TxDirect(TxDirectWriteProc, this, Timeout);
+			retry = !r && TxWriteDone ;
+		}
+		DBGOUT("-- Streaming Done --\n");
+		return 0;
+	}
+
+	static unsigned int __stdcall StreamingThreadProc (PVOID pv) {
+		auto this_ = static_cast<CPTxWDMCtrlAuxiliary*>(pv) ;
+		unsigned int result = this_->StreamingThreadProcMain() ;
+		_endthreadex(result) ;
+		return result;
+	}
+
+protected:
+	void StartStreaming() {
+		if(Thread != INVALID_HANDLE_VALUE) return /*already activated*/;
+		Thread = (HANDLE)_beginthreadex(NULL, 0, StreamingThreadProc, this,
+			CREATE_SUSPENDED, NULL) ;
+		if(Thread != INVALID_HANDLE_VALUE) {
+			if(St) delete St;
+			St = new CSharedTransportStreamer(
+				Op.Name()+SHAREDMEM_TRANSPORT_STREAM_SUFFIX, FALSE,
+				Op.StreamerPacketSize(), Op.CtrlPackets() );
+			DBGOUT("AUX Streamer memName: %s\n", wcs2mbcs(St->Name()).c_str());
+			DBGOUT("-- Start Streaming --\n");
+			::SetThreadPriority( Thread, Op.StreamerThreadPriority() );
+			ThTerm=FALSE;
+			::ResumeThread(Thread) ;
+		}else {
+			DBGOUT("*** Streaming thread creation failed. ***\n");
+		}
+	}
+
+	void StopStreaming() {
+		if(Thread == INVALID_HANDLE_VALUE) return /*already inactivated*/;
+		ThTerm=TRUE;
+		if(::WaitForSingleObject(Thread,Timeout*2) != WAIT_OBJECT_0) {
+			::TerminateThread(Thread, 0);
+		}
+		Thread = INVALID_HANDLE_VALUE ;
+		if(St) { delete St; St=NULL; }
+		DBGOUT("-- Stop Streaming --\n");
+	}
+
+public:
+	CPTxWDMCtrlAuxiliary(wstring name, DWORD cmdwait=INFINITE, DWORD timeout=INFINITE)
+	 :	Op( name ), St( NULL ), Thread(INVALID_HANDLE_VALUE), ThTerm(TRUE)
+	{ CmdWait = cmdwait ; Timeout = timeout ; }
+	~CPTxWDMCtrlAuxiliary() { StopStreaming(); }
+
+	int MainLoop() {
+		auto dur =[](DWORD s=0, DWORD e=GetTickCount()) -> DWORD {
+			// duration ( s -> e )
+			return s <= e ? e - s : 0xFFFFFFFFUL - s + 1 + e;
+		};
+		BOOL enable_streaming = FALSE ;
+		while(!Op.Terminated()) {
+			DWORD wait_res = Op.WaitForCmd(CmdWait);
+			if(wait_res==WAIT_OBJECT_0) {
+				if(!Op.ServiceReaction(Timeout)) {
+					DBGOUT("service reaction failed.\n");
+					return 1;
+				}
+				BOOL streaming_enabled = Op.StreamingEnabled();
+				if(enable_streaming != streaming_enabled) {
+					enable_streaming = streaming_enabled;
+					if(enable_streaming)	StartStreaming();
+					else					StopStreaming();
+				}
+			}else if(wait_res==WAIT_TIMEOUT) {
+				if(dur(Op.LastAlive())>=Timeout) {
+					if(HANDLE mutex = OpenMutex(MUTEX_ALL_ACCESS,FALSE,Op.Name().c_str())) {
+						Op.KeepAlive();
+						CloseHandle(mutex);
+					}else {
+						DBGOUT("service timeout.\n");
+						return -1;
+					}
+				}
+			}
+		}
+		DBGOUT("service terminated.\n");
+		return 0;
+	}
+
+};
+
+#endif // end of PTW_GALAPAGOS
+
+
 int APIENTRY _tWinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
                      LPTSTR    lpCmdLine,
@@ -32,6 +157,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				return 0;
 			}
 		}
+#ifdef PTW_GALAPAGOS // begin of PTW_GALAPAGOS
+		else {
+			return CPTxWDMCtrlAuxiliary(lpCmdLine, AuxiliaryMaxWait, AuxiliaryMaxAlive).MainLoop() ;
+		}
+#endif // end of PTW_GALAPAGOS
 	}
 
 	if (IsInstallService(SERVICE_NAME) == FALSE) {

@@ -80,6 +80,7 @@ protected:
 
 	HANDLE m_hStopEvent;
 	HANDLE m_hThread;
+	HANDLE m_hSharedMemTransportMutex;
 
 	int m_iPT;
 	int m_iID;
@@ -106,5 +107,7 @@ protected:
 	BOOL TryOpenTuner(int iTunerID, int *piID);
 
 protected:
-	static UINT WINAPI RecvThread(LPVOID pParam);
+	static UINT WINAPI RecvThreadPipeIO(LPVOID pParam);
+	static UINT WINAPI RecvThreadSharedMem(LPVOID pParam);
 };
+

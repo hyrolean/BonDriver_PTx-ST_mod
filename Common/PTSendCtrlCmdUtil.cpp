@@ -242,3 +242,21 @@ DWORD CPTSendCtrlCmd::SendData(int iID, BYTE** pbData, DWORD* pdwSize, DWORD dwC
 
 	return dwRet;
 }
+
+DWORD CPTSendCtrlCmd::GetStreamingMethod(PTSTREAMING *pPTStreaming, DWORD dwConnectTimeOut)
+{
+	CMD_STREAM stSend;
+	CMD_STREAM stRes;
+
+	stSend.dwParam = CMD_GET_STREAMING_METHOD;
+
+	DWORD dwRet = SendDefCmd(m_strCmdEvent.c_str(), m_strCmdPipe.c_str(), dwConnectTimeOut, &stSend, &stRes);
+	if( dwRet == CMD_SUCCESS ){
+		DWORD dwPTStreaming;
+		CopyDefData(&dwPTStreaming, stRes.bData);
+		*pPTStreaming=static_cast<PTSTREAMING>(dwPTStreaming);
+	}
+
+	return dwRet;
+}
+

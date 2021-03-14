@@ -2,4 +2,6 @@
 
   - EarthIfLib.lib  (pt2wdmドライバの中に入っているもの)
   - EarthIfLib64.lib  (pt2wdmドライバの中に入っているもの[x64版構築に必要])
+  - PtDrvIfLib.lib  (pt2wdmドライバの中に入っているもの)
+  - PtDrvIfLib64.lib  (pt2wdmドライバの中に入っているもの[x64版構築に必要])
 

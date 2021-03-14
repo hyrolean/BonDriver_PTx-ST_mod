@@ -1,5 +1,10 @@
 #pragma once
 
+enum PTSTREAMING : DWORD {
+	PTSTREAMING_PIPEIO=0,
+	PTSTREAMING_SHAREDMEM=1
+};
+
 class IPTManager
 {
 protected:
@@ -11,6 +16,8 @@ public:
 	virtual BOOL LoadSDK() = 0 ;
 	virtual BOOL Init() = 0 ;
 	virtual void UnInit() = 0 ;
+
+	virtual PTSTREAMING GetStreamingMethod() {return PTSTREAMING_PIPEIO;}
 
 	virtual DWORD GetTotalTunerCount() = 0 ;
 	virtual DWORD GetActiveTunerCount(BOOL bSate) = 0 ;

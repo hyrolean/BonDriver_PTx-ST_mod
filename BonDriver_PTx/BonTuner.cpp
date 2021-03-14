@@ -10,6 +10,7 @@
 #pragma comment(lib, "Shlwapi.lib")
 
 #include "BonTuner.h"
+#include "../Common/SharedMem.h"
 
 using namespace std;
 
@@ -74,6 +75,7 @@ CBonTuner::CBonTuner()
 	m_iID = -1;
 	m_hStopEvent = _CreateEvent(FALSE, FALSE, NULL);
 	m_hThread = NULL;
+	m_hSharedMemTransportMutex = NULL;
 
 	::InitializeCriticalSection(&m_CriticalSection);
 
@@ -372,6 +374,7 @@ BOOL CBonTuner::LaunchPTCtrl(int iPT)
 		return FALSE;
 	}
 
+	strPTCtrlExe = L"\""+strPTCtrlExe+L"\"" ;
 	BOOL bRet = CreateProcessW( NULL, (LPWSTR)strPTCtrlExe.c_str(), NULL, NULL, FALSE, GetPriorityClass(GetCurrentProcess()), NULL, NULL, &si, &pi );
 	CloseHandle(pi.hThread);
 	CloseHandle(pi.hProcess);
@@ -448,8 +451,23 @@ const BOOL CBonTuner::OpenTuner(void)
 
 	}
 
-	m_hThread = (HANDLE)_beginthreadex(NULL, 0, RecvThread, (LPVOID)this, CREATE_SUSPENDED, NULL);
-	ResumeThread(m_hThread);
+	PTSTREAMING streaming_method=PTSTREAMING_PIPEIO;
+	m_pCmdSender->GetStreamingMethod(&streaming_method);
+	switch(streaming_method) {
+	case PTSTREAMING_PIPEIO:
+		m_hThread = (HANDLE)_beginthreadex(NULL, 0, RecvThreadPipeIO, (LPVOID)this, CREATE_SUSPENDED, NULL);
+		break;
+	case PTSTREAMING_SHAREDMEM:
+		m_hThread = (HANDLE)_beginthreadex(NULL, 0, RecvThreadSharedMem, (LPVOID)this, CREATE_SUSPENDED, NULL);
+		{
+			wstring memName;
+			Format(memName,SHAREDMEM_TRANSPORT_FORMAT,m_pCmdSender->GetPTKind(),m_iID) ;
+			m_hSharedMemTransportMutex = _CreateMutex(TRUE, memName.c_str());
+		}
+		break;
+	}
+	if(m_hThread&&m_hThread!=INVALID_HANDLE_VALUE)
+		ResumeThread(m_hThread);
 
 	return TRUE;
 }
@@ -464,6 +482,12 @@ void CBonTuner::CloseTuner(void)
 		}
 		CloseHandle(m_hThread);
 		m_hThread = NULL;
+	}
+
+	if(m_hSharedMemTransportMutex != NULL) {
+		ReleaseMutex(m_hSharedMemTransportMutex) ;
+		CloseHandle(m_hSharedMemTransportMutex) ;
+		m_hSharedMemTransportMutex=NULL;
 	}
 
 	m_dwCurSpace = 0xFF;
@@ -670,7 +694,7 @@ void CBonTuner::Release()
 	delete this;
 }
 
-UINT WINAPI CBonTuner::RecvThread(LPVOID pParam)
+UINT WINAPI CBonTuner::RecvThreadPipeIO(LPVOID pParam)
 {
 	CBonTuner* pSys = (CBonTuner*)pParam;
 
@@ -703,6 +727,59 @@ UINT WINAPI CBonTuner::RecvThread(LPVOID pParam)
 			::Sleep(5);
 		}
 	}
+
+	return 0;
+}
+
+UINT WINAPI CBonTuner::RecvThreadSharedMem(LPVOID pParam)
+{
+	const DWORD MAXWAIT = 250;
+	CBonTuner* pSys = (CBonTuner*)pParam;
+
+	wstring strStreamerName;
+	Format(strStreamerName, SHAREDMEM_TRANSPORT_STREAM_FORMAT,
+		pSys->m_pCmdSender->GetPTKind(), pSys->m_iID);
+	CSharedTransportStreamer streamer(strStreamerName,
+		TRUE, SHAREDMEM_TRANSPORT_PACKET_SIZE, SHAREDMEM_TRANSPORT_PACKET_NUM);
+	DBGOUT("BON Streamer memName: %s\n",wcs2mbcs(streamer.Name()).c_str());
+
+	DWORD rem=0;
+	while (1) {
+		if (::WaitForSingleObject( pSys->m_hStopEvent, 0 ) != WAIT_TIMEOUT) {
+			//中止
+			break;
+		}
+		DWORD wait_res = rem ? WAIT_OBJECT_0 : streamer.WaitForCmd(MAXWAIT);
+		if(wait_res==WAIT_TIMEOUT) {
+			if(!pSys->m_hasStream) pSys->PurgeTsStream();
+			continue;
+		}
+		if(wait_res==WAIT_OBJECT_0) {
+			DWORD dwSize=0;
+			BYTE *pbBuff = new BYTE[SHAREDMEM_TRANSPORT_PACKET_SIZE];
+			if(pbBuff) {
+				if(streamer.Rx(pbBuff, dwSize, MAXWAIT)&&pSys->m_hasStream) {
+					TS_DATA *pData = new TS_DATA(pbBuff, dwSize);
+					::EnterCriticalSection(&pSys->m_CriticalSection);
+					while (pSys->m_TsBuff.size() > MAX_BUFF_COUNT) {
+						TS_DATA *p = pSys->m_TsBuff.front();
+						pSys->m_TsBuff.pop_front();
+						delete p;
+					}
+					pSys->m_TsBuff.push_back(pData);
+					::LeaveCriticalSection(&pSys->m_CriticalSection);
+					::SetEvent(pSys->m_hOnStreamEvent);
+				}
+				else {
+					delete [] pbBuff;
+				}
+			}
+			if(!rem)
+				rem=streamer.PacketRemain(MAXWAIT);
+			else
+				rem--;
+		}else break;
+    }
 
 	return 0;
 }
@@ -758,7 +835,6 @@ const DWORD CBonTuner::GetActiveDeviceNum(void)
 const BOOL CBonTuner::SetLnbPower(const BOOL bEnable)
 {
 	//チューナーをオープンした状態で呼ばないと正しいbehaviorは期待できない
-	if(!m_isISDB_S) return FALSE;
 	if(!m_bBon3Lnb) return TRUE;
 	if(!m_hThread) return FALSE;
 	if(m_iID<0) return FALSE;

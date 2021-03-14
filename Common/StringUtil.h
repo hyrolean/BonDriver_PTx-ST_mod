@@ -35,4 +35,16 @@ int CompareNoCase(string str1, string str2);
 
 int CompareNoCase(wstring str1, wstring str2);
 
+	string __inline wcs2mbcs(wstring wcsStr) {
+		string mbcsStr;
+		WtoA(wcsStr, mbcsStr);
+		return mbcsStr;
+	}
+
+	wstring __inline mbcs2wcs(string mbcsStr) {
+		wstring wcsStr;
+		AtoW(mbcsStr, wcsStr);
+		return wcsStr;
+	}
+
 #endif

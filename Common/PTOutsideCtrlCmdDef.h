@@ -55,6 +55,15 @@
 	#define CMD_PT1_CTRL_EVENT_WAIT_CONNECT_FORMAT _T("Global\\PT%dCtrlConnect")
 	#define CMD_PT1_DATA_EVENT_WAIT_CONNECT_FORMAT _T("Global\\PT%dDataConnect_%d")
 
+	//共有メモリ名 (書式指定出力文字列形式)
+	#define SHAREDMEM_TRANSPORT_FORMAT _T("PT%dTransportMem_%d")
+	#define SHAREDMEM_TRANSPORT_STREAM_SUFFIX _T("_Stream")
+	#define SHAREDMEM_TRANSPORT_STREAM_FORMAT SHAREDMEM_TRANSPORT_FORMAT SHAREDMEM_TRANSPORT_STREAM_SUFFIX
+
+	//共有メモリのパケットサイズとパケット数
+	#define SHAREDMEM_TRANSPORT_PACKET_SIZE (188*256)
+	#define SHAREDMEM_TRANSPORT_PACKET_NUM 8
+
 
 //モジュール内コマンド実行イベント
 #define CMD_CTRL_EVENT_WAIT _T("CtrlCmdEvent")
@@ -70,6 +79,7 @@
 #define CMD_GET_ACTIVE_TUNER_COUNT 8
 #define CMD_SET_LNB_POWER 9
 #define CMD_SEND_DATA 10
+#define CMD_GET_STREAMING_METHOD 11
 
 //エラーコード
 #define CMD_SUCCESS			0 //成功

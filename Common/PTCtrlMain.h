@@ -45,4 +45,6 @@ protected:
 	void CmdGetSignal(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
 	//CMD_OPEN_TUNER2 OpenTuner2
 	void CmdOpenTuner2(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
+	//CMD_GET_STREAMING_METHOD GetStreamingMethod
+	void CmdGetStreamingMethod(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
 };

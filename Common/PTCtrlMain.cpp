@@ -95,6 +95,9 @@ int CALLBACK CPTCtrlMain::OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdParam
 		case CMD_OPEN_TUNER2:
 			pSys->CmdOpenTuner2(pCmdParam, pResParam);
 			break;
+		case CMD_GET_STREAMING_METHOD:
+			pSys->CmdGetStreamingMethod(pCmdParam, pResParam);
+			break;
 		default:
 			pResParam->dwParam = CMD_NON_SUPPORT;
 			break;
@@ -225,6 +228,15 @@ void CPTCtrlMain::CmdOpenTuner2(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 		pResParam->dwParam = CMD_ERR;
 	}
 	CreateDefStream(iID, pResParam);
+}
+
+//CMD_GET_STREAMING_METHOD GetStreamingMethod
+void CPTCtrlMain::CmdGetStreamingMethod(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+{
+	DWORD method = m_pManager->GetStreamingMethod();
+
+	pResParam->dwParam = CMD_SUCCESS;
+	CreateDefStream(method, pResParam);
 }
 
 BOOL CPTCtrlMain::IsFindOpen()
