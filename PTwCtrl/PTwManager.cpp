@@ -18,7 +18,7 @@
 CPTwManager::CPTwManager(void)
 {
 	InitializeCriticalSection(&Critical_);
-    m_cpPrimaryOperator=nullptr;
+	m_cpPrimaryOperator=nullptr;
 	m_hPrimaryAuxiliaryThread=INVALID_HANDLE_VALUE;
 
 	WCHAR strExePath[512] = L"";
@@ -46,7 +46,6 @@ CPTwManager::CPTwManager(void)
 
 	m_bUseLNB = GetPrivateProfileInt(L"SET", L"UseLNB", 0, strIni.c_str());
 	m_uiVirtualCount = GetPrivateProfileInt(L"SET", L"DMABuff", 8, strIni.c_str()); // ‚±‚Ì’l‚ÍŽg—p‚³‚ê‚È‚¢
-	m_bAuxiliaryRedirectAll = GetPrivateProfileInt(L"SET", L"AuxiliaryRedirectAll", 0, strIni.c_str());
 	if( m_uiVirtualCount == 0 ){
 		m_uiVirtualCount = 8;
 	}
@@ -54,6 +53,8 @@ CPTwManager::CPTwManager(void)
 	m_dwMaxDurFREQ = GetPrivateProfileInt(L"SET", L"MAXDUR_FREQ", 1000, strIni.c_str() ); //Žü”g”’²®‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
 	m_dwMaxDurTMCC = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC", 1500, strIni.c_str() ); //TMCCŽæ“¾‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
 	m_dwMaxDurTSID = GetPrivateProfileInt(L"SET", L"MAXDUR_TSID", 3000, strIni.c_str() ); //TSIDÝ’è‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
+
+	m_bAuxiliaryRedirectAll = GetPrivateProfileInt(L"SET", L"AuxiliaryRedirectAll", 0, strIni.c_str());
 }
 //---------------------------------------------------------------------------
 CPTwManager::~CPTwManager(void)
@@ -322,12 +323,13 @@ BOOL CPTwManager::CloseTuner(int iID)
 	if(client==m_cpPrimaryOperator) {
 		StopPrimaryAuxiliary() ;
 		m_cpPrimaryOperator = nullptr;
+		hProcess=NULL;
 	}else if(bAbnormal) {
 		TerminateProcess(hProcess,-1) ;
 	}
 
 	delete client ;
-	CloseHandle(hProcess);
+	if(hProcess) CloseHandle(hProcess);
 
 	if(bSate) {
 		m_EnumDev[iDevID]->cpOperatorS[iTuner] = nullptr;

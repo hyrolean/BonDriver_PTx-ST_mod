@@ -266,12 +266,6 @@ protected:
 			bLnbS0 = FALSE;
 			bLnbS1 = FALSE;
 		}
-		~DEV_STATUS() {
-			for(auto &v: cpOperatorT) if(v) {delete v; v=nullptr;}
-			for(auto &v: cpOperatorS) if(v) {delete v; v=nullptr;}
-			for(auto &h: hProcessT) if(h&&h!=INVALID_HANDLE_VALUE) {CloseHandle(h);h=NULL;}
-			for(auto &h: hProcessS) if(h&&h!=INVALID_HANDLE_VALUE) {CloseHandle(h);h=NULL;}
-		}
 	};
 	vector<DEV_STATUS*> m_EnumDev;
 	CPTxWDMCmdOperator *m_cpPrimaryOperator;
