@@ -1,10 +1,11 @@
 #include "StdAfx.h"
+#include <assert.h>
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
 
 #include "PTwManager.h"
 
-#ifndef PTW_GALAPAGOS // NOT galapagosization ( EARTH defact standard )
+#ifndef PTW_GALAPAGOS // NOT Galapagosization ( EARTH defacto standard )
 
 #include "../Common/PTxManager.cxx"
 
@@ -16,6 +17,10 @@
 //---------------------------------------------------------------------------
 CPTwManager::CPTwManager(void)
 {
+	InitializeCriticalSection(&Critical_);
+    m_cpPrimaryOperator=nullptr;
+	m_hPrimaryAuxiliaryThread=INVALID_HANDLE_VALUE;
+
 	WCHAR strExePath[512] = L"";
 	GetModuleFileName(NULL, strExePath, 512);
 
@@ -41,6 +46,7 @@ CPTwManager::CPTwManager(void)
 
 	m_bUseLNB = GetPrivateProfileInt(L"SET", L"UseLNB", 0, strIni.c_str());
 	m_uiVirtualCount = GetPrivateProfileInt(L"SET", L"DMABuff", 8, strIni.c_str()); // この値は使用されない
+	m_bAuxiliaryRedirectAll = GetPrivateProfileInt(L"SET", L"AuxiliaryRedirectAll", 0, strIni.c_str());
 	if( m_uiVirtualCount == 0 ){
 		m_uiVirtualCount = 8;
 	}
@@ -50,6 +56,11 @@ CPTwManager::CPTwManager(void)
 	m_dwMaxDurTSID = GetPrivateProfileInt(L"SET", L"MAXDUR_TSID", 3000, strIni.c_str() ); //TSID設定に費やす最大時間(msec)
 }
 //---------------------------------------------------------------------------
+CPTwManager::~CPTwManager(void)
+{
+	DeleteCriticalSection(&Critical_);
+}
+//---------------------------------------------------------------------------
 BOOL CPTwManager::LoadSDK()
 {
 	return TRUE ;
@@ -57,6 +68,8 @@ BOOL CPTwManager::LoadSDK()
 //---------------------------------------------------------------------------
 void CPTwManager::FreeSDK()
 {
+	StopPrimaryAuxiliary();
+	m_cpPrimaryOperator=nullptr;
 	for( auto &dev: m_EnumDev ) {
 		SAFE_DELETE(dev);
 	}
@@ -85,6 +98,8 @@ void CPTwManager::UnInit()
 //---------------------------------------------------------------------------
 BOOL CPTwManager::IsFindOpen()
 {
+	critical_lock lock(&Critical_);
+
 	BOOL bFind = FALSE;
 	for( auto dev: m_EnumDev ) {
 		if( dev->Opened() ){
@@ -96,6 +111,8 @@ BOOL CPTwManager::IsFindOpen()
 //---------------------------------------------------------------------------
 DWORD CPTwManager::GetActiveTunerCount(BOOL bSate)
 {
+	critical_lock lock(&Critical_);
+
 	DWORD total_used=0;
 	for( auto dev : m_EnumDev ){
 		if( bSate == FALSE ){
@@ -109,6 +126,8 @@ DWORD CPTwManager::GetActiveTunerCount(BOOL bSate)
 //---------------------------------------------------------------------------
 BOOL CPTwManager::SetLnbPower(int iID, BOOL bEnabled)
 {
+	critical_lock lock(&Critical_);
+
 	size_t iDevID = iID>>16;
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
 	int iTuner = iID&0x000000FF;
@@ -140,6 +159,8 @@ BOOL CPTwManager::SetLnbPower(int iID, BOOL bEnabled)
 //---------------------------------------------------------------------------
 int CPTwManager::OpenTuner(BOOL bSate)
 {
+	critical_lock lock(&Critical_);
+
 	for(int iDevID=0;iDevID<(int)m_EnumDev.size();iDevID++) {
 		for(int iTuner=0;iTuner<2;iTuner++) {
 			int iID = OpenTuner2(bSate,iDevID<<1|iTuner);
@@ -151,6 +172,8 @@ int CPTwManager::OpenTuner(BOOL bSate)
 //---------------------------------------------------------------------------
 int CPTwManager::OpenTuner2(BOOL bSate, int iTunerID)
 {
+	critical_lock lock(&Critical_);
+
 	PT::Device::ISDB enISDB = bSate ? PT::Device::ISDB_S : PT::Device::ISDB_T;
 	wstring bonName;
 
@@ -180,7 +203,7 @@ int CPTwManager::OpenTuner2(BOOL bSate, int iTunerID)
 	}
 
 	int iDevID = iTunerID>>1;
-    int iTuner = iTunerID&1;
+	int iTuner = iTunerID&1;
 	int iID=-1;
 	do {
 
@@ -191,15 +214,32 @@ int CPTwManager::OpenTuner2(BOOL bSate, int iTunerID)
 		}
 		int id = (iDevID<<16) | (enISDB<<8) | iTuner ;
 		Format(bonName,SHAREDMEM_TRANSPORT_FORMAT,PT_VER,id) ;
-		// NOTE: pt2wdm には１プロセスにつき１チューナーという謎制限がある為、
-		//       別プロセスをココで立ち上げて新規チューナーへのバイパスを行う
-		HANDLE hProcess = launch_ctrl() ;
-		if(!hProcess||hProcess==INVALID_HANDLE_VALUE) break ;
+		HANDLE hProcess=NULL;
+		if(m_bAuxiliaryRedirectAll || m_cpPrimaryOperator!=nullptr) {
+			// NOTE: pt2wdm には１プロセスにつき１チューナーという謎制限がある為、
+			//       別プロセスをココで立ち上げて新規チューナーへのバイパスを施す
+			hProcess = launch_ctrl() ;
+			if(!hProcess||hProcess==INVALID_HANDLE_VALUE) break ;
+		}
 		auto client = new CPTxWDMCmdOperator(bonName);
+		auto do_abort = [&]() {
+			if(m_cpPrimaryOperator==client) {
+				StopPrimaryAuxiliary();
+				m_cpPrimaryOperator=nullptr;
+			}else
+				client->CmdTerminate();
+			delete client;
+		};
+		if(hProcess==NULL) {
+			assert(m_cpPrimaryOperator==nullptr);
+			m_cpPrimaryOperator=client;
+			if(!StartPrimaryAuxiliary()) {
+				do_abort(); break;
+			}
+			hProcess = m_hPrimaryAuxiliaryThread;
+		}
 		if(!client->CmdOpenTuner(bSate,iDevID<<1|iTuner)) {
-			client->CmdTerminate();
-            delete client;
-			break;
+			do_abort(); break;
 		}
 		SERVER_SETTINGS SrvOpt;
 		SrvOpt.dwSize = sizeof(SERVER_SETTINGS);
@@ -211,20 +251,21 @@ int CPTwManager::OpenTuner2(BOOL bSate, int iTunerID)
 		SrvOpt.StreamerPacketSize = SHAREDMEM_TRANSPORT_PACKET_SIZE ;
 		if(!client->CmdSetupServer(&SrvOpt)) {
 			MessageBeep(MB_ICONEXCLAMATION);
-			delete client ;
-			break;
+			do_abort(); break;
 		}
 		if(bSate) {
-			m_EnumDev[iDevID]->cpOperatorS[iTuner] = client ;
 			m_EnumDev[iDevID]->hProcessS[iTuner] = hProcess ;
+			m_EnumDev[iDevID]->cpOperatorS[iTuner] = client ;
 		}else {
-			m_EnumDev[iDevID]->cpOperatorT[iTuner] = client ;
 			m_EnumDev[iDevID]->hProcessT[iTuner] = hProcess ;
+			m_EnumDev[iDevID]->cpOperatorT[iTuner] = client ;
 		}
 		iID = id ;
 		//初期化開始
+		client->CmdSetTunerSleep(TRUE);
 		client->CmdSetTunerSleep(FALSE);
 		if(m_bUseLNB) SetLnbPower(iID, TRUE) ;
+		client->CmdSetStreamEnable(FALSE);
 		client->CmdSetStreamEnable(TRUE);
 
 	}while(0);
@@ -234,6 +275,8 @@ int CPTwManager::OpenTuner2(BOOL bSate, int iTunerID)
 //---------------------------------------------------------------------------
 BOOL CPTwManager::CloseTuner(int iID)
 {
+	critical_lock lock(&Critical_);
+
 	int iDevID = iID>>16;
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
 	int iTuner = iID&0x000000FF;
@@ -244,7 +287,7 @@ BOOL CPTwManager::CloseTuner(int iID)
 		return FALSE;
 	}
 
-    CPTxWDMCmdOperator *client = nullptr ;
+	CPTxWDMCmdOperator *client = nullptr ;
 	HANDLE hProcess = NULL;
 
 	if(bSate) {
@@ -258,21 +301,30 @@ BOOL CPTwManager::CloseTuner(int iID)
 	if(!client) return TRUE ; // already closed
 
 	BOOL bAbnormal = TRUE ;
-    if(WaitForSingleObject(hProcess,0)==WAIT_TIMEOUT) {
+	if(WaitForSingleObject(hProcess,0)==WAIT_TIMEOUT) {
+		if(m_bUseLNB) SetLnbPower(iID, FALSE);
 		if(client->CmdSetStreamEnable(FALSE)) {
-			if(m_bUseLNB) SetLnbPower(iID, FALSE);
 			if(client->CmdSetTunerSleep(TRUE)) {
-				if(client->CmdCloseTuner()) {
-					if(client->CmdTerminate())
-                    	bAbnormal = FALSE ;
-				}
+				if(client->CmdTerminate())
+					bAbnormal = FALSE ;
 			}
+		}
+		if(bAbnormal) {
+			if(client->CmdTerminate())
+				bAbnormal = FALSE ;
+		}
+		if(!bAbnormal) {
+			if(WaitForSingleObject(hProcess,PTXWDMCMDTIMEOUT)==WAIT_TIMEOUT)
+				bAbnormal=TRUE;
 		}
 	}else bAbnormal=FALSE ;
 
-    if(bAbnormal) {
-        TerminateProcess(hProcess,-1) ;
-    }
+	if(client==m_cpPrimaryOperator) {
+		StopPrimaryAuxiliary() ;
+		m_cpPrimaryOperator = nullptr;
+	}else if(bAbnormal) {
+		TerminateProcess(hProcess,-1) ;
+	}
 
 	delete client ;
 	CloseHandle(hProcess);
@@ -290,6 +342,8 @@ BOOL CPTwManager::CloseTuner(int iID)
 //---------------------------------------------------------------------------
 BOOL CPTwManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream)
 {
+	critical_lock lock(&Critical_);
+
 	int iDevID = iID>>16;
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
 	int iTuner = iID&0x000000FF;
@@ -324,7 +378,7 @@ BOOL CPTwManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 	if(freq==0xFFFF)
 		return FALSE ;
 
-    CPTxWDMCmdOperator *client = nullptr ;
+	CPTxWDMCmdOperator *client = nullptr ;
 
 	if(bSate) {
 		client = m_EnumDev[iDevID]->cpOperatorS[iTuner] ;
@@ -342,13 +396,15 @@ BOOL CPTwManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 //---------------------------------------------------------------------------
 DWORD CPTwManager::GetSignal(int iID)
 {
+	critical_lock lock(&Critical_);
+
 	int iDevID = iID>>16;
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
 	int iTuner = iID&0x000000FF;
 
 	BOOL bSate = enISDB == PT::Device::ISDB_S ? TRUE : FALSE ;
 
-    CPTxWDMCmdOperator *client = nullptr ;
+	CPTxWDMCmdOperator *client = nullptr ;
 
 	if(bSate) {
 		client = m_EnumDev[iDevID]->cpOperatorS[iTuner] ;
@@ -366,6 +422,8 @@ DWORD CPTwManager::GetSignal(int iID)
 //---------------------------------------------------------------------------
 BOOL CPTwManager::CloseChk()
 {
+	critical_lock lock(&Critical_);
+
 	// idle checker
 	int cntFound = 0 ;
 	for(int iDevID=0;iDevID<(int)m_EnumDev.size();iDevID++) {
@@ -382,8 +440,8 @@ BOOL CPTwManager::CloseChk()
 					client=m_EnumDev[iDevID]->cpOperatorT[iTuner];
 					hProcess=m_EnumDev[iDevID]->hProcessT[iTuner];
 				}
-				if(!client) continue;
-				if(WaitForSingleObject(hProcess,0)!=WAIT_TIMEOUT) {
+				if(!client||!hProcess) continue;
+				if(WaitForSingleObject(hProcess,0)==WAIT_OBJECT_0) {
 					int iID = iDevID<<16 | enISDB<<8 | iTuner ;
 					CloseTuner(iID);
 					continue;
@@ -393,6 +451,55 @@ BOOL CPTwManager::CloseChk()
 		}
 	}
 	return cntFound>0 ? TRUE : FALSE ;
+}
+//---------------------------------------------------------------------------
+bool CPTwManager::StartPrimaryAuxiliary()
+{
+	HANDLE &Thread = m_hPrimaryAuxiliaryThread ;
+	if(!m_cpPrimaryOperator) return false /*primary AUX Op is not existed*/;
+	if(Thread != INVALID_HANDLE_VALUE) return true /*already activated*/;
+
+	Thread = (HANDLE)_beginthreadex(NULL, 0, PrimaryAuxiliaryProc, this,
+		CREATE_SUSPENDED, NULL) ;
+
+	if(Thread != INVALID_HANDLE_VALUE) {
+		::ResumeThread(Thread) ;
+		DBGOUT("-- Start Primary AUX thread --\n");
+		return true ;
+	}else {
+		DBGOUT("*** Primary AUX thread creation failed. ***\n");
+	}
+
+	return false;
+}
+//---------------------------------------------------------------------------
+bool CPTwManager::StopPrimaryAuxiliary()
+{
+	HANDLE &Thread = m_hPrimaryAuxiliaryThread ;
+	if(!m_cpPrimaryOperator) return false /*primary AUX Op is not existed*/;
+	if(Thread == INVALID_HANDLE_VALUE) return true /*already inactivated*/;
+
+	if(::WaitForSingleObject(Thread,0)==WAIT_TIMEOUT)
+		m_cpPrimaryOperator->CmdTerminate();
+
+	if(::WaitForSingleObject(Thread,AuxiliaryMaxAlive*2) != WAIT_OBJECT_0) {
+		::TerminateThread(Thread, 0);
+	}
+	Thread = INVALID_HANDLE_VALUE ;
+
+	DBGOUT("-- Stop Primary AUX thread --\n");
+
+	return true;
+}
+//---------------------------------------------------------------------------
+unsigned int __stdcall CPTwManager::PrimaryAuxiliaryProc (PVOID pv)
+{
+	auto this_ = static_cast<CPTwManager*>(pv) ;
+	unsigned int result = CPTxWDMCtrlAuxiliary(
+		this_->m_cpPrimaryOperator->Name(),
+		AuxiliaryMaxWait, AuxiliaryMaxAlive ).MainLoop() ;
+	_endthreadex(result) ;
+	return result;
 }
 //===========================================================================
 #endif // end of PTW_GALAPAGOS

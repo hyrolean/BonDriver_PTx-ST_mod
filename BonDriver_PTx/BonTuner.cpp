@@ -466,28 +466,48 @@ const BOOL CBonTuner::OpenTuner(void)
 		}
 		break;
 	}
-	if(m_hThread&&m_hThread!=INVALID_HANDLE_VALUE)
+	if(m_hThread&&m_hThread!=INVALID_HANDLE_VALUE) {
 		ResumeThread(m_hThread);
+	}
 
 	return TRUE;
 }
 
 void CBonTuner::CloseTuner(void)
 {
-	if( m_hThread != NULL ){
-		::SetEvent(m_hStopEvent);
-		// スレッド終了待ち
-		if ( ::WaitForSingleObject(m_hThread, 15000) == WAIT_TIMEOUT ){
-			::TerminateThread(m_hThread, 0xffffffff);
+	auto closeThread = [&]() {
+		if( m_hThread != NULL ){
+			::SetEvent(m_hStopEvent);
+			// スレッド終了待ち
+			if ( ::WaitForSingleObject(m_hThread, 15000) == WAIT_TIMEOUT ){
+				::TerminateThread(m_hThread, 0xffffffff);
+			}
+			CloseHandle(m_hThread);
+			m_hThread = NULL;
 		}
-		CloseHandle(m_hThread);
-		m_hThread = NULL;
-	}
+		if(m_hSharedMemTransportMutex != NULL) {
+			ReleaseMutex(m_hSharedMemTransportMutex) ;
+			CloseHandle(m_hSharedMemTransportMutex) ;
+			m_hSharedMemTransportMutex=NULL;
+		}
+	};
 
-	if(m_hSharedMemTransportMutex != NULL) {
-		ReleaseMutex(m_hSharedMemTransportMutex) ;
-		CloseHandle(m_hSharedMemTransportMutex) ;
-		m_hSharedMemTransportMutex=NULL;
+	auto closeTuner = [&]() {
+		if( m_iID != -1 ){
+			m_pCmdSender->CloseTuner(m_iID);
+			m_iID = -1;
+		}
+	};
+
+	// ストリーミングの種類によって閉じ方のパターンを変える
+	if(m_hSharedMemTransportMutex!=NULL) {
+		// チューナーを閉じてからスレッドを閉じる [PTSTREAMING_SHAREDMEM]
+		closeTuner();
+		closeThread();
+	}else {
+		// スレッドを閉じてからチューナーを閉じる [PTSTREAMING_PIPEIO]
+		closeThread();
+		closeTuner();
 	}
 
 	m_dwCurSpace = 0xFF;
@@ -496,11 +516,6 @@ void CBonTuner::CloseTuner(void)
 
 	::CloseHandle(m_hOnStreamEvent);
 	m_hOnStreamEvent = NULL;
-
-	if( m_iID != -1 ){
-		m_pCmdSender->CloseTuner(m_iID);
-		m_iID = -1;
-	}
 
 	//バッファ解放
 	::EnterCriticalSection(&m_CriticalSection);
@@ -699,7 +714,7 @@ UINT WINAPI CBonTuner::RecvThreadPipeIO(LPVOID pParam)
 	CBonTuner* pSys = (CBonTuner*)pParam;
 
 
-	while (1) {
+	for (;;) {
 		if (::WaitForSingleObject( pSys->m_hStopEvent, 0 ) != WAIT_TIMEOUT) {
 			//中止
 			break;
@@ -744,7 +759,7 @@ UINT WINAPI CBonTuner::RecvThreadSharedMem(LPVOID pParam)
 	DBGOUT("BON Streamer memName: %s\n",wcs2mbcs(streamer.Name()).c_str());
 
 	DWORD rem=0;
-	while (1) {
+	for (;;) {
 		if (::WaitForSingleObject( pSys->m_hStopEvent, 0 ) != WAIT_TIMEOUT) {
 			//中止
 			break;
