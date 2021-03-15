@@ -487,6 +487,7 @@ bool CPTwManager::StopPrimaryAuxiliary()
 	if(::WaitForSingleObject(Thread,AuxiliaryMaxAlive*2) != WAIT_OBJECT_0) {
 		::TerminateThread(Thread, 0);
 	}
+	CloseHandle(Thread);
 	Thread = INVALID_HANDLE_VALUE ;
 
 	DBGOUT("-- Stop Primary AUX thread --\n");

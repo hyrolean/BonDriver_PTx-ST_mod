@@ -156,6 +156,7 @@ protected:
 		if(::WaitForSingleObject(Thread,Timeout*2) != WAIT_OBJECT_0) {
 			::TerminateThread(Thread, 0);
 		}
+		CloseHandle(Thread);
 		Thread = INVALID_HANDLE_VALUE ;
 		if(St) { delete St; St=NULL; }
 		DBGOUT("-- Stop Streaming --\n");
