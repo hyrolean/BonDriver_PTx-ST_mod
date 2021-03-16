@@ -393,7 +393,11 @@ BOOL CPTwManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 	DWORD dwStream=0 ;
 	if(dwTSID<=7) dwStream = dwTSID, dwTSID = 0 ;
 
-	return client->CmdSetChannel(hasStream, (DWORD)freq, dwTSID, dwStream);
+	if(client->CmdSetChannel(hasStream, (DWORD)freq, dwTSID, dwStream)) {
+		client->CmdPurgeStream();
+		return TRUE;
+	}
+	return FALSE ;
 }
 //---------------------------------------------------------------------------
 DWORD CPTwManager::GetSignal(int iID)

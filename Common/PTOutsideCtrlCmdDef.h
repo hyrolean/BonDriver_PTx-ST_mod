@@ -62,7 +62,7 @@
 
 	//共有メモリのパケットサイズとパケット数
 	#define SHAREDMEM_TRANSPORT_PACKET_SIZE (188*256)
-	#define SHAREDMEM_TRANSPORT_PACKET_NUM 8
+	#define SHAREDMEM_TRANSPORT_PACKET_NUM 3
 
 
 //モジュール内コマンド実行イベント
