@@ -195,11 +195,11 @@ void CDataIO::Run()
 	SetThreadPriority( m_hThread2, THREAD_PRIORITY_ABOVE_NORMAL );
 	ResumeThread(m_hThread2);
 	// Thread 3
-	m_hThread2 = (HANDLE)_beginthreadex(NULL, 0, RecvThread3, (LPVOID)this, CREATE_SUSPENDED, NULL);
+	m_hThread3 = (HANDLE)_beginthreadex(NULL, 0, RecvThread3, (LPVOID)this, CREATE_SUSPENDED, NULL);
 	SetThreadPriority( m_hThread3, THREAD_PRIORITY_ABOVE_NORMAL );
 	ResumeThread(m_hThread3);
 	// Thread 4
-	m_hThread2 = (HANDLE)_beginthreadex(NULL, 0, RecvThread4, (LPVOID)this, CREATE_SUSPENDED, NULL);
+	m_hThread4 = (HANDLE)_beginthreadex(NULL, 0, RecvThread4, (LPVOID)this, CREATE_SUSPENDED, NULL);
 	SetThreadPriority( m_hThread4, THREAD_PRIORITY_ABOVE_NORMAL );
 	ResumeThread(m_hThread4);
 }
