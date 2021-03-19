@@ -29,6 +29,11 @@ CDataIO::CDataIO(void)
 	m_hEvent3 = _CreateEvent(FALSE, TRUE, NULL );
 	m_hEvent4 = _CreateEvent(FALSE, TRUE, NULL );
 
+	m_hBuffEvent1 = _CreateEvent(FALSE, TRUE, NULL );
+	m_hBuffEvent2 = _CreateEvent(FALSE, TRUE, NULL );
+	m_hBuffEvent3 = _CreateEvent(FALSE, TRUE, NULL );
+	m_hBuffEvent4 = _CreateEvent(FALSE, TRUE, NULL );
+
 	m_dwT0OverFlowCount = 0;
 	m_dwT1OverFlowCount = 0;
 	m_dwS0OverFlowCount = 0;
@@ -73,6 +78,27 @@ CDataIO::~CDataIO(void)
 		UnLock4();
 		CloseHandle(m_hEvent4);
 		m_hEvent4 = NULL;
+	}
+
+	if( m_hBuffEvent1 != NULL ){
+		BuffUnLock1();
+		CloseHandle(m_hBuffEvent1);
+		m_hBuffEvent1 = NULL;
+	}
+	if( m_hBuffEvent2 != NULL ){
+		BuffUnLock2();
+		CloseHandle(m_hBuffEvent2);
+		m_hBuffEvent2 = NULL;
+	}
+	if( m_hBuffEvent3 != NULL ){
+		BuffUnLock3();
+		CloseHandle(m_hBuffEvent3);
+		m_hBuffEvent3 = NULL;
+	}
+	if( m_hBuffEvent4 != NULL ){
+		BuffUnLock4();
+		CloseHandle(m_hBuffEvent4);
+		m_hBuffEvent4 = NULL;
 	}
 }
 
@@ -144,6 +170,75 @@ void CDataIO::UnLock4()
 	}
 }
 
+void CDataIO::BuffLock1()
+{
+	if( m_hBuffEvent1 == NULL ){
+		return ;
+	}
+	if( WaitForSingleObject(m_hBuffEvent1, 10*1000) == WAIT_TIMEOUT ){
+		OutputDebugString(L"time out1b");
+	}
+}
+
+void CDataIO::BuffUnLock1()
+{
+	if( m_hBuffEvent1 != NULL ){
+		SetEvent(m_hBuffEvent1);
+	}
+}
+
+void CDataIO::BuffLock2()
+{
+	if( m_hBuffEvent2 == NULL ){
+		return ;
+	}
+	if( WaitForSingleObject(m_hBuffEvent2, 10*1000) == WAIT_TIMEOUT ){
+		OutputDebugString(L"time out2b");
+	}
+}
+
+void CDataIO::BuffUnLock2()
+{
+	if( m_hBuffEvent2 != NULL ){
+		SetEvent(m_hBuffEvent2);
+	}
+}
+
+void CDataIO::BuffLock3()
+{
+	if( m_hBuffEvent3 == NULL ){
+		return ;
+	}
+	if( WaitForSingleObject(m_hBuffEvent3, 10*1000) == WAIT_TIMEOUT ){
+		OutputDebugString(L"time out3b");
+	}
+}
+
+void CDataIO::BuffUnLock3()
+{
+	if( m_hBuffEvent3 != NULL ){
+		SetEvent(m_hBuffEvent3);
+	}
+}
+
+void CDataIO::BuffLock4()
+{
+	if( m_hBuffEvent4 == NULL ){
+		return ;
+	}
+	if( WaitForSingleObject(m_hBuffEvent4, 10*1000) == WAIT_TIMEOUT ){
+		OutputDebugString(L"time out4b");
+	}
+}
+
+void CDataIO::BuffUnLock4()
+{
+	if( m_hBuffEvent4 != NULL ){
+		SetEvent(m_hBuffEvent4);
+	}
+}
+
+
 void CDataIO::ClearBuff(int iID)
 {
 	int iDevID = iID>>16;
@@ -153,25 +248,33 @@ void CDataIO::ClearBuff(int iID)
 	if( enISDB == PT::Device::ISDB_T ){
 		if( iTuner == 0 ){
 			Lock1();
+			BuffLock1();
 			m_dwT0OverFlowCount = 0;
 			Flush(m_T0Buff);
+			BuffUnLock1();
 			UnLock1();
 		}else{
 			Lock2();
+			BuffLock2();
 			m_dwT1OverFlowCount = 0;
 			Flush(m_T1Buff);
+			BuffUnLock2();
 			UnLock2();
 		}
 	}else{
 		if( iTuner == 0 ){
 			Lock3();
+			BuffLock3();
 			m_dwS0OverFlowCount = 0;
 			Flush(m_S0Buff);
+			BuffUnLock3();
 			UnLock3();
 		}else{
 			Lock4();
+			BuffLock4();
 			m_dwS1OverFlowCount = 0;
 			Flush(m_S1Buff);
+			BuffUnLock4();
 			UnLock4();
 		}
 	}
@@ -265,7 +368,9 @@ void CDataIO::StartPipeServer(int iID)
 
 				enStatus = m_pcDevice->SetTransferPageDescriptorAddress(enISDB, iTuner, pageAddress);
 
+				BuffLock1();
 				m_dwT0OverFlowCount = 0;
+				BuffUnLock1();
 			}
 			UnLock1();
 			m_cPipeT0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT0, this, THREAD_PRIORITY_ABOVE_NORMAL);
@@ -286,7 +391,9 @@ void CDataIO::StartPipeServer(int iID)
 
 				enStatus = m_pcDevice->SetTransferPageDescriptorAddress(enISDB, iTuner, pageAddress);
 
+				BuffLock2();
 				m_dwT1OverFlowCount = 0;
+				BuffUnLock2();
 			}
 			UnLock2();
 			m_cPipeT1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT1, this, THREAD_PRIORITY_ABOVE_NORMAL);
@@ -309,7 +416,9 @@ void CDataIO::StartPipeServer(int iID)
 
 				enStatus = m_pcDevice->SetTransferPageDescriptorAddress(enISDB, iTuner, pageAddress);
 
+				BuffLock3();
 				m_dwS0OverFlowCount = 0;
+				BuffUnLock3();
 			}
 			UnLock3();
 			m_cPipeS0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS0, this, THREAD_PRIORITY_ABOVE_NORMAL);
@@ -330,7 +439,9 @@ void CDataIO::StartPipeServer(int iID)
 
 				enStatus = m_pcDevice->SetTransferPageDescriptorAddress(enISDB, iTuner, pageAddress);
 
+				BuffLock4();
 				m_dwS1OverFlowCount = 0;
+				BuffUnLock4();
 			}
 			UnLock4();
 			m_cPipeS1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS1, this, THREAD_PRIORITY_ABOVE_NORMAL);
@@ -348,32 +459,40 @@ void CDataIO::StopPipeServer(int iID)
 		if( iTuner == 0 ){
 			m_cPipeT0.StopServer();
 			Lock1();
+			BuffLock1();
 			m_dwT0OverFlowCount = 0;
 			SAFE_DELETE(m_T0SetBuff);
 			Flush(m_T0Buff);
+			BuffUnLock1();
 			UnLock1();
 		}else{
 			m_cPipeT1.StopServer();
 			Lock2();
+			BuffLock2();
 			m_dwT1OverFlowCount = 0;
 			SAFE_DELETE(m_T1SetBuff);
 			Flush(m_T1Buff);
+			BuffUnLock2();
 			UnLock2();
 		}
 	}else{
 		if( iTuner == 0 ){
 			m_cPipeS0.StopServer();
 			Lock3();
+			BuffLock3();
 			m_dwS0OverFlowCount = 0;
 			SAFE_DELETE(m_S0SetBuff);
 			Flush(m_S0Buff);
+			BuffUnLock3();
 			UnLock3();
 		}else{
 			m_cPipeS1.StopServer();
 			Lock4();
+			BuffLock4();
 			m_dwS1OverFlowCount = 0;
 			SAFE_DELETE(m_S1SetBuff);
 			Flush(m_S1Buff);
+			BuffUnLock4();
 			UnLock4();
 		}
 	}
@@ -391,33 +510,41 @@ BOOL CDataIO::EnableTuner(int iID, BOOL bEnable)
 		if( enISDB == PT::Device::ISDB_T ){
 			if( iTuner == 0 ){
 				Lock1();
+				BuffLock1();
 				if( m_T0SetBuff != NULL ){
 					m_dwT0OverFlowCount = 0;
 					m_T0WriteIndex = 0;
 				}
+				BuffUnLock1();
 				UnLock1();
 			}else{
 				Lock2();
+				BuffLock2();
 				if( m_T1SetBuff != NULL ){
 					m_dwT1OverFlowCount = 0;
 					m_T1WriteIndex = 0;
 				}
+				BuffUnLock2();
 				UnLock2();
 			}
 		}else{
 			if( iTuner == 0 ){
 				Lock3();
+				BuffLock3();
 				if( m_S0SetBuff != NULL ){
 					m_dwS0OverFlowCount = 0;
 					m_S0WriteIndex = 0;
 				}
+				BuffUnLock3();
 				UnLock3();
 			}else{
 				Lock4();
+				BuffLock4();
 				if( m_S1SetBuff != NULL ){
 					m_dwS1OverFlowCount = 0;
 					m_S1WriteIndex = 0;
 				}
+				BuffUnLock4();
 				UnLock4();
 			}
 		}
@@ -438,25 +565,33 @@ BOOL CDataIO::EnableTuner(int iID, BOOL bEnable)
 		if( enISDB == PT::Device::ISDB_T ){
 			if( iTuner == 0 ){
 				Lock1();
+				BuffLock1();
 				m_dwT0OverFlowCount = 0;
 				Flush(m_T0Buff);
+				BuffUnLock1();
 				UnLock1();
 			}else{
 				Lock2();
+				BuffLock2();
 				m_dwT1OverFlowCount = 0;
 				Flush(m_T1Buff);
+				BuffUnLock2();
 				UnLock2();
 			}
 		}else{
 			if( iTuner == 0 ){
 				Lock3();
+				BuffLock3();
 				m_dwS0OverFlowCount = 0;
 				Flush(m_S0Buff);
+				BuffUnLock3();
 				UnLock3();
 			}else{
 				Lock4();
+				BuffLock4();
 				m_dwS1OverFlowCount = 0;
 				Flush(m_S1Buff);
+				BuffUnLock4();
 				UnLock4();
 			}
 		}
@@ -645,6 +780,7 @@ UINT WINAPI CDataIO::RecvThread1(LPVOID pParam)
 		if( pSys->m_T0SetBuff != NULL ){
 			if( pSys->CheckReady(pSys->m_T0SetBuff, pSys->m_T0WriteIndex) ){
 				if( pSys->ReadAddBuff(pSys->m_T0SetBuff, pSys->m_T0WriteIndex, pSys->m_T0Buff) ){
+					pSys->BuffLock1();
 					if( pSys->m_T0Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_T0Buff.front();
 						pSys->m_T0Buff.pop_front();
@@ -654,7 +790,7 @@ UINT WINAPI CDataIO::RecvThread1(LPVOID pParam)
 					}else{
 						pSys->m_dwT0OverFlowCount = 0;
 					}
-
+					pSys->BuffUnLock1();
 					pSys->m_T0WriteIndex++;
 					if (pSys->VIRTUAL_COUNT <= pSys->m_T0WriteIndex) {
 						pSys->m_T0WriteIndex = 0;
@@ -683,6 +819,7 @@ UINT WINAPI CDataIO::RecvThread2(LPVOID pParam)
 		if( pSys->m_T1SetBuff != NULL ){
 			if( pSys->CheckReady(pSys->m_T1SetBuff, pSys->m_T1WriteIndex) ){
 				if( pSys->ReadAddBuff(pSys->m_T1SetBuff, pSys->m_T1WriteIndex, pSys->m_T1Buff) ){
+					pSys->BuffLock2();
 					if( pSys->m_T1Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_T1Buff.front();
 						pSys->m_T1Buff.pop_front();
@@ -692,7 +829,7 @@ UINT WINAPI CDataIO::RecvThread2(LPVOID pParam)
 					}else{
 						pSys->m_dwT1OverFlowCount = 0;
 					}
-
+					pSys->BuffUnLock2();
 					pSys->m_T1WriteIndex++;
 					if (pSys->VIRTUAL_COUNT <= pSys->m_T1WriteIndex) {
 						pSys->m_T1WriteIndex = 0;
@@ -721,6 +858,7 @@ UINT WINAPI CDataIO::RecvThread3(LPVOID pParam)
 		if( pSys->m_S0SetBuff != NULL ){
 			if( pSys->CheckReady(pSys->m_S0SetBuff, pSys->m_S0WriteIndex) ){
 				if( pSys->ReadAddBuff(pSys->m_S0SetBuff, pSys->m_S0WriteIndex, pSys->m_S0Buff) ){
+					pSys->BuffLock3();
 					if( pSys->m_S0Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_S0Buff.front();
 						pSys->m_S0Buff.pop_front();
@@ -730,7 +868,7 @@ UINT WINAPI CDataIO::RecvThread3(LPVOID pParam)
 					}else{
 						pSys->m_dwS0OverFlowCount = 0;
 					}
-
+					pSys->BuffUnLock3();
 					pSys->m_S0WriteIndex++;
 					if (pSys->VIRTUAL_COUNT <= pSys->m_S0WriteIndex) {
 						pSys->m_S0WriteIndex = 0;
@@ -759,6 +897,7 @@ UINT WINAPI CDataIO::RecvThread4(LPVOID pParam)
 		if( pSys->m_S1SetBuff != NULL ){
 			if( pSys->CheckReady(pSys->m_S1SetBuff, pSys->m_S1WriteIndex) ){
 				if( pSys->ReadAddBuff(pSys->m_S1SetBuff, pSys->m_S1WriteIndex, pSys->m_S1Buff) ){
+					pSys->BuffLock4();
 					if( pSys->m_S1Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_S1Buff.front();
 						pSys->m_S1Buff.pop_front();
@@ -768,7 +907,7 @@ UINT WINAPI CDataIO::RecvThread4(LPVOID pParam)
 					}else{
 						pSys->m_dwS1OverFlowCount = 0;
 					}
-
+					pSys->BuffUnLock4();
 					pSys->m_S1WriteIndex++;
 					if (pSys->VIRTUAL_COUNT <= pSys->m_S1WriteIndex) {
 						pSys->m_S1WriteIndex = 0;
@@ -847,7 +986,7 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 
 	switch(dwID){
 		case 0:
-			Lock1();
+			BuffLock1();
 			if( m_T0Buff.size() > 0 ){
 				BUFF_DATA *p = m_T0Buff.front();
 				m_T0Buff.pop_front();
@@ -857,10 +996,10 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 				delete p;
 				bSend = TRUE;
 			}
-			UnLock1();
+			BuffUnLock1();
 			break;
 		case 1:
-			Lock2();
+			BuffLock2();
 			if( m_T1Buff.size() > 0 ){
 				BUFF_DATA *p = m_T1Buff.front();
 				m_T1Buff.pop_front();
@@ -870,10 +1009,10 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 				delete p;
 				bSend = TRUE;
 			}
-			UnLock2();
+			BuffUnLock2();
 			break;
 		case 2:
-			Lock3();
+			BuffLock3();
 			if( m_S0Buff.size() > 0 ){
 				BUFF_DATA *p = m_S0Buff.front();
 				m_S0Buff.pop_front();
@@ -883,10 +1022,10 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 				delete p;
 				bSend = TRUE;
 			}
-			UnLock3();
+			BuffUnLock3();
 			break;
 		case 3:
-			Lock4();
+			BuffLock4();
 			if( m_S1Buff.size() > 0 ){
 				BUFF_DATA *p = m_S1Buff.front();
 				m_S1Buff.pop_front();
@@ -896,7 +1035,7 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 				delete p;
 				bSend = TRUE;
 			}
-			UnLock4();
+			BuffUnLock4();
 			break;
 	}
 

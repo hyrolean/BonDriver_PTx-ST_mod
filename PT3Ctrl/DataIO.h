@@ -77,6 +77,11 @@ protected:
 	HANDLE m_hEvent3;
 	HANDLE m_hEvent4;
 
+	HANDLE m_hBuffEvent1;
+	HANDLE m_hBuffEvent2;
+	HANDLE m_hBuffEvent3;
+	HANDLE m_hBuffEvent4;
+
 protected:
 	static UINT WINAPI RecvThread1(LPVOID pParam);
 	static UINT WINAPI RecvThread2(LPVOID pParam);
@@ -91,6 +96,15 @@ protected:
 	void UnLock3();
 	void Lock4();
 	void UnLock4();
+
+	void BuffLock1();
+	void BuffUnLock1();
+	void BuffLock2();
+	void BuffUnLock2();
+	void BuffLock3();
+	void BuffUnLock3();
+	void BuffLock4();
+	void BuffUnLock4();
 
 	void ChkTransferInfo();
 
