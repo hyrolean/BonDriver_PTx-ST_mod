@@ -11,8 +11,11 @@ CDataIO::CDataIO(void)
 {
 	VIRTUAL_COUNT = 8*8;
 
-	m_hStopEvent = _CreateEvent(FALSE, FALSE, NULL);
-	m_hThread = NULL;
+	//m_hStopEvent = _CreateEvent(FALSE, FALSE, NULL);
+	m_hThread1 = INVALID_HANDLE_VALUE;
+	m_hThread2 = INVALID_HANDLE_VALUE;
+	m_hThread3 = INVALID_HANDLE_VALUE;
+	m_hThread4 = INVALID_HANDLE_VALUE;
 
 	m_pcDevice = NULL;
 
@@ -34,19 +37,12 @@ CDataIO::CDataIO(void)
 
 CDataIO::~CDataIO(void)
 {
-	if( m_hThread != NULL ){
-		::SetEvent(m_hStopEvent);
-		// スレッド終了待ち
-		if ( ::WaitForSingleObject(m_hThread, 15000) == WAIT_TIMEOUT ){
-			::TerminateThread(m_hThread, 0xffffffff);
-		}
-		CloseHandle(m_hThread);
-		m_hThread = NULL;
-	}
-	if( m_hStopEvent != NULL ){
+	Stop();
+
+	/*if( m_hStopEvent != NULL ){
 		::CloseHandle(m_hStopEvent);
 		m_hStopEvent = NULL;
-	}
+	}*/
 
 	SAFE_DELETE(m_T0SetBuff);
 	SAFE_DELETE(m_T1SetBuff);
@@ -183,25 +179,56 @@ void CDataIO::ClearBuff(int iID)
 
 void CDataIO::Run()
 {
-	if( m_hThread != NULL ){
+	if( m_hThread1 != INVALID_HANDLE_VALUE ||
+		m_hThread2 != INVALID_HANDLE_VALUE ||
+		m_hThread3 != INVALID_HANDLE_VALUE ||
+		m_hThread4 != INVALID_HANDLE_VALUE ){
 		return ;
 	}
-	::ResetEvent(m_hStopEvent);
-	m_hThread = (HANDLE)_beginthreadex(NULL, 0, RecvThread, (LPVOID)this, CREATE_SUSPENDED, NULL);
-	SetThreadPriority( m_hThread, THREAD_PRIORITY_ABOVE_NORMAL );
-	ResumeThread(m_hThread);
+	m_bThTerm=FALSE;
+	// Thread 1
+	m_hThread1 = (HANDLE)_beginthreadex(NULL, 0, RecvThread1, (LPVOID)this, CREATE_SUSPENDED, NULL);
+	SetThreadPriority( m_hThread1, THREAD_PRIORITY_ABOVE_NORMAL );
+	ResumeThread(m_hThread1);
+	// Thread 2
+	m_hThread2 = (HANDLE)_beginthreadex(NULL, 0, RecvThread2, (LPVOID)this, CREATE_SUSPENDED, NULL);
+	SetThreadPriority( m_hThread2, THREAD_PRIORITY_ABOVE_NORMAL );
+	ResumeThread(m_hThread2);
+	// Thread 3
+	m_hThread2 = (HANDLE)_beginthreadex(NULL, 0, RecvThread3, (LPVOID)this, CREATE_SUSPENDED, NULL);
+	SetThreadPriority( m_hThread3, THREAD_PRIORITY_ABOVE_NORMAL );
+	ResumeThread(m_hThread3);
+	// Thread 4
+	m_hThread2 = (HANDLE)_beginthreadex(NULL, 0, RecvThread4, (LPVOID)this, CREATE_SUSPENDED, NULL);
+	SetThreadPriority( m_hThread4, THREAD_PRIORITY_ABOVE_NORMAL );
+	ResumeThread(m_hThread4);
 }
 
 void CDataIO::Stop()
 {
-	if( m_hThread != NULL ){
-		::SetEvent(m_hStopEvent);
+	if( m_hThread1 != INVALID_HANDLE_VALUE ||
+		m_hThread2 != INVALID_HANDLE_VALUE ||
+		m_hThread3 != INVALID_HANDLE_VALUE ||
+		m_hThread4 != INVALID_HANDLE_VALUE ){
 		// スレッド終了待ち
-		if ( ::WaitForSingleObject(m_hThread, 15000) == WAIT_TIMEOUT ){
-			::TerminateThread(m_hThread, 0xffffffff);
+		HANDLE handles[4];
+		DWORD cnt=0;
+		if(m_hThread1!=INVALID_HANDLE_VALUE) handles[cnt++]=m_hThread1 ;
+		if(m_hThread2!=INVALID_HANDLE_VALUE) handles[cnt++]=m_hThread2 ;
+		if(m_hThread3!=INVALID_HANDLE_VALUE) handles[cnt++]=m_hThread3 ;
+		if(m_hThread4!=INVALID_HANDLE_VALUE) handles[cnt++]=m_hThread4 ;
+		m_bThTerm=TRUE;
+		if ( ::WaitForMultipleObjects(cnt,handles,TRUE, 15000) == WAIT_TIMEOUT ){
+			for(DWORD i=0;i<cnt;i++)
+				if(::WaitForSingleObject(handles[i],0)!=WAIT_OBJECT_0)
+					::TerminateThread(handles[i], 0xffffffff);
 		}
-		CloseHandle(m_hThread);
-		m_hThread = NULL;
+		for(DWORD i=0;i<cnt;i++)
+			CloseHandle(handles[i]);
+		m_hThread1 = INVALID_HANDLE_VALUE;
+		m_hThread2 = INVALID_HANDLE_VALUE;
+		m_hThread3 = INVALID_HANDLE_VALUE;
+		m_hThread4 = INVALID_HANDLE_VALUE;
 	}
 }
 
@@ -605,31 +632,18 @@ bool CDataIO::ReadAddBuff(EARTH::EX::Buffer* buffer, uint32 index, deque<BUFF_DA
 	return true;
 }
 
-UINT WINAPI CDataIO::RecvThread(LPVOID pParam)
+UINT WINAPI CDataIO::RecvThread1(LPVOID pParam)
 {
 	CDataIO* pSys = (CDataIO*)pParam;
 
 	HANDLE hCurThread = GetCurrentThread();
 	SetThreadPriority(hCurThread, THREAD_PRIORITY_HIGHEST);
 
-//	int chkCount = 0;
-
-	while (true) {
-		DWORD dwRes = WaitForSingleObject(pSys->m_hStopEvent, 1);
-		if( dwRes == WAIT_OBJECT_0 ){
-			//STOP
-			break;
-		}
-		/*
-		chkCount++;
-		if( chkCount>50 ){
-			pSys->ChkTransferInfo();
-			chkCount = 0;
-		}
-		*/
+	while(!pSys->m_bThTerm) {
+		DWORD sleepy=10 ;
 		pSys->Lock1();
 		if( pSys->m_T0SetBuff != NULL ){
-			if( pSys->CheckReady(pSys->m_T0SetBuff, pSys->m_T0WriteIndex) ){
+			while( pSys->CheckReady(pSys->m_T0SetBuff, pSys->m_T0WriteIndex) ){
 				if( pSys->ReadAddBuff(pSys->m_T0SetBuff, pSys->m_T0WriteIndex, pSys->m_T0Buff) ){
 					if( pSys->m_T0Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_T0Buff.front();
@@ -645,14 +659,28 @@ UINT WINAPI CDataIO::RecvThread(LPVOID pParam)
 					if (pSys->VIRTUAL_COUNT <= pSys->m_T0WriteIndex) {
 						pSys->m_T0WriteIndex = 0;
 					}
-				}
+				}else { sleepy=0; break; }
 			}
-		}
+		}else sleepy=250 ;
 		pSys->UnLock1();
+		if(sleepy) Sleep(sleepy);
+	}
 
+	return 0;
+}
+
+UINT WINAPI CDataIO::RecvThread2(LPVOID pParam)
+{
+	CDataIO* pSys = (CDataIO*)pParam;
+
+	HANDLE hCurThread = GetCurrentThread();
+	SetThreadPriority(hCurThread, THREAD_PRIORITY_HIGHEST);
+
+	while(!pSys->m_bThTerm) {
+		DWORD sleepy=10 ;
 		pSys->Lock2();
 		if( pSys->m_T1SetBuff != NULL ){
-			if( pSys->CheckReady(pSys->m_T1SetBuff, pSys->m_T1WriteIndex) ){
+			while( pSys->CheckReady(pSys->m_T1SetBuff, pSys->m_T1WriteIndex) ){
 				if( pSys->ReadAddBuff(pSys->m_T1SetBuff, pSys->m_T1WriteIndex, pSys->m_T1Buff) ){
 					if( pSys->m_T1Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_T1Buff.front();
@@ -668,14 +696,28 @@ UINT WINAPI CDataIO::RecvThread(LPVOID pParam)
 					if (pSys->VIRTUAL_COUNT <= pSys->m_T1WriteIndex) {
 						pSys->m_T1WriteIndex = 0;
 					}
-				}
+				}else { sleepy=0; break; }
 			}
-		}
+		}else sleepy=250 ;
 		pSys->UnLock2();
+		if(sleepy) Sleep(sleepy);
+	}
 
+	return 0;
+}
+
+UINT WINAPI CDataIO::RecvThread3(LPVOID pParam)
+{
+	CDataIO* pSys = (CDataIO*)pParam;
+
+	HANDLE hCurThread = GetCurrentThread();
+	SetThreadPriority(hCurThread, THREAD_PRIORITY_HIGHEST);
+
+	while(!pSys->m_bThTerm) {
+		DWORD sleepy=10 ;
 		pSys->Lock3();
 		if( pSys->m_S0SetBuff != NULL ){
-			if( pSys->CheckReady(pSys->m_S0SetBuff, pSys->m_S0WriteIndex) ){
+			while( pSys->CheckReady(pSys->m_S0SetBuff, pSys->m_S0WriteIndex) ){
 				if( pSys->ReadAddBuff(pSys->m_S0SetBuff, pSys->m_S0WriteIndex, pSys->m_S0Buff) ){
 					if( pSys->m_S0Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_S0Buff.front();
@@ -691,14 +733,28 @@ UINT WINAPI CDataIO::RecvThread(LPVOID pParam)
 					if (pSys->VIRTUAL_COUNT <= pSys->m_S0WriteIndex) {
 						pSys->m_S0WriteIndex = 0;
 					}
-				}
+				}else { sleepy=0; break; }
 			}
-		}
+		}else sleepy=250 ;
 		pSys->UnLock3();
+		if(sleepy) Sleep(sleepy);
+	}
 
+	return 0;
+}
+
+UINT WINAPI CDataIO::RecvThread4(LPVOID pParam)
+{
+	CDataIO* pSys = (CDataIO*)pParam;
+
+	HANDLE hCurThread = GetCurrentThread();
+	SetThreadPriority(hCurThread, THREAD_PRIORITY_HIGHEST);
+
+	while(!pSys->m_bThTerm) {
+		DWORD sleepy=10 ;
 		pSys->Lock4();
 		if( pSys->m_S1SetBuff != NULL ){
-			if( pSys->CheckReady(pSys->m_S1SetBuff, pSys->m_S1WriteIndex) ){
+			while( pSys->CheckReady(pSys->m_S1SetBuff, pSys->m_S1WriteIndex) ){
 				if( pSys->ReadAddBuff(pSys->m_S1SetBuff, pSys->m_S1WriteIndex, pSys->m_S1Buff) ){
 					if( pSys->m_S1Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_S1Buff.front();
@@ -714,10 +770,11 @@ UINT WINAPI CDataIO::RecvThread(LPVOID pParam)
 					if (pSys->VIRTUAL_COUNT <= pSys->m_S1WriteIndex) {
 						pSys->m_S1WriteIndex = 0;
 					}
-				}
+				}else { sleepy=0; break; }
 			}
-		}
+		}else sleepy=250 ;
 		pSys->UnLock4();
+		if(sleepy) Sleep(sleepy);
 	}
 
 	return 0;

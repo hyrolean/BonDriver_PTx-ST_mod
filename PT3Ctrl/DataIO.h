@@ -29,8 +29,12 @@ protected:
 	UINT VIRTUAL_COUNT;
 	PT::Device* m_pcDevice;
 
-	HANDLE m_hStopEvent;
-	HANDLE m_hThread;
+	//HANDLE m_hStopEvent;
+	BOOL m_bThTerm;
+	HANDLE m_hThread1;
+	HANDLE m_hThread2;
+	HANDLE m_hThread3;
+	HANDLE m_hThread4;
 
 	CPipeServer m_cPipeT0;
 	CPipeServer m_cPipeT1;
@@ -74,7 +78,10 @@ protected:
 	HANDLE m_hEvent4;
 
 protected:
-	static UINT WINAPI RecvThread(LPVOID pParam);
+	static UINT WINAPI RecvThread1(LPVOID pParam);
+	static UINT WINAPI RecvThread2(LPVOID pParam);
+	static UINT WINAPI RecvThread3(LPVOID pParam);
+	static UINT WINAPI RecvThread4(LPVOID pParam);
 
 	void Lock1();
 	void UnLock1();
