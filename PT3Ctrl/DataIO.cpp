@@ -644,6 +644,7 @@ UINT WINAPI CDataIO::RecvThread1(LPVOID pParam)
 		pSys->Lock1();
 		if( pSys->m_T0SetBuff != NULL ){
 			while( pSys->CheckReady(pSys->m_T0SetBuff, pSys->m_T0WriteIndex) ){
+				if(pSys->m_bThTerm) break;
 				if( pSys->ReadAddBuff(pSys->m_T0SetBuff, pSys->m_T0WriteIndex, pSys->m_T0Buff) ){
 					if( pSys->m_T0Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_T0Buff.front();
@@ -681,6 +682,7 @@ UINT WINAPI CDataIO::RecvThread2(LPVOID pParam)
 		pSys->Lock2();
 		if( pSys->m_T1SetBuff != NULL ){
 			while( pSys->CheckReady(pSys->m_T1SetBuff, pSys->m_T1WriteIndex) ){
+				if(pSys->m_bThTerm) break;
 				if( pSys->ReadAddBuff(pSys->m_T1SetBuff, pSys->m_T1WriteIndex, pSys->m_T1Buff) ){
 					if( pSys->m_T1Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_T1Buff.front();
@@ -718,6 +720,7 @@ UINT WINAPI CDataIO::RecvThread3(LPVOID pParam)
 		pSys->Lock3();
 		if( pSys->m_S0SetBuff != NULL ){
 			while( pSys->CheckReady(pSys->m_S0SetBuff, pSys->m_S0WriteIndex) ){
+				if(pSys->m_bThTerm) break;
 				if( pSys->ReadAddBuff(pSys->m_S0SetBuff, pSys->m_S0WriteIndex, pSys->m_S0Buff) ){
 					if( pSys->m_S0Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_S0Buff.front();
@@ -755,6 +758,7 @@ UINT WINAPI CDataIO::RecvThread4(LPVOID pParam)
 		pSys->Lock4();
 		if( pSys->m_S1SetBuff != NULL ){
 			while( pSys->CheckReady(pSys->m_S1SetBuff, pSys->m_S1WriteIndex) ){
+				if(pSys->m_bThTerm) break;
 				if( pSys->ReadAddBuff(pSys->m_S1SetBuff, pSys->m_S1WriteIndex, pSys->m_S1Buff) ){
 					if( pSys->m_S1Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_S1Buff.front();
