@@ -643,8 +643,7 @@ UINT WINAPI CDataIO::RecvThread1(LPVOID pParam)
 		DWORD sleepy=10 ;
 		pSys->Lock1();
 		if( pSys->m_T0SetBuff != NULL ){
-			while( pSys->CheckReady(pSys->m_T0SetBuff, pSys->m_T0WriteIndex) ){
-				if(pSys->m_bThTerm) break;
+			if( pSys->CheckReady(pSys->m_T0SetBuff, pSys->m_T0WriteIndex) ){
 				if( pSys->ReadAddBuff(pSys->m_T0SetBuff, pSys->m_T0WriteIndex, pSys->m_T0Buff) ){
 					if( pSys->m_T0Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_T0Buff.front();
@@ -660,7 +659,8 @@ UINT WINAPI CDataIO::RecvThread1(LPVOID pParam)
 					if (pSys->VIRTUAL_COUNT <= pSys->m_T0WriteIndex) {
 						pSys->m_T0WriteIndex = 0;
 					}
-				}else { sleepy=0; break; }
+					sleepy=0;
+				}
 			}
 		}else sleepy=250 ;
 		pSys->UnLock1();
@@ -681,8 +681,7 @@ UINT WINAPI CDataIO::RecvThread2(LPVOID pParam)
 		DWORD sleepy=10 ;
 		pSys->Lock2();
 		if( pSys->m_T1SetBuff != NULL ){
-			while( pSys->CheckReady(pSys->m_T1SetBuff, pSys->m_T1WriteIndex) ){
-				if(pSys->m_bThTerm) break;
+			if( pSys->CheckReady(pSys->m_T1SetBuff, pSys->m_T1WriteIndex) ){
 				if( pSys->ReadAddBuff(pSys->m_T1SetBuff, pSys->m_T1WriteIndex, pSys->m_T1Buff) ){
 					if( pSys->m_T1Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_T1Buff.front();
@@ -698,7 +697,8 @@ UINT WINAPI CDataIO::RecvThread2(LPVOID pParam)
 					if (pSys->VIRTUAL_COUNT <= pSys->m_T1WriteIndex) {
 						pSys->m_T1WriteIndex = 0;
 					}
-				}else { sleepy=0; break; }
+					sleepy=0;
+				}
 			}
 		}else sleepy=250 ;
 		pSys->UnLock2();
@@ -719,8 +719,7 @@ UINT WINAPI CDataIO::RecvThread3(LPVOID pParam)
 		DWORD sleepy=10 ;
 		pSys->Lock3();
 		if( pSys->m_S0SetBuff != NULL ){
-			while( pSys->CheckReady(pSys->m_S0SetBuff, pSys->m_S0WriteIndex) ){
-				if(pSys->m_bThTerm) break;
+			if( pSys->CheckReady(pSys->m_S0SetBuff, pSys->m_S0WriteIndex) ){
 				if( pSys->ReadAddBuff(pSys->m_S0SetBuff, pSys->m_S0WriteIndex, pSys->m_S0Buff) ){
 					if( pSys->m_S0Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_S0Buff.front();
@@ -736,7 +735,8 @@ UINT WINAPI CDataIO::RecvThread3(LPVOID pParam)
 					if (pSys->VIRTUAL_COUNT <= pSys->m_S0WriteIndex) {
 						pSys->m_S0WriteIndex = 0;
 					}
-				}else { sleepy=0; break; }
+					sleepy=0;
+				}
 			}
 		}else sleepy=250 ;
 		pSys->UnLock3();
@@ -757,8 +757,7 @@ UINT WINAPI CDataIO::RecvThread4(LPVOID pParam)
 		DWORD sleepy=10 ;
 		pSys->Lock4();
 		if( pSys->m_S1SetBuff != NULL ){
-			while( pSys->CheckReady(pSys->m_S1SetBuff, pSys->m_S1WriteIndex) ){
-				if(pSys->m_bThTerm) break;
+			if( pSys->CheckReady(pSys->m_S1SetBuff, pSys->m_S1WriteIndex) ){
 				if( pSys->ReadAddBuff(pSys->m_S1SetBuff, pSys->m_S1WriteIndex, pSys->m_S1Buff) ){
 					if( pSys->m_S1Buff.size() > MAX_DATA_BUFF_COUNT ){
 						BUFF_DATA *p = pSys->m_S1Buff.front();
@@ -774,7 +773,8 @@ UINT WINAPI CDataIO::RecvThread4(LPVOID pParam)
 					if (pSys->VIRTUAL_COUNT <= pSys->m_S1WriteIndex) {
 						pSys->m_S1WriteIndex = 0;
 					}
-				}else { sleepy=0; break; }
+					sleepy=0;
+				}
 			}
 		}else sleepy=250 ;
 		pSys->UnLock4();
