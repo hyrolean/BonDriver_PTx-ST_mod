@@ -34,6 +34,9 @@
 # VC++ files
 *.user
 
+# backup file
+*.~*
+
 # pt2wdm files
 PTwCtrl/inc/*.h
 PTwCtrl/lib/*.lib

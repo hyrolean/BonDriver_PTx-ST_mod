@@ -3,7 +3,6 @@
 #include "inc/EarthPtIf.h"
 #include "../Common/Util.h"
 #include "../Common/PTManager.h"
-#include "DataIO.h"
 
 namespace EARTH {
 	namespace OS {
@@ -25,6 +24,8 @@ namespace EARTH {
 using namespace EARTH;
 
 #ifndef PTW_GALAPAGOS // NOT Galapagosization ( EARTH defacto standard )
+
+#include "DataIO.h"
 
 class CPTwManager : public IPTManager
 {
@@ -85,6 +86,9 @@ protected:
 #else // begin of PTW_GALAPAGOS
 
 #include <process.h>
+#include "PtDrvWrap.h"
+#include "../Common/PTOutsideCtrlCmdDef.h"
+#include "../Common/StringUtil.h"
 #include "PTxWDMCmdSrv.h"
 
 #define AuxiliaryMaxWait	5000
@@ -258,7 +262,6 @@ protected:
 		}
 		BOOL bLnbS0;
 		BOOL bLnbS1;
-		CDataIO cDataIO;
 		DEV_STATUS(void){
 			for(auto &v: cpOperatorT) v=nullptr;
 			for(auto &v: cpOperatorS) v=nullptr;

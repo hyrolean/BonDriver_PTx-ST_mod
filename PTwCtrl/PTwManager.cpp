@@ -10,8 +10,6 @@
 #include "../Common/PTxManager.cxx"
 
 #else // begin of PTW_GALAPAGOS
-
-#include "PtDrvWrap.h"
 //===========================================================================
 // CPTwManager ( PTxWDM bypass manager )
 //---------------------------------------------------------------------------
