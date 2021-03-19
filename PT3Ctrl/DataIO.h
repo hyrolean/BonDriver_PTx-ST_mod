@@ -116,7 +116,7 @@ protected:
 	void CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
 
 	bool CheckReady(EARTH::EX::Buffer* buffer, uint32 index);
-	bool ReadAddBuff(EARTH::EX::Buffer* buffer, uint32 index, deque<BUFF_DATA*> &tsBuff);
+	bool ReadAddBuff(EARTH::EX::Buffer* buffer, uint32 index, deque<BUFF_DATA*> &tsBuff, int buff_index);
 
 	void Flush(deque<BUFF_DATA*> &buf) {
 		while (!buf.empty()){
