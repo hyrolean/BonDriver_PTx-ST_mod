@@ -74,7 +74,7 @@ CBonTuner::CBonTuner()
 
 	m_iID = -1;
 	m_hStopEvent = _CreateEvent(FALSE, FALSE, NULL);
-	m_hThread = NULL;
+	m_hThread = INVALID_HANDLE_VALUE;
 	m_hSharedMemTransportMutex = NULL;
 
 	::InitializeCriticalSection(&m_CriticalSection);
@@ -466,7 +466,7 @@ const BOOL CBonTuner::OpenTuner(void)
 		}
 		break;
 	}
-	if(m_hThread&&m_hThread!=INVALID_HANDLE_VALUE) {
+	if(m_hThread!=INVALID_HANDLE_VALUE) {
 		ResumeThread(m_hThread);
 	}
 
@@ -476,14 +476,14 @@ const BOOL CBonTuner::OpenTuner(void)
 void CBonTuner::CloseTuner(void)
 {
 	auto closeThread = [&]() {
-		if( m_hThread != NULL ){
+		if( m_hThread != INVALID_HANDLE_VALUE ){
 			::SetEvent(m_hStopEvent);
 			// スレッド終了待ち
 			if ( ::WaitForSingleObject(m_hThread, 15000) == WAIT_TIMEOUT ){
 				::TerminateThread(m_hThread, 0xffffffff);
 			}
 			CloseHandle(m_hThread);
-			m_hThread = NULL;
+			m_hThread = INVALID_HANDLE_VALUE ;
 		}
 		if(m_hSharedMemTransportMutex != NULL) {
 			ReleaseMutex(m_hSharedMemTransportMutex) ;

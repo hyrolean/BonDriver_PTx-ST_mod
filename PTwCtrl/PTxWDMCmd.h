@@ -43,6 +43,7 @@ struct SERVER_SETTINGS {
   DWORD MAXDUR_TMCC;
   DWORD MAXDUR_TSID;
   DWORD StreamerPacketSize;
+  BOOL LNB11V;
 };
 
   // CPTxWDMCmdOperator (PTxWDM Command Operator)

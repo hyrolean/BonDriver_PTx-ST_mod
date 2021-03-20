@@ -43,6 +43,7 @@ CPTwManager::CPTwManager(void)
 	}
 
 	m_bUseLNB = GetPrivateProfileInt(L"SET", L"UseLNB", 0, strIni.c_str());
+	m_bLNB11V = GetPrivateProfileInt(L"SET", L"LNB11V", 0, strIni.c_str());
 	m_uiVirtualCount = GetPrivateProfileInt(L"SET", L"DMABuff", 8, strIni.c_str()); // ‚±‚Ì’l‚ÍŽg—p‚³‚ê‚È‚¢
 	if( m_uiVirtualCount == 0 ){
 		m_uiVirtualCount = 8;
@@ -248,6 +249,7 @@ int CPTwManager::OpenTuner2(BOOL bSate, int iTunerID)
 		SrvOpt.MAXDUR_TMCC = m_dwMaxDurTMCC ;
 		SrvOpt.MAXDUR_TSID = m_dwMaxDurTSID ;
 		SrvOpt.StreamerPacketSize = SHAREDMEM_TRANSPORT_PACKET_SIZE ;
+		SrvOpt.LNB11V = m_bLNB11V ;
 		if(!client->CmdSetupServer(&SrvOpt)) {
 			MessageBeep(MB_ICONEXCLAMATION);
 			do_abort(); break;

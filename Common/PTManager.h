@@ -37,6 +37,7 @@ public:
 protected:
 
 	BOOL m_bUseLNB;
+	BOOL m_bLNB11V;
 	UINT m_uiVirtualCount;
 
 	DWORD m_dwMaxDurFREQ;

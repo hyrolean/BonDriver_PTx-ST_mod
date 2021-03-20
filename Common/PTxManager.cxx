@@ -49,6 +49,7 @@ CPTxManager::CPTxManager(void)
 	}
 
 	m_bUseLNB = GetPrivateProfileInt(L"SET", L"UseLNB", 0, strIni.c_str());
+	m_bLNB11V = GetPrivateProfileInt(L"SET", L"LNB11V", 0, strIni.c_str());
 	m_uiVirtualCount = GetPrivateProfileInt(L"SET", L"DMABuff", 8, strIni.c_str());
 	if( m_uiVirtualCount == 0 ){
 		m_uiVirtualCount = 8;
@@ -199,7 +200,7 @@ BOOL CPTxManager::SetLnbPower(int iID, BOOL bEnabled)
 
 	m_EnumDev[iDevID]->pcDevice->SetLnbPower(
 		m_EnumDev[iDevID]->bLnbS0 || m_EnumDev[iDevID]->bLnbS1 ?
-			PT::Device::LNB_POWER_15V :
+			(m_bLNB11V? PT::Device::LNB_POWER_11V: PT::Device::LNB_POWER_15V) :
 			PT::Device::LNB_POWER_OFF
 	);
 

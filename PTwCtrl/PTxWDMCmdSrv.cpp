@@ -27,6 +27,7 @@ CPTxWDMCmdServiceOperator::CPTxWDMCmdServiceOperator(wstring name)
 	Settings_.MAXDUR_TMCC = 1500; //TMCCŽæ“¾‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
 	Settings_.MAXDUR_TSID = 3000; //TSIDÝ’è‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
 	Settings_.StreamerPacketSize = SHAREDMEM_TRANSPORT_PACKET_SIZE ;
+	Settings_.LNB11V = FALSE;
 	InitializeCriticalSection(&Critical_);
 	KeepAlive();
 }
@@ -248,7 +249,10 @@ BOOL CPTxWDMCmdServiceOperator::ResSetLnbPower(BOOL Power)
 	critical_lock lock(&Critical_);
 	KeepAlive();
 	if(Tuner_) {
-		if(Tuner_->SetLnbPower(Power?BS_LNB_POWER_15V:BS_LNB_POWER_OFF))
+		if(Tuner_->SetLnbPower(
+			Power?
+				(Settings_.LNB11V?BS_LNB_POWER_11V:BS_LNB_POWER_15V):
+				BS_LNB_POWER_OFF	))
 			return TRUE;
 	}
 	return FALSE;

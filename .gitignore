@@ -31,11 +31,20 @@
 *.out
 *.app
 
-# VC++ files
-*.user
-
-# backup file
+# Dummy files
 *.~*
+*.ec?
+CLEANUP*.BAT
+build.bat
+
+# VC++ files
+.vs/
+ipch/
+Debug/
+Release/
+Intermediate/
+*.user
+*.sdf
 
 # pt2wdm files
 PTwCtrl/inc/*.h

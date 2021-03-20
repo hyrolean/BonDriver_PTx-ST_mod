@@ -22,7 +22,7 @@ CSharedMemory::CSharedMemory(wstring name, DWORD size)
     if(Lock()) {
         HMapping = _CreateFileMapping(INVALID_HANDLE_VALUE,
             PAGE_READWRITE, 0, size, mapping_name.c_str());
-        BOOL map_existed = (GetLastError() == ERROR_ALREADY_EXISTS);
+        bool map_existed = (GetLastError() == ERROR_ALREADY_EXISTS);
         SzMapView=0;
         if (HMapping) {
             PMapView = MapViewOfFile(HMapping, FILE_MAP_ALL_ACCESS, 0, 0, 0);
