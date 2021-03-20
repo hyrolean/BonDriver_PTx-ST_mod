@@ -280,31 +280,41 @@ void CDataIO::ClearBuff(int iID)
 	}
 }
 
-void CDataIO::Run()
+void CDataIO::Run(PT::Device::ISDB enISDB, uint32 iTuner)
 {
-	if( m_hThread1 != INVALID_HANDLE_VALUE ||
-		m_hThread2 != INVALID_HANDLE_VALUE ||
-		m_hThread3 != INVALID_HANDLE_VALUE ||
-		m_hThread4 != INVALID_HANDLE_VALUE ){
-		return ;
+	if( m_hThread1 == INVALID_HANDLE_VALUE &&
+		m_hThread2 == INVALID_HANDLE_VALUE &&
+		m_hThread3 == INVALID_HANDLE_VALUE &&
+		m_hThread4 == INVALID_HANDLE_VALUE )
+			m_bThTerm=FALSE;
+
+	if(enISDB == PT::Device::ISDB_T) {
+		// Thread 1 - T0
+		if(iTuner==0 && m_hThread1==INVALID_HANDLE_VALUE) {
+			m_hThread1 = (HANDLE)_beginthreadex(NULL, 0, RecvThread1, (LPVOID)this, CREATE_SUSPENDED, NULL);
+			SetThreadPriority( m_hThread1, THREAD_PRIORITY_ABOVE_NORMAL );
+			ResumeThread(m_hThread1);
+		}
+		// Thread 2 - T1
+		else if(iTuner==1 && m_hThread2==INVALID_HANDLE_VALUE) {
+			m_hThread2 = (HANDLE)_beginthreadex(NULL, 0, RecvThread2, (LPVOID)this, CREATE_SUSPENDED, NULL);
+			SetThreadPriority( m_hThread2, THREAD_PRIORITY_ABOVE_NORMAL );
+			ResumeThread(m_hThread2);
+		}
+	}else if(enISDB == PT::Device::ISDB_S) {
+		// Thread 3 - S0
+		if(iTuner==0 && m_hThread3==INVALID_HANDLE_VALUE) {
+			m_hThread3 = (HANDLE)_beginthreadex(NULL, 0, RecvThread3, (LPVOID)this, CREATE_SUSPENDED, NULL);
+			SetThreadPriority( m_hThread3, THREAD_PRIORITY_ABOVE_NORMAL );
+			ResumeThread(m_hThread3);
+		}
+		// Thread 4 - S1
+		else if(iTuner==1 && m_hThread4==INVALID_HANDLE_VALUE) {
+			m_hThread4 = (HANDLE)_beginthreadex(NULL, 0, RecvThread4, (LPVOID)this, CREATE_SUSPENDED, NULL);
+			SetThreadPriority( m_hThread4, THREAD_PRIORITY_ABOVE_NORMAL );
+			ResumeThread(m_hThread4);
+		}
 	}
-	m_bThTerm=FALSE;
-	// Thread 1
-	m_hThread1 = (HANDLE)_beginthreadex(NULL, 0, RecvThread1, (LPVOID)this, CREATE_SUSPENDED, NULL);
-	SetThreadPriority( m_hThread1, THREAD_PRIORITY_ABOVE_NORMAL );
-	ResumeThread(m_hThread1);
-	// Thread 2
-	m_hThread2 = (HANDLE)_beginthreadex(NULL, 0, RecvThread2, (LPVOID)this, CREATE_SUSPENDED, NULL);
-	SetThreadPriority( m_hThread2, THREAD_PRIORITY_ABOVE_NORMAL );
-	ResumeThread(m_hThread2);
-	// Thread 3
-	m_hThread3 = (HANDLE)_beginthreadex(NULL, 0, RecvThread3, (LPVOID)this, CREATE_SUSPENDED, NULL);
-	SetThreadPriority( m_hThread3, THREAD_PRIORITY_ABOVE_NORMAL );
-	ResumeThread(m_hThread3);
-	// Thread 4
-	m_hThread4 = (HANDLE)_beginthreadex(NULL, 0, RecvThread4, (LPVOID)this, CREATE_SUSPENDED, NULL);
-	SetThreadPriority( m_hThread4, THREAD_PRIORITY_ABOVE_NORMAL );
-	ResumeThread(m_hThread4);
 }
 
 void CDataIO::Stop()

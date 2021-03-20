@@ -348,7 +348,11 @@ int CPTxManager::OpenTuner(BOOL bSate)
 		m_EnumDev[iDevID]->bOpen = TRUE;
 		m_EnumDev[iDevID]->cDataIO.SetVirtualCount(m_uiVirtualCount);
 		m_EnumDev[iDevID]->cDataIO.SetDevice(m_EnumDev[iDevID]->pcDevice);
-		m_EnumDev[iDevID]->cDataIO.Run();
+		m_EnumDev[iDevID]->cDataIO.Run(
+#if PT_VER==3
+			enISDB, iTuner
+#endif
+		);
 	}
 	//スリープから復帰
 #if PT_VER==1 || PT_VER==2
@@ -790,7 +794,11 @@ int CPTxManager::OpenTuner2(BOOL bSate, int iTunerID)
 		m_EnumDev[iDevID]->bOpen = TRUE;
 		m_EnumDev[iDevID]->cDataIO.SetVirtualCount(m_uiVirtualCount);
 		m_EnumDev[iDevID]->cDataIO.SetDevice(m_EnumDev[iDevID]->pcDevice);
-		m_EnumDev[iDevID]->cDataIO.Run();
+		m_EnumDev[iDevID]->cDataIO.Run(
+#if PT_VER==3
+			enISDB, iTuner
+#endif
+		);
 	}
 	//スリープから復帰
 #if PT_VER==1 || PT_VER==2

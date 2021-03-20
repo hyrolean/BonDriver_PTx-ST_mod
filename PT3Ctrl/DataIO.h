@@ -16,7 +16,7 @@ public:
 
 	void SetDevice(PT::Device* pcDevice){ m_pcDevice = pcDevice; };
 	void SetVirtualCount(UINT uiVirtualCount){ VIRTUAL_COUNT = uiVirtualCount*8; };
-	void Run();
+	void Run(PT::Device::ISDB enISDB, uint32 iTuner);
 	void Stop();
 	BOOL EnableTuner(int iID, BOOL bEnable);
 	void StartPipeServer(int iID);
