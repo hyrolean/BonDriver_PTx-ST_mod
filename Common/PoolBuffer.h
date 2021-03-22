@@ -120,7 +120,7 @@ public:
 	}
 	void clear() { while(pull()!=nullptr); }
 	bool empty() const { return objs_.empty(); }
-	bool no_pool() const { return pool_.empty()&&total()>=maximum_pool_; }
+	bool no_pool() const { return pool_.size()<=minimum_pool_&&total()>=maximum_pool_; }
 	auto size() const { return objs_.size(); }
 	auto total() const { return objs_.size()+pool_.size(); }
 };
