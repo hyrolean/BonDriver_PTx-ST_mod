@@ -143,6 +143,9 @@
     <ClInclude Include="inc\PtDrvIfLib.h">
       <Filter>ヘッダー ファイル\inc</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\PoolBuffer.h">
+      <Filter>ヘッダー ファイル\Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="PTwCtrl.ico">

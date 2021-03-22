@@ -107,5 +107,10 @@ typedef struct _CMD_STREAM{
 	}
 } CMD_STREAM;
 
+// バッファオブジェクト
+#include "PoolBuffer.h"
+using PTBUFFER = pool_buffer<BYTE> ;
+using PTBUFFER_OBJECT = pool_buffer_object<BYTE> ;
+
 
 #endif

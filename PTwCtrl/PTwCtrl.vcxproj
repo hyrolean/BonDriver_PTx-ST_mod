@@ -202,6 +202,7 @@
     <ClCompile Include="..\Common\PTCreateCtrlCmdUtil.cpp" />
     <ClCompile Include="..\Common\PTCtrlMain.cpp" />
     <ClCompile Include="..\Common\PTSendCtrlCmdUtil.cpp" />
+    <ClInclude Include="..\Common\PoolBuffer.h" />
     <ClInclude Include="..\Common\PTxManager.cxx" />
     <ClCompile Include="..\Common\ServiceUtil.cpp" />
     <ClCompile Include="..\Common\SharedMem.cpp" />

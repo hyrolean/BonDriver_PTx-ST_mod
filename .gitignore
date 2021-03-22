@@ -45,6 +45,7 @@ Release/
 Intermediate/
 *.user
 *.sdf
+*.VC.db
 
 # pt2wdm files
 PTwCtrl/inc/*.h

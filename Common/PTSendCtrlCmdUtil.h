@@ -35,6 +35,7 @@ public:
 	DWORD SetCh(int iID, DWORD dwCh, DWORD dwTSID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
 	DWORD GetSignal(int iID, DWORD* pdwCn100, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
 	DWORD SendData(int iID, BYTE** pbData, DWORD* pdwSize, DWORD dwConnectTimeOut = CONNECT_TIMEOUT );
+	DWORD SendBufferObject(int iID, PTBUFFER_OBJECT *pPtBuffObj, DWORD dwConnectTimeOut = CONNECT_TIMEOUT );
 	DWORD GetStreamingMethod(PTSTREAMING *pPTStreaming, DWORD dwConnectTimeOut = CONNECT_TIMEOUT );
 
 };

@@ -125,6 +125,9 @@
     <ClInclude Include="..\Common\PTxManager.cxx">
       <Filter>ソース ファイル\Common</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\PoolBuffer.h">
+      <Filter>ヘッダー ファイル\Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="PT1Ctrl.ico">

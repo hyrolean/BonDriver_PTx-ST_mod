@@ -150,6 +150,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\PipeServer.h" />
+    <ClInclude Include="..\Common\PoolBuffer.h" />
     <ClInclude Include="..\Common\PTCreateCtrlCmdUtil.h" />
     <ClInclude Include="..\Common\PTCtrlMain.h" />
     <ClInclude Include="..\Common\PTManager.h" />

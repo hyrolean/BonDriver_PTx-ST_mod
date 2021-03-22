@@ -147,6 +147,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\PipeServer.h" />
+    <ClInclude Include="..\Common\PoolBuffer.h" />
     <ClInclude Include="..\Common\PTCreateCtrlCmdUtil.h" />
     <ClInclude Include="..\Common\PTOutsideCtrlCmdDef.h" />
     <ClInclude Include="..\Common\PTSendCtrlCmdUtil.h" />

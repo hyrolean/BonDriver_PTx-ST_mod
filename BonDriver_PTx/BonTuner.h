@@ -66,7 +66,7 @@ protected:
 
 	BOOL m_hasStream;
 
-	typedef struct _TS_DATA{
+	/*typedef struct _TS_DATA{
 		BYTE* pbBuff;
 		DWORD dwSize;
 		_TS_DATA(BYTE* pb, DWORD dw) : pbBuff(pb), dwSize(dw){
@@ -76,7 +76,9 @@ protected:
 		}
 	} TS_DATA;
 	deque<TS_DATA*> m_TsBuff;
-	TS_DATA* m_LastBuff;
+	TS_DATA* m_LastBuff;*/
+
+	PTBUFFER m_PtBuff;
 
 	HANDLE m_hStopEvent;
 	HANDLE m_hThread;

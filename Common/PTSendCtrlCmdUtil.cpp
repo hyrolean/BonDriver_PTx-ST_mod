@@ -16,7 +16,7 @@ static DWORD WaitConnect(LPCWSTR lpwszName, DWORD dwConnectTimeOut)
 	return dwRet;
 }
 
-static DWORD SendDefCmd(LPCWSTR lpwszEventName, LPCWSTR lpwszPipeName, DWORD dwConnectTimeOut, CMD_STREAM* pstSend, CMD_STREAM* pstRes)
+static DWORD SendDefCmd(LPCWSTR lpwszEventName, LPCWSTR lpwszPipeName, DWORD dwConnectTimeOut, CMD_STREAM* pstSend, CMD_STREAM* pstRes, PTBUFFER_OBJECT *pPtBufObj=NULL)
 {
 	DWORD dwRet = CMD_SUCCESS;
 	if( pstSend == NULL || pstRes == NULL ){
@@ -62,7 +62,14 @@ static DWORD SendDefCmd(LPCWSTR lpwszEventName, LPCWSTR lpwszPipeName, DWORD dwC
 		return CMD_ERR;
 	}
 	if( pstRes->dwSize > 0 ){
-		pstRes->bData = new BYTE[pstRes->dwSize];
+		BYTE *pBuf ;
+		if(pPtBufObj!=NULL) {
+			if(!pPtBufObj->resize(pstRes->dwSize))
+				return CMD_ERR;
+			pBuf = pPtBufObj->data() ;
+		}else {
+			pBuf = pstRes->bData = new BYTE[pstRes->dwSize];
+		}
 		DWORD dwReadNum = 0;
 		while(dwReadNum < pstRes->dwSize ){
 			DWORD dwReadSize;
@@ -71,7 +78,7 @@ static DWORD SendDefCmd(LPCWSTR lpwszEventName, LPCWSTR lpwszPipeName, DWORD dwC
 			}else{
 				dwReadSize = RES_BUFF_SIZE;
 			}
-			if( ReadFile(hPipe, pstRes->bData+dwReadNum, dwReadSize, &dwRead, NULL ) == FALSE ){
+			if( ReadFile(hPipe, pBuf+dwReadNum, dwReadSize, &dwRead, NULL ) == FALSE ){
 				CloseHandle(hPipe);
 				return CMD_ERR;
 			}
@@ -238,6 +245,25 @@ DWORD CPTSendCtrlCmd::SendData(int iID, BYTE** pbData, DWORD* pdwSize, DWORD dwC
 		*pbData = stRes.bData;
 		*pdwSize = stRes.dwSize;
 		stRes.bData = NULL;		// ポインタで返すのでstResのデストラクタでdeleteされないように
+	}
+
+	return dwRet;
+}
+
+DWORD CPTSendCtrlCmd::SendBufferObject(int iID, PTBUFFER_OBJECT *pPtBuffObj, DWORD dwConnectTimeOut )
+{
+	CMD_STREAM stSend;
+	CMD_STREAM stRes;
+
+	stSend.dwParam = CMD_SEND_DATA;
+
+	wstring strDataEvent, strDataPipe;
+	Format(strDataEvent, CMD_PT1_DATA_EVENT_WAIT_CONNECT_FORMAT ,m_iPT ,iID);
+	Format(strDataPipe, CMD_PT1_DATA_PIPE_FORMAT ,m_iPT ,iID);
+
+	DWORD dwRet = SendDefCmd(strDataEvent.c_str(), strDataPipe.c_str(), dwConnectTimeOut, &stSend, &stRes, pPtBuffObj);
+    if(dwRet==CMD_SUCCESS) {
+		if(!stRes.dwSize) dwRet=CMD_ERR_BUSY ;
 	}
 
 	return dwRet;

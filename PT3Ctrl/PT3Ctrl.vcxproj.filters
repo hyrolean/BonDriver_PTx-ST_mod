@@ -95,6 +95,9 @@
     <ClInclude Include="..\Common\PTxManager.cxx">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\PoolBuffer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

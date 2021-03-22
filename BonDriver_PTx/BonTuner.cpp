@@ -63,10 +63,9 @@ HINSTANCE CBonTuner::m_hModule = NULL;
 
 
 CBonTuner::CBonTuner()
+  : m_PtBuff(MAX_BUFF_COUNT,1)
 {
 	m_hOnStreamEvent = NULL;
-
-	m_LastBuff = NULL;
 
 	m_dwCurSpace = 0xFF;
 	m_dwCurChannel = 0xFF;
@@ -217,10 +216,6 @@ CBonTuner::CBonTuner()
 CBonTuner::~CBonTuner()
 {
 	CloseTuner();
-
-	::EnterCriticalSection(&m_CriticalSection);
-	SAFE_DELETE(m_LastBuff);
-	::LeaveCriticalSection(&m_CriticalSection);
 
 	::CloseHandle(m_hStopEvent);
 	m_hStopEvent = NULL;
@@ -519,11 +514,7 @@ void CBonTuner::CloseTuner(void)
 
 	//ƒoƒbƒtƒ@‰ð•ú
 	::EnterCriticalSection(&m_CriticalSection);
-	while (!m_TsBuff.empty()){
-		TS_DATA *p = m_TsBuff.front();
-		m_TsBuff.pop_front();
-		delete p;
-	}
+	m_PtBuff.dispose();
 	::LeaveCriticalSection(&m_CriticalSection);
 }
 
@@ -574,7 +565,7 @@ const DWORD CBonTuner::GetReadyCount(void)
 {
 	DWORD dwCount = 0;
 	::EnterCriticalSection(&m_CriticalSection);
-	if(m_hasStream) dwCount = (DWORD)m_TsBuff.size();
+	if(m_hasStream) dwCount = (DWORD)m_PtBuff.size();
 	::LeaveCriticalSection(&m_CriticalSection);
 	return dwCount;
 }
@@ -596,13 +587,11 @@ const BOOL CBonTuner::GetTsStream(BYTE **ppDst, DWORD *pdwSize, DWORD *pdwRemain
 {
 	BOOL bRet;
 	::EnterCriticalSection(&m_CriticalSection);
-	if( m_hasStream && m_TsBuff.size() != 0 ){
-		delete m_LastBuff;
-		m_LastBuff = m_TsBuff.front();
-		m_TsBuff.pop_front();
-		*pdwSize = m_LastBuff->dwSize;
-		*ppDst = m_LastBuff->pbBuff;
-		*pdwRemain = (DWORD)m_TsBuff.size();
+	if( m_hasStream && !m_PtBuff.empty() ){
+		PTBUFFER_OBJECT *buf = m_PtBuff.pull() ;
+		*pdwSize = (DWORD)buf->size();
+		*ppDst = buf->data() ;
+		*pdwRemain = (DWORD)m_PtBuff.size();
 		bRet = TRUE;
 	}else{
 		*pdwSize = 0;
@@ -617,11 +606,7 @@ void CBonTuner::PurgeTsStream(void)
 {
 	//ƒoƒbƒtƒ@‰ð•ú
 	::EnterCriticalSection(&m_CriticalSection);
-	while (!m_TsBuff.empty()){
-		TS_DATA *p = m_TsBuff.front();
-		m_TsBuff.pop_front();
-		delete p;
-	}
+	m_PtBuff.clear();
 	::LeaveCriticalSection(&m_CriticalSection);
 }
 
@@ -714,28 +699,35 @@ UINT WINAPI CBonTuner::RecvThreadPipeIO(LPVOID pParam)
 	CBonTuner* pSys = (CBonTuner*)pParam;
 
 
+	PTBUFFER_OBJECT *pPtBuffObj=nullptr;
 	for (;;) {
 		if (::WaitForSingleObject( pSys->m_hStopEvent, 0 ) != WAIT_TIMEOUT) {
 			//’†Ž~
 			break;
 		}
-		DWORD dwSize;
-		BYTE *pbBuff;
-		if ((pSys->m_pCmdSender->SendData(pSys->m_iID, &pbBuff, &dwSize) == CMD_SUCCESS) && (dwSize != 0)) {
+		if(pPtBuffObj==nullptr) {
+			::EnterCriticalSection(&pSys->m_CriticalSection);
+			pPtBuffObj = pSys->m_PtBuff.head() ;
+			if(pPtBuffObj==nullptr&&pSys->m_PtBuff.no_pool()) {
+				// buffer overflow
+				pSys->m_PtBuff.pull();
+				pPtBuffObj = pSys->m_PtBuff.head() ;
+			}
+			::LeaveCriticalSection(&pSys->m_CriticalSection);
+			if(pPtBuffObj==nullptr) {
+				//’†Ž~
+				break;
+			}
+		}
+		if (pSys->m_pCmdSender->SendBufferObject(pSys->m_iID, pPtBuffObj) == CMD_SUCCESS) {
 			if(pSys->m_hasStream) {
-				TS_DATA *pData = new TS_DATA(pbBuff, dwSize);
 				::EnterCriticalSection(&pSys->m_CriticalSection);
-				while (pSys->m_TsBuff.size() > MAX_BUFF_COUNT) {
-					TS_DATA *p = pSys->m_TsBuff.front();
-					pSys->m_TsBuff.pop_front();
-					delete p;
-				}
-				pSys->m_TsBuff.push_back(pData);
+				bool done = pSys->m_PtBuff.push();
 				::LeaveCriticalSection(&pSys->m_CriticalSection);
-				::SetEvent(pSys->m_hOnStreamEvent);
-			}else {
-				//‹xŽ~
-				delete [] pbBuff ;
+				if(done) {
+					::SetEvent(pSys->m_hOnStreamEvent);
+					pPtBuffObj=nullptr;
+				}
 			}
 		}else{
 			if(!pSys->m_hasStream) pSys->PurgeTsStream();
@@ -759,6 +751,7 @@ UINT WINAPI CBonTuner::RecvThreadSharedMem(LPVOID pParam)
 	DBGOUT("BON Streamer memName: %s\n",wcs2mbcs(streamer.Name()).c_str());
 
 	DWORD rem=0;
+	PTBUFFER_OBJECT *pPtBuffObj=nullptr;
 	for (;;) {
 		if (::WaitForSingleObject( pSys->m_hStopEvent, 0 ) != WAIT_TIMEOUT) {
 			//’†Ž~
@@ -770,23 +763,33 @@ UINT WINAPI CBonTuner::RecvThreadSharedMem(LPVOID pParam)
 			continue;
 		}
 		if(wait_res==WAIT_OBJECT_0) {
-			DWORD dwSize=0;
-			BYTE *pbBuff = new BYTE[SHAREDMEM_TRANSPORT_PACKET_SIZE];
-			if(pbBuff) {
-				if(streamer.Rx(pbBuff, dwSize, MAXWAIT)&&pSys->m_hasStream) {
-					TS_DATA *pData = new TS_DATA(pbBuff, dwSize);
-					::EnterCriticalSection(&pSys->m_CriticalSection);
-					while (pSys->m_TsBuff.size() > MAX_BUFF_COUNT) {
-						TS_DATA *p = pSys->m_TsBuff.front();
-						pSys->m_TsBuff.pop_front();
-						delete p;
-					}
-					pSys->m_TsBuff.push_back(pData);
-					::LeaveCriticalSection(&pSys->m_CriticalSection);
-					::SetEvent(pSys->m_hOnStreamEvent);
+			if(pPtBuffObj==nullptr) {
+				::EnterCriticalSection(&pSys->m_CriticalSection);
+				pPtBuffObj = pSys->m_PtBuff.head() ;
+				if(pPtBuffObj==nullptr&&pSys->m_PtBuff.no_pool()) {
+					// buffer overflow
+					pSys->m_PtBuff.pull();
+					pPtBuffObj = pSys->m_PtBuff.head() ;
 				}
-				else {
-					delete [] pbBuff;
+				::LeaveCriticalSection(&pSys->m_CriticalSection);
+				if(pPtBuffObj==nullptr) {
+					//’†Ž~
+					break;
+				}
+			}
+			if(!pPtBuffObj->resize(SHAREDMEM_TRANSPORT_PACKET_SIZE)) {
+				//’†Ž~
+				break;
+			}
+			DWORD dwSize=0;
+			if(streamer.Rx(pPtBuffObj->data(), dwSize, MAXWAIT)&&pSys->m_hasStream) {
+				pPtBuffObj->resize(dwSize);
+				::EnterCriticalSection(&pSys->m_CriticalSection);
+				bool done = pSys->m_PtBuff.push();
+				::LeaveCriticalSection(&pSys->m_CriticalSection);
+				if(done) {
+					::SetEvent(pSys->m_hOnStreamEvent);
+					pPtBuffObj=nullptr;
 				}
 			}
 			if(!rem)
