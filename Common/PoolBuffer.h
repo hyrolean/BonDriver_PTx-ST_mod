@@ -79,89 +79,124 @@ public:
 
 template<class T>
 class pool_objects {
-	fixed_queue<T> objs_; // 使用領域
-	fixed_queue<T> pool_; // 空き領域
+	fixed_queue<T> pool_; // プール領域
+	fixed_queue<size_t> uses_; // 使用領域インデックスリスト
+	fixed_queue<size_t> empties_; // 空き領域インデックスリスト
 	size_t maximum_pool_, minimum_pool_; // 最大容量／最小容量
 protected:
 	bool growup() {
 		if(total()>=maximum_pool_) return false ;
-		pool_.push_front(T());
+		empties_.push_front(total());
+		pool_.push(T());
 		return true;
 	}
 public:
 	pool_objects(size_t maximum_pool, size_t minimum_pool=0)
 	 : maximum_pool_(maximum_pool), minimum_pool_(minimum_pool),
-	   objs_(maximum_pool), pool_(maximum_pool) {
-		size_t initial_pool = minimum_pool+1 ;
-		while(initial_pool--) pool_.push(T());
+	   pool_(maximum_pool), uses_(maximum_pool), empties_(maximum_pool) {
+		if(minimum_pool_>maximum_pool_) minimum_pool_ = maximum_pool_;
+		for(decltype(empties_)::size_type i = 0; i<minimum_pool_ ; i++) {
+			pool_.push(T());
+			empties_.push(i);
+		}
 	}
 	~pool_objects() {
 		dispose();
 	}
-	T* head() { // pool の先頭を参照 ( push の前駆obj - prereferenced object )
-		if(pool_.size()<=minimum_pool_&&!growup()) return nullptr;
-		return &pool_.front();
+	T* head() { // empties の先頭を参照 ( push の前駆obj - prereferenced object )
+		if(empties_.size()<=minimum_pool_&&!growup()) return nullptr;
+		return &pool_[empties_.front()];
 	}
-	bool push() { // pool の先頭を objs の最後尾に移動
-		if(pool_.size()<=minimum_pool_) return false;
-		objs_.push(pool_.front());
-		pool_.pop();
+	bool push() { // empties の先頭を uses の最後尾に移動
+		if(empties_.size()<=minimum_pool_) return false;
+		uses_.push(empties_.front());
+		empties_.pop();
 		return true ;
 	}
-	T* pull() { // objs の先頭を pool の最後尾に移動して参照
+	T* pull() { // uses の先頭を empties の最後尾に移動して参照
 		if(empty()) return nullptr;
-		pool_.push(objs_.front());
-		objs_.pop();
-		return &pool_.back();
+		empties_.push(uses_.front());
+		uses_.pop();
+		return &pool_[empties_.back()];
 	}
 	void dispose() {
 		clear();
-		for(decltype(pool_.size()) i=0;i<pool_.size();i++) pool_[i].free();
+		for(decltype(pool_)::size_type i=0;i<pool_.size();i++) pool_[i].free();
 	}
 	void clear() { while(pull()!=nullptr); }
-	bool empty() const { return objs_.empty(); }
-	bool no_pool() const { return pool_.size()<=minimum_pool_&&total()>=maximum_pool_; }
-	auto size() const { return objs_.size(); }
-	auto total() const { return objs_.size()+pool_.size(); }
+	bool empty() const { return uses_.empty(); }
+	bool no_pool() const { return empties_.size()<=minimum_pool_&&total()>=maximum_pool_; }
+	auto size() const { return uses_.size(); }
+	auto total() const { return pool_.size(); }
 };
 
   // pool_buffer_object
 
 template<class T>
 class pool_buffer_object {
-	T* data_;
-	size_t size_;
-	size_t grew_;
-public:
-	pool_buffer_object()
-	 : data_(nullptr), size_(0), grew_(0) {}
-	pool_buffer_object(const pool_buffer_object &obj)
-	 : data_(obj.data_), size_(obj.size_), grew_(obj.grew_) {}
-	void free() {
-		if(data_!=nullptr) {
-			delete [] data_ ;
-			data_ = nullptr ;
-		}
-		size_ = 0 ; grew_=0 ;
-	}
-	bool resize(size_t new_size) {
-		if(!new_size) { free(); return true; }
-		if(new_size<=grew_) { size_=new_size; return true; }
-		T *new_data = new T[new_size];
-		if(new_data!=nullptr) {
-			if(data_) {
-				std::copy(&data_[0],&data_[size_],new_data);
-				delete [] data_ ;
+	struct ref_t {
+		ref_t(): data_(nullptr), ref_cnt_(1), size_(0), grew_(0) {}
+		~ref_t() { free(); }
+		void addref() {ref_cnt_++;}
+		bool release() {
+			if(!--ref_cnt_) {
+				return true ;
 			}
-			data_ = new_data ;
-			size_ = grew_ = new_size ;
+			return false;
+		}
+		void free() {
+			if(data_!=nullptr) {
+				delete [] data_ ;
+				data_ = nullptr ;
+			}
+			size_ = 0 ; grew_=0 ;
+		}
+		bool resize(size_t new_size) {
+			if(new_size<=grew_) { size_=new_size; return true; }
+			T *new_data = new T[new_size];
+			if(new_data!=nullptr) {
+				if(data_) {
+					std::copy(&data_[0],&data_[size_],new_data);
+					delete [] data_ ;
+				}
+				data_ = new_data ;
+				size_ = grew_ = new_size ;
+				return true;
+			}
+			return false;
+		}
+		bool growup(size_t capa_size) {
+			size_t sz = size();
+			if(!resize(capa_size)) return false;
+			if(!resize(sz)) return false;
 			return true;
 		}
-		return false;
-	}
-	T* data() { return data_; }
-	size_t size() const { return size_; }
-    T& operator[](size_t index) { return data_[index] ; }
+		T* data() { return data_; }
+		size_t size() const { return size_; }
+		size_t capacity() const { return grew_; }
+	    T& operator[](size_t index) { return data_[index] ; }
+	private:
+		T* data_;
+		size_t size_;
+		size_t grew_;
+		size_t ref_cnt_;
+	};
+	ref_t* ref_;
+public:
+	pool_buffer_object() { ref_ = new ref_t() ; }
+	pool_buffer_object(const pool_buffer_object &obj)
+	{ ref_ = obj.ref_; ref_->addref(); }
+	~pool_buffer_object()
+	{ if(ref_->release()) delete ref_; }
+	void free() { ref_->free(); }
+	bool resize(size_t new_size) { return ref_->resize(new_size); }
+	bool growup(size_t capa_size) { return ref_->growup(capa_size); }
+	T* data() { return ref_->data(); }
+	size_t size() const { return ref_->size(); }
+	size_t capacity() const { return ref_->capacity(); }
+    T& operator[](size_t index) { return (*ref_)[index] ; }
+	pool_buffer_object& operator =(const pool_buffer_object &obj)
+	{ if(ref_->release()) delete ref_; ref_=obj.ref_; ref_->addref(); return *this; }
 };
 
   // pool_buffer

@@ -124,7 +124,7 @@ UINT WINAPI CPipeServer::ServerThread(LPVOID pParam)
 
 	HANDLE hCurThread = GetCurrentThread();
 	SetThreadPriority(hCurThread, pSys->m_iThreadPriority);
-	
+
 	for (;;) {
 		ZeroMemory(&pSys->m_stOver, sizeof(OVERLAPPED));
 		pSys->m_stOver.hEvent = pSys->m_hCmdRcvEvent_PS;
@@ -172,7 +172,8 @@ UINT WINAPI CPipeServer::ServerThread(LPVOID pParam)
 						}
 					}
 
-					pSys->m_pCmdProc(pSys->m_pParam, &stCmd, &stRes);
+					BOOL bAbandon=FALSE;
+					pSys->m_pCmdProc(pSys->m_pParam, &stCmd, &stRes, &bAbandon);
 
 					if( WriteFile(pSys->m_hPipe, &stRes, sizeof(DWORD)*2, &dwWrite, NULL ) == FALSE ) {
 						break;
@@ -194,6 +195,9 @@ UINT WINAPI CPipeServer::ServerThread(LPVOID pParam)
 								break;
 							}
 							dwSendNum+=dwWrite;
+						}
+						if ( bAbandon ) {
+							stRes.bData = NULL ;
 						}
 						if ( dwSendNum < stRes.dwSize ) {
 							break;

@@ -262,7 +262,7 @@ DWORD CPTSendCtrlCmd::SendBufferObject(int iID, PTBUFFER_OBJECT *pPtBuffObj, DWO
 	Format(strDataPipe, CMD_PT1_DATA_PIPE_FORMAT ,m_iPT ,iID);
 
 	DWORD dwRet = SendDefCmd(strDataEvent.c_str(), strDataPipe.c_str(), dwConnectTimeOut, &stSend, &stRes, pPtBuffObj);
-    if(dwRet==CMD_SUCCESS) {
+	if(dwRet==CMD_SUCCESS) {
 		if(!stRes.dwSize) dwRet=CMD_ERR_BUSY ;
 	}
 

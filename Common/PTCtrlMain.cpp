@@ -63,7 +63,7 @@ void CPTCtrlMain::StopMain()
 	}
 }
 
-int CALLBACK CPTCtrlMain::OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+int CALLBACK CPTCtrlMain::OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* /*pbResDataAbandon*/)
 {
 	CPTCtrlMain* pSys = (CPTCtrlMain*)pParam;
 

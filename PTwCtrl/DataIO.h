@@ -1,9 +1,9 @@
 #pragma once
 
-#define USE_DEQUE
+//#define USE_DEQUE
 
-#include "inc/Prefix.h"
 #include "inc/EarthPtIf.h"
+#include "inc/Prefix.h"
 #include "../Common/PTOutsideCtrlCmdDef.h"
 #include "../Common/PipeServer.h"
 #include "MicroPacketUtil.h"
@@ -49,49 +49,10 @@ protected:
 	CPipeServer m_cPipeS0;
 	CPipeServer m_cPipeS1;
 
-#ifndef USE_DEQUE
-	typedef struct _BUFF_DATA{
-		BYTE* pbBuff;
-		DWORD dwSize;
-		DWORD dwSetSize;
-		_BUFF_DATA(void){
-			pbBuff = NULL;
-			dwSize = 0;
-			dwSetSize = 0;
-		}
-		~_BUFF_DATA(void){
-			SAFE_DELETE_ARRAY(pbBuff)
-		}
-	}BUFF_DATA;
-
-	vector<BUFF_DATA*> m_T0Buff;
-	vector<BUFF_DATA*> m_T1Buff;
-	vector<BUFF_DATA*> m_S0Buff;
-	vector<BUFF_DATA*> m_S1Buff;
-#else
-	typedef struct _BUFF_DATA{
-		BYTE* pbBuff;
-		DWORD dwSize;
-		DWORD dwSetSize;
-		_BUFF_DATA(DWORD dw) : dwSize(dw){
-			pbBuff = new BYTE[dw];
-			dwSetSize = 0;
-		}
-		~_BUFF_DATA(void){
-			delete[] pbBuff;
-		}
-	}BUFF_DATA;
-
-	deque<BUFF_DATA*> m_T0Buff;
-	deque<BUFF_DATA*> m_T1Buff;
-	deque<BUFF_DATA*> m_S0Buff;
-	deque<BUFF_DATA*> m_S1Buff;
-#endif
-
-	BUFF_DATA* m_T0SetBuff;
-	BUFF_DATA* m_T1SetBuff;
-	BUFF_DATA* m_S0SetBuff;
-	BUFF_DATA* m_S1SetBuff;
+	PTBUFFER m_T0Buff;
+	PTBUFFER m_T1Buff;
+	PTBUFFER m_S0Buff;
+	PTBUFFER m_S1Buff;
 
 	CMicroPacketUtil m_cT0Micro;
 	CMicroPacketUtil m_cT1Micro;
@@ -130,12 +91,12 @@ protected:
 	uint Offset(uint imageIndex, uint blockIndex, uint additionalOffset = 0) const;
 	void MicroPacket(BYTE* pbPacket);
 
-	static int CALLBACK OutsideCmdCallbackT0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
-	static int CALLBACK OutsideCmdCallbackT1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
-	static int CALLBACK OutsideCmdCallbackS0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
-	static int CALLBACK OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
+	static int CALLBACK OutsideCmdCallbackT0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon);
+	static int CALLBACK OutsideCmdCallbackT1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon);
+	static int CALLBACK OutsideCmdCallbackS0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon);
+	static int CALLBACK OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon);
 
-	void CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
+	void CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon);
 
 	void ResetDMA();
 

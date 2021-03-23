@@ -25,7 +25,7 @@ protected:
 	wstring m_strGlobalLockMutex ;
 
 protected:
-	static int CALLBACK OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
+	static int CALLBACK OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon);
 
 	//CMD_CLOSE_EXE PT1Ctrl.exeの強制終了コマンド 通常は使用しない
 	void CmdCloseExe(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);

@@ -6,6 +6,8 @@
 #define MAX_DATA_BUFF_COUNT 500
 
 CDataIO::CDataIO(void)
+  : m_T0Buff(MAX_DATA_BUFF_COUNT,1), m_T1Buff(MAX_DATA_BUFF_COUNT,1),
+	m_S0Buff(MAX_DATA_BUFF_COUNT,1), m_S1Buff(MAX_DATA_BUFF_COUNT,1)
 {
 	VIRTUAL_COUNT = 8;
 
@@ -15,35 +17,6 @@ CDataIO::CDataIO(void)
 	m_pcDevice = NULL;
 
 	mQuit = false;
-
-	m_T0SetBuff = NULL;
-	m_T1SetBuff = NULL;
-	m_S0SetBuff = NULL;
-	m_S1SetBuff = NULL;
-
-	for( int i=0; i<4; i++ ){
-#ifndef USE_DEQUE
-		BUFF_DATA* pDataBuff = new BUFF_DATA;
-		pDataBuff->dwSize = DATA_BUFF_SIZE;
-		pDataBuff->pbBuff = new BYTE[DATA_BUFF_SIZE];
-#else
-		BUFF_DATA *pDataBuff = new BUFF_DATA(DATA_BUFF_SIZE);
-#endif
-		switch(i){
-			case 0:
-				m_T0SetBuff = pDataBuff;
-				break;
-			case 1:
-				m_T1SetBuff = pDataBuff;
-				break;
-			case 2:
-				m_S0SetBuff = pDataBuff;
-				break;
-			case 3:
-				m_S1SetBuff = pDataBuff;
-				break;
-		}
-	}
 
 	m_hEvent1 = _CreateEvent(FALSE, TRUE, NULL );
 	m_hEvent2 = _CreateEvent(FALSE, TRUE, NULL );
@@ -74,46 +47,6 @@ CDataIO::~CDataIO(void)
 		m_hStopEvent = NULL;
 	}
 
-	SAFE_DELETE(m_T0SetBuff);
-	SAFE_DELETE(m_T1SetBuff);
-	SAFE_DELETE(m_S0SetBuff);
-	SAFE_DELETE(m_S1SetBuff);
-
-#ifndef USE_DEQUE
-	for( int i=0; i<(int)m_T0Buff.size(); i++ ){
-		SAFE_DELETE(m_T0Buff[i]);
-	}
-	for( int i=0; i<(int)m_T1Buff.size(); i++ ){
-		SAFE_DELETE(m_T1Buff[i]);
-	}
-	for( int i=0; i<(int)m_S0Buff.size(); i++ ){
-		SAFE_DELETE(m_S0Buff[i]);
-	}
-	for( int i=0; i<(int)m_S1Buff.size(); i++ ){
-		SAFE_DELETE(m_S1Buff[i]);
-	}
-#else
-	while (!m_T0Buff.empty()){
-		BUFF_DATA *p = m_T0Buff.front();
-		m_T0Buff.pop_front();
-		delete p;
-	}
-	while (!m_T1Buff.empty()){
-		BUFF_DATA *p = m_T1Buff.front();
-		m_T1Buff.pop_front();
-		delete p;
-	}
-	while (!m_S0Buff.empty()){
-		BUFF_DATA *p = m_S0Buff.front();
-		m_S0Buff.pop_front();
-		delete p;
-	}
-	while (!m_S1Buff.empty()){
-		BUFF_DATA *p = m_S1Buff.front();
-		m_S1Buff.pop_front();
-		delete p;
-	}
-#endif
 	if( m_hEvent1 != NULL ){
 		UnLock1();
 		CloseHandle(m_hEvent1);
@@ -217,76 +150,24 @@ void CDataIO::ClearBuff(int iID)
 		if( iTuner == 0 ){
 			Lock1();
 			m_dwT0OverFlowCount = 0;
-#ifndef USE_DEQUE
-			SAFE_DELETE(m_T0SetBuff);
-			for( int i=0; i<(int)m_T0Buff.size(); i++ ){
-				SAFE_DELETE(m_T0Buff[i]);
-			}
 			m_T0Buff.clear();
-#else
-			m_T0SetBuff->dwSetSize = 0;
-			while (!m_T0Buff.empty()){
-				BUFF_DATA *p = m_T0Buff.front();
-				m_T0Buff.pop_front();
-				delete p;
-			}
-#endif
 			UnLock1();
 		}else{
 			Lock2();
 			m_dwT1OverFlowCount = 0;
-#ifndef USE_DEQUE
-			SAFE_DELETE(m_T1SetBuff);
-			for( int i=0; i<(int)m_T1Buff.size(); i++ ){
-				SAFE_DELETE(m_T1Buff[i]);
-			}
 			m_T1Buff.clear();
-#else
-			m_T1SetBuff->dwSetSize = 0;
-			while (!m_T1Buff.empty()){
-				BUFF_DATA *p = m_T1Buff.front();
-				m_T1Buff.pop_front();
-				delete p;
-			}
-#endif
 			UnLock2();
 		}
 	}else{
 		if( iTuner == 0 ){
 			Lock3();
 			m_dwS0OverFlowCount = 0;
-#ifndef USE_DEQUE
-			SAFE_DELETE(m_S0SetBuff);
-			for( int i=0; i<(int)m_S0Buff.size(); i++ ){
-				SAFE_DELETE(m_S0Buff[i]);
-			}
 			m_S0Buff.clear();
-#else
-			m_S0SetBuff->dwSetSize = 0;
-			while (!m_S0Buff.empty()){
-				BUFF_DATA *p = m_S0Buff.front();
-				m_S0Buff.pop_front();
-				delete p;
-			}
-#endif
 			UnLock3();
 		}else{
 			Lock4();
 			m_dwS1OverFlowCount = 0;
-#ifndef USE_DEQUE
-			SAFE_DELETE(m_S1SetBuff);
-			for( int i=0; i<(int)m_S1Buff.size(); i++ ){
-				SAFE_DELETE(m_S1Buff[i]);
-			}
 			m_S1Buff.clear();
-#else
-			m_S1SetBuff->dwSetSize = 0;
-			while (!m_S1Buff.empty()){
-				BUFF_DATA *p = m_S1Buff.front();
-				m_S1Buff.pop_front();
-				delete p;
-			}
-#endif
 			UnLock4();
 		}
 	}
@@ -429,6 +310,8 @@ void CDataIO::Stop()
 		m_hThread = NULL;
 	}
 
+
+
 	status enStatus;
 
 	bool bEnalbe = true;
@@ -457,100 +340,42 @@ void CDataIO::EnableTuner(int iID, BOOL bEnable)
 	if( bEnable ){
 		if( enISDB == PT::Device::ISDB_T ){
 			if( iTuner == 0 ){
-#ifndef USE_DEQUE
-				if( m_T0SetBuff == NULL ){
-					Lock1();
-					BUFF_DATA* pDataBuff = new BUFF_DATA;
-					pDataBuff->dwSize = DATA_BUFF_SIZE;
-					pDataBuff->pbBuff = new BYTE[DATA_BUFF_SIZE];
-					m_T0SetBuff = pDataBuff;
-					m_dwT0OverFlowCount = 0;
-					UnLock1();
-				}
-#endif
+				Lock1();
+				m_dwT0OverFlowCount = 0;
+				UnLock1();
 				m_cPipeT0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT0, this, THREAD_PRIORITY_ABOVE_NORMAL);
 			}else{
-#ifndef USE_DEQUE
-				if( m_T1SetBuff == NULL ){
-					Lock2();
-					BUFF_DATA* pDataBuff = new BUFF_DATA;
-					pDataBuff->dwSize = DATA_BUFF_SIZE;
-					pDataBuff->pbBuff = new BYTE[DATA_BUFF_SIZE];
-					m_T1SetBuff = pDataBuff;
-					m_dwT1OverFlowCount = 0;
-					UnLock2();
-				}
-#endif
+				Lock2();
+				m_dwT1OverFlowCount = 0;
+				UnLock2();
 				m_cPipeT1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT1, this, THREAD_PRIORITY_ABOVE_NORMAL);
 			}
 		}else{
 			if( iTuner == 0 ){
-#ifndef USE_DEQUE
-				if( m_S0SetBuff == NULL ){
-					Lock3();
-					BUFF_DATA* pDataBuff = new BUFF_DATA;
-					pDataBuff->dwSize = DATA_BUFF_SIZE;
-					pDataBuff->pbBuff = new BYTE[DATA_BUFF_SIZE];
-					m_S0SetBuff = pDataBuff;
-					m_dwS0OverFlowCount = 0;
-					UnLock3();
-				}
-#endif
+				Lock3();
+				m_dwS0OverFlowCount = 0;
+				UnLock3();
 				m_cPipeS0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS0, this, THREAD_PRIORITY_ABOVE_NORMAL);
 			}else{
-#ifndef USE_DEQUE
-				if( m_S1SetBuff == NULL ){
-					Lock4();
-					BUFF_DATA* pDataBuff = new BUFF_DATA;
-					pDataBuff->dwSize = DATA_BUFF_SIZE;
-					pDataBuff->pbBuff = new BYTE[DATA_BUFF_SIZE];
-					m_S1SetBuff = pDataBuff;
-					m_dwS1OverFlowCount = 0;
-					UnLock4();
-				}
-#endif
+				Lock4();
+				m_dwS1OverFlowCount = 0;
+				UnLock4();
 				m_cPipeS1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS1, this, THREAD_PRIORITY_ABOVE_NORMAL);
 			}
 		}
-	}else{
+	}else{ // Disable
 		if( enISDB == PT::Device::ISDB_T ){
 			if( iTuner == 0 ){
 				m_cPipeT0.StopServer();
 				Lock1();
 				m_dwT0OverFlowCount = 0;
-#ifndef USE_DEQUE
-				SAFE_DELETE(m_T0SetBuff);
-				for( int i=0; i<(int)m_T0Buff.size(); i++ ){
-					SAFE_DELETE(m_T0Buff[i]);
-				}
-				m_T0Buff.clear();
-#else
-				m_T0SetBuff->dwSetSize = 0;
-				while (!m_T0Buff.empty()){
-					BUFF_DATA *p = m_T0Buff.front();
-					m_T0Buff.pop_front();
-					delete p;
-				}
-#endif
+				m_T0Buff.dispose();
 				UnLock1();
 			}else{
 				m_cPipeT1.StopServer();
 				Lock2();
 				m_dwT1OverFlowCount = 0;
-#ifndef USE_DEQUE
-				SAFE_DELETE(m_T1SetBuff);
-				for( int i=0; i<(int)m_T1Buff.size(); i++ ){
-					SAFE_DELETE(m_T1Buff[i]);
-				}
-				m_T1Buff.clear();
-#else
-				m_T1SetBuff->dwSetSize = 0;
-				while (!m_T1Buff.empty()){
-					BUFF_DATA *p = m_T1Buff.front();
-					m_T1Buff.pop_front();
-					delete p;
-				}
-#endif
+				m_T1Buff.dispose();
 				UnLock2();
 			}
 		}else{
@@ -558,39 +383,13 @@ void CDataIO::EnableTuner(int iID, BOOL bEnable)
 				m_cPipeS0.StopServer();
 				Lock3();
 				m_dwS0OverFlowCount = 0;
-#ifndef USE_DEQUE
-				SAFE_DELETE(m_S0SetBuff);
-				for( int i=0; i<(int)m_S0Buff.size(); i++ ){
-					SAFE_DELETE(m_S0Buff[i]);
-				}
-				m_S0Buff.clear();
-#else
-				m_S0SetBuff->dwSetSize = 0;
-				while (!m_S0Buff.empty()){
-					BUFF_DATA *p = m_S0Buff.front();
-					m_S0Buff.pop_front();
-					delete p;
-				}
-#endif
+				m_S0Buff.dispose();
 				UnLock3();
 			}else{
 				m_cPipeS1.StopServer();
 				Lock4();
 				m_dwS1OverFlowCount = 0;
-#ifndef USE_DEQUE
-				SAFE_DELETE(m_S1SetBuff);
-				for( int i=0; i<(int)m_S1Buff.size(); i++ ){
-					SAFE_DELETE(m_S1Buff[i]);
-				}
-				m_S1Buff.clear();
-#else
-				m_S1SetBuff->dwSetSize = 0;
-				while (!m_S1Buff.empty()){
-					BUFF_DATA *p = m_S1Buff.front();
-					m_S1Buff.pop_front();
-					delete p;
-				}
-#endif
+				m_S1Buff.dispose();
 				UnLock4();
 			}
 		}
@@ -761,41 +560,27 @@ void CDataIO::MicroPacket(BYTE* pbPacket)
 {
 	uint packetId      = BIT_SHIFT_MASK(pbPacket[3], 5,  3);
 
+	auto init_head = [](PTBUFFER_OBJECT *head) {
+		if(head->size()>=head->capacity()) {
+			head->resize(0);
+			head->growup(DATA_BUFF_SIZE);
+		}
+	};
+
 	BOOL bCreate1TS = FALSE;
 	switch(packetId){
 		case 2:
 			bCreate1TS = m_cT0Micro.MicroPacket(pbPacket);
-			if( bCreate1TS && m_T0SetBuff != NULL){
+			if( bCreate1TS && m_T0Buff.head() != NULL){
 				Lock1();
-#ifndef USE_DEQUE
-				if( m_T0SetBuff == NULL ){
-					UnLock1();
-					return ;
-				}
-#endif
-				memcpy(m_T0SetBuff->pbBuff+m_T0SetBuff->dwSetSize, m_cT0Micro.Get1TS(), 188);
-				m_T0SetBuff->dwSetSize+=188;
-				if( m_T0SetBuff->dwSetSize >= m_T0SetBuff->dwSize ){
-					m_T0Buff.push_back(m_T0SetBuff);
-
-#ifndef USE_DEQUE
-					BUFF_DATA* pDataBuff = new BUFF_DATA;
-					pDataBuff->dwSize = DATA_BUFF_SIZE;
-					pDataBuff->pbBuff = new BYTE[DATA_BUFF_SIZE];
-					m_T0SetBuff = pDataBuff;
-#else
-					m_T0SetBuff = new BUFF_DATA(DATA_BUFF_SIZE);
-#endif
-
-					if( m_T0Buff.size() > MAX_DATA_BUFF_COUNT ){
-#ifndef USE_DEQUE
-						SAFE_DELETE(m_T0Buff[0]);
-						m_T0Buff.erase(m_T0Buff.begin());
-#else
-						BUFF_DATA *p = m_T0Buff.front();
-						m_T0Buff.pop_front();
-						delete p;
-#endif
+				auto head = m_T0Buff.head(); init_head(head);
+				auto sz = head->size() ;
+				head->resize(sz+188);
+				memcpy(head->data()+sz, m_cT0Micro.Get1TS(), 188);
+				if( head->size() >= head->capacity() ){
+					m_T0Buff.push();
+					if(m_T0Buff.no_pool()) { // overflow
+						m_T0Buff.pull();
 						m_dwT0OverFlowCount++;
 						OutputDebugString(L"T0 Buff Full");
 					}else{
@@ -807,37 +592,16 @@ void CDataIO::MicroPacket(BYTE* pbPacket)
 			break;
 		case 4:
 			bCreate1TS = m_cT1Micro.MicroPacket(pbPacket);
-			if( bCreate1TS && m_T1SetBuff != NULL){
+			if( bCreate1TS && m_T1Buff.head() != NULL){
 				Lock2();
-#ifndef USE_DEQUE
-				if( m_T1SetBuff == NULL ){
-					UnLock2();
-					return ;
-				}
-#endif
-				memcpy(m_T1SetBuff->pbBuff+m_T1SetBuff->dwSetSize, m_cT1Micro.Get1TS(), 188);
-				m_T1SetBuff->dwSetSize+=188;
-				if( m_T1SetBuff->dwSetSize >= m_T1SetBuff->dwSize ){
-					m_T1Buff.push_back(m_T1SetBuff);
-
-#ifndef USE_DEQUE
-					BUFF_DATA* pDataBuff = new BUFF_DATA;
-					pDataBuff->dwSize = DATA_BUFF_SIZE;
-					pDataBuff->pbBuff = new BYTE[DATA_BUFF_SIZE];
-					m_T1SetBuff = pDataBuff;
-#else
-					m_T1SetBuff = new BUFF_DATA(DATA_BUFF_SIZE);
-#endif
-
-					if( m_T1Buff.size() > MAX_DATA_BUFF_COUNT ){
-#ifndef USE_DEQUE
-						SAFE_DELETE(m_T1Buff[0]);
-						m_T1Buff.erase(m_T1Buff.begin());
-#else
-						BUFF_DATA *p = m_T1Buff.front();
-						m_T1Buff.pop_front();
-						delete p;
-#endif
+				auto head = m_T1Buff.head(); init_head(head);
+				auto sz = head->size() ;
+				head->resize(sz+188);
+				memcpy(head->data()+sz, m_cT1Micro.Get1TS(), 188);
+				if( head->size() >= head->capacity() ){
+					m_T1Buff.push();
+					if(m_T1Buff.no_pool()) { // overflow
+						m_T1Buff.pull();
 						m_dwT1OverFlowCount++;
 						OutputDebugString(L"T1 Buff Full");
 					}else{
@@ -849,37 +613,16 @@ void CDataIO::MicroPacket(BYTE* pbPacket)
 			break;
 		case 1:
 			bCreate1TS = m_cS0Micro.MicroPacket(pbPacket);
-			if( bCreate1TS && m_S0SetBuff != NULL){
+			if( bCreate1TS && m_S0Buff.head() != NULL){
 				Lock3();
-#ifndef USE_DEQUE
-				if( m_S0SetBuff == NULL ){
-					UnLock3();
-					return ;
-				}
-#endif
-				memcpy(m_S0SetBuff->pbBuff+m_S0SetBuff->dwSetSize, m_cS0Micro.Get1TS(), 188);
-				m_S0SetBuff->dwSetSize+=188;
-				if( m_S0SetBuff->dwSetSize >= m_S0SetBuff->dwSize ){
-					m_S0Buff.push_back(m_S0SetBuff);
-
-#ifndef USE_DEQUE
-					BUFF_DATA* pDataBuff = new BUFF_DATA;
-					pDataBuff->dwSize = DATA_BUFF_SIZE;
-					pDataBuff->pbBuff = new BYTE[DATA_BUFF_SIZE];
-					m_S0SetBuff = pDataBuff;
-#else
-					m_S0SetBuff = new BUFF_DATA(DATA_BUFF_SIZE);
-#endif
-
-					if( m_S0Buff.size() > MAX_DATA_BUFF_COUNT ){
-#ifndef USE_DEQUE
-						SAFE_DELETE(m_S0Buff[0]);
-						m_S0Buff.erase(m_S0Buff.begin());
-#else
-						BUFF_DATA *p = m_S0Buff.front();
-						m_S0Buff.pop_front();
-						delete p;
-#endif
+				auto head = m_S0Buff.head(); init_head(head);
+				auto sz = head->size() ;
+				head->resize(sz+188);
+				memcpy(head->data()+sz, m_cS0Micro.Get1TS(), 188);
+				if( head->size() >= head->capacity() ){
+					m_S0Buff.push();
+					if(m_S0Buff.no_pool()) { // overflow
+						m_S0Buff.pull();
 						m_dwS0OverFlowCount++;
 						OutputDebugString(L"S0 Buff Full");
 					}else{
@@ -891,37 +634,16 @@ void CDataIO::MicroPacket(BYTE* pbPacket)
 			break;
 		case 3:
 			bCreate1TS = m_cS1Micro.MicroPacket(pbPacket);
-			if( bCreate1TS && m_S1SetBuff != NULL){
+			if( bCreate1TS && m_S1Buff.head() != NULL){
 				Lock4();
-#ifndef USE_DEQUE
-				if( m_S1SetBuff == NULL ){
-					UnLock4();
-					return ;
-				}
-#endif
-				memcpy(m_S1SetBuff->pbBuff+m_S1SetBuff->dwSetSize, m_cS1Micro.Get1TS(), 188);
-				m_S1SetBuff->dwSetSize+=188;
-				if( m_S1SetBuff->dwSetSize >= m_S1SetBuff->dwSize ){
-					m_S1Buff.push_back(m_S1SetBuff);
-
-#ifndef USE_DEQUE
-					BUFF_DATA* pDataBuff = new BUFF_DATA;
-					pDataBuff->dwSize = DATA_BUFF_SIZE;
-					pDataBuff->pbBuff = new BYTE[DATA_BUFF_SIZE];
-					m_S1SetBuff = pDataBuff;
-#else
-					m_S1SetBuff = new BUFF_DATA(DATA_BUFF_SIZE);
-#endif
-
-					if( m_S1Buff.size() > MAX_DATA_BUFF_COUNT ){
-#ifndef USE_DEQUE
-						SAFE_DELETE(m_S1Buff[0]);
-						m_S1Buff.erase(m_S1Buff.begin());
-#else
-						BUFF_DATA *p = m_S1Buff.front();
-						m_S1Buff.pop_front();
-						delete p;
-#endif
+				auto head = m_S1Buff.head(); init_head(head);
+				auto sz = head->size() ;
+				head->resize(sz+188);
+				memcpy(head->data()+sz, m_cS1Micro.Get1TS(), 188);
+				if( head->size() >= head->capacity() ){
+					m_S1Buff.push();
+					if(m_S1Buff.no_pool()) { // overflow
+						m_S1Buff.pull();
 						m_dwS1OverFlowCount++;
 						OutputDebugString(L"S1 Buff Full");
 					}else{
@@ -937,12 +659,12 @@ void CDataIO::MicroPacket(BYTE* pbPacket)
 	}
 }
 
-int CALLBACK CDataIO::OutsideCmdCallbackT0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+int CALLBACK CDataIO::OutsideCmdCallbackT0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
 	CDataIO* pSys = (CDataIO*)pParam;
 	switch( pCmdParam->dwParam ){
 		case CMD_SEND_DATA:
-			pSys->CmdSendData(0, pCmdParam, pResParam);
+			pSys->CmdSendData(0, pCmdParam, pResParam, pbResDataAbandon);
 			break;
 		default:
 			pResParam->dwParam = CMD_NON_SUPPORT;
@@ -951,12 +673,12 @@ int CALLBACK CDataIO::OutsideCmdCallbackT0(void* pParam, CMD_STREAM* pCmdParam, 
 	return 0;
 }
 
-int CALLBACK CDataIO::OutsideCmdCallbackT1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+int CALLBACK CDataIO::OutsideCmdCallbackT1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
 	CDataIO* pSys = (CDataIO*)pParam;
 	switch( pCmdParam->dwParam ){
 		case CMD_SEND_DATA:
-			pSys->CmdSendData(1, pCmdParam, pResParam);
+			pSys->CmdSendData(1, pCmdParam, pResParam, pbResDataAbandon);
 			break;
 		default:
 			pResParam->dwParam = CMD_NON_SUPPORT;
@@ -965,12 +687,12 @@ int CALLBACK CDataIO::OutsideCmdCallbackT1(void* pParam, CMD_STREAM* pCmdParam, 
 	return 0;
 }
 
-int CALLBACK CDataIO::OutsideCmdCallbackS0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+int CALLBACK CDataIO::OutsideCmdCallbackS0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
 	CDataIO* pSys = (CDataIO*)pParam;
 	switch( pCmdParam->dwParam ){
 		case CMD_SEND_DATA:
-			pSys->CmdSendData(2, pCmdParam, pResParam);
+			pSys->CmdSendData(2, pCmdParam, pResParam, pbResDataAbandon);
 			break;
 		default:
 			pResParam->dwParam = CMD_NON_SUPPORT;
@@ -979,12 +701,12 @@ int CALLBACK CDataIO::OutsideCmdCallbackS0(void* pParam, CMD_STREAM* pCmdParam, 
 	return 0;
 }
 
-int CALLBACK CDataIO::OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+int CALLBACK CDataIO::OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
 	CDataIO* pSys = (CDataIO*)pParam;
 	switch( pCmdParam->dwParam ){
 		case CMD_SEND_DATA:
-			pSys->CmdSendData(3, pCmdParam, pResParam);
+			pSys->CmdSendData(3, pCmdParam, pResParam, pbResDataAbandon);
 			break;
 		default:
 			pResParam->dwParam = CMD_NON_SUPPORT;
@@ -993,7 +715,7 @@ int CALLBACK CDataIO::OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, 
 	return 0;
 }
 
-void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
 	pResParam->dwParam = CMD_SUCCESS;
 	BOOL bSend = FALSE;
@@ -1002,20 +724,10 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 		case 0:
 			Lock1();
 			if( m_T0Buff.size() > 0 ){
-#ifndef USE_DEQUE
-				pResParam->dwSize = m_T0Buff[0]->dwSize;
-				pResParam->bData = new BYTE[pResParam->dwSize];
-				memcpy(pResParam->bData, m_T0Buff[0]->pbBuff, pResParam->dwSize);
-				SAFE_DELETE(m_T0Buff[0]);
-				m_T0Buff.erase(m_T0Buff.begin());
-#else
-				BUFF_DATA *p = m_T0Buff.front();
-				m_T0Buff.pop_front();
-				pResParam->dwSize = p->dwSize;
-				pResParam->bData = p->pbBuff;
-				p->pbBuff = NULL;	// ポインタをコピーしてるのでdelete pで削除されないようにする
-				delete p;
-#endif
+				auto p = m_T0Buff.pull();
+				pResParam->dwSize = (DWORD)p->size();
+				pResParam->bData = p->data();
+				*pbResDataAbandon = TRUE;
 				bSend = TRUE;
 			}
 			UnLock1();
@@ -1023,20 +735,10 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 		case 1:
 			Lock2();
 			if( m_T1Buff.size() > 0 ){
-#ifndef USE_DEQUE
-				pResParam->dwSize = m_T1Buff[0]->dwSize;
-				pResParam->bData = new BYTE[pResParam->dwSize];
-				memcpy(pResParam->bData, m_T1Buff[0]->pbBuff, pResParam->dwSize);
-				SAFE_DELETE(m_T1Buff[0]);
-				m_T1Buff.erase(m_T1Buff.begin());
-#else
-				BUFF_DATA *p = m_T1Buff.front();
-				m_T1Buff.pop_front();
-				pResParam->dwSize = p->dwSize;
-				pResParam->bData = p->pbBuff;
-				p->pbBuff = NULL;	// ポインタをコピーしてるのでdelete pで削除されないようにする
-				delete p;
-#endif
+				auto p = m_T1Buff.pull();
+				pResParam->dwSize = (DWORD)p->size();
+				pResParam->bData = p->data();
+				*pbResDataAbandon = TRUE;
 				bSend = TRUE;
 			}
 			UnLock2();
@@ -1044,20 +746,10 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 		case 2:
 			Lock3();
 			if( m_S0Buff.size() > 0 ){
-#ifndef USE_DEQUE
-				pResParam->dwSize = m_S0Buff[0]->dwSize;
-				pResParam->bData = new BYTE[pResParam->dwSize];
-				memcpy(pResParam->bData, m_S0Buff[0]->pbBuff, pResParam->dwSize);
-				SAFE_DELETE(m_S0Buff[0]);
-				m_S0Buff.erase(m_S0Buff.begin());
-#else
-				BUFF_DATA *p = m_S0Buff.front();
-				m_S0Buff.pop_front();
-				pResParam->dwSize = p->dwSize;
-				pResParam->bData = p->pbBuff;
-				p->pbBuff = NULL;	// ポインタをコピーしてるのでdelete pで削除されないようにする
-				delete p;
-#endif
+				auto p = m_S0Buff.pull();
+				pResParam->dwSize = (DWORD)p->size();
+				pResParam->bData = p->data();
+				*pbResDataAbandon = TRUE;
 				bSend = TRUE;
 			}
 			UnLock3();
@@ -1065,20 +757,10 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 		case 3:
 			Lock4();
 			if( m_S1Buff.size() > 0 ){
-#ifndef USE_DEQUE
-				pResParam->dwSize = m_S1Buff[0]->dwSize;
-				pResParam->bData = new BYTE[pResParam->dwSize];
-				memcpy(pResParam->bData, m_S1Buff[0]->pbBuff, pResParam->dwSize);
-				SAFE_DELETE(m_S1Buff[0]);
-				m_S1Buff.erase(m_S1Buff.begin());
-#else
-				BUFF_DATA *p = m_S1Buff.front();
-				m_S1Buff.pop_front();
-				pResParam->dwSize = p->dwSize;
-				pResParam->bData = p->pbBuff;
-				p->pbBuff = NULL;	// ポインタをコピーしてるのでdelete pで削除されないようにする
-				delete p;
-#endif
+				auto p = m_S1Buff.pull();
+				pResParam->dwSize = (DWORD)p->size();
+				pResParam->bData = p->data();
+				*pbResDataAbandon = TRUE;
 				bSend = TRUE;
 			}
 			UnLock4();

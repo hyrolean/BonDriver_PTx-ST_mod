@@ -947,12 +947,12 @@ UINT WINAPI CDataIO::RecvThread4(LPVOID pParam)
 	return 0;
 }
 
-int CALLBACK CDataIO::OutsideCmdCallbackT0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+int CALLBACK CDataIO::OutsideCmdCallbackT0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
 	CDataIO* pSys = (CDataIO*)pParam;
 	switch( pCmdParam->dwParam ){
 		case CMD_SEND_DATA:
-			pSys->CmdSendData(0, pCmdParam, pResParam);
+			pSys->CmdSendData(0, pCmdParam, pResParam, pbResDataAbandon);
 			break;
 		default:
 			pResParam->dwParam = CMD_NON_SUPPORT;
@@ -961,12 +961,12 @@ int CALLBACK CDataIO::OutsideCmdCallbackT0(void* pParam, CMD_STREAM* pCmdParam, 
 	return 0;
 }
 
-int CALLBACK CDataIO::OutsideCmdCallbackT1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+int CALLBACK CDataIO::OutsideCmdCallbackT1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
 	CDataIO* pSys = (CDataIO*)pParam;
 	switch( pCmdParam->dwParam ){
 		case CMD_SEND_DATA:
-			pSys->CmdSendData(1, pCmdParam, pResParam);
+			pSys->CmdSendData(1, pCmdParam, pResParam, pbResDataAbandon);
 			break;
 		default:
 			pResParam->dwParam = CMD_NON_SUPPORT;
@@ -975,12 +975,12 @@ int CALLBACK CDataIO::OutsideCmdCallbackT1(void* pParam, CMD_STREAM* pCmdParam, 
 	return 0;
 }
 
-int CALLBACK CDataIO::OutsideCmdCallbackS0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+int CALLBACK CDataIO::OutsideCmdCallbackS0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
 	CDataIO* pSys = (CDataIO*)pParam;
 	switch( pCmdParam->dwParam ){
 		case CMD_SEND_DATA:
-			pSys->CmdSendData(2, pCmdParam, pResParam);
+			pSys->CmdSendData(2, pCmdParam, pResParam, pbResDataAbandon);
 			break;
 		default:
 			pResParam->dwParam = CMD_NON_SUPPORT;
@@ -989,12 +989,12 @@ int CALLBACK CDataIO::OutsideCmdCallbackS0(void* pParam, CMD_STREAM* pCmdParam, 
 	return 0;
 }
 
-int CALLBACK CDataIO::OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+int CALLBACK CDataIO::OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
 	CDataIO* pSys = (CDataIO*)pParam;
 	switch( pCmdParam->dwParam ){
 		case CMD_SEND_DATA:
-			pSys->CmdSendData(3, pCmdParam, pResParam);
+			pSys->CmdSendData(3, pCmdParam, pResParam, pbResDataAbandon);
 			break;
 		default:
 			pResParam->dwParam = CMD_NON_SUPPORT;
@@ -1003,7 +1003,7 @@ int CALLBACK CDataIO::OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, 
 	return 0;
 }
 
-void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
 	pResParam->dwParam = CMD_SUCCESS;
 	BOOL bSend = FALSE;
