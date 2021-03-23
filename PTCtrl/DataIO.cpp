@@ -342,11 +342,13 @@ void CDataIO::EnableTuner(int iID, BOOL bEnable)
 			if( iTuner == 0 ){
 				Lock1();
 				m_dwT0OverFlowCount = 0;
+				m_T0Buff.dispose();
 				UnLock1();
 				m_cPipeT0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT0, this, THREAD_PRIORITY_ABOVE_NORMAL);
 			}else{
 				Lock2();
 				m_dwT1OverFlowCount = 0;
+				m_T1Buff.dispose();
 				UnLock2();
 				m_cPipeT1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT1, this, THREAD_PRIORITY_ABOVE_NORMAL);
 			}
@@ -354,11 +356,13 @@ void CDataIO::EnableTuner(int iID, BOOL bEnable)
 			if( iTuner == 0 ){
 				Lock3();
 				m_dwS0OverFlowCount = 0;
+				m_S0Buff.dispose();
 				UnLock3();
 				m_cPipeS0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS0, this, THREAD_PRIORITY_ABOVE_NORMAL);
 			}else{
 				Lock4();
 				m_dwS1OverFlowCount = 0;
+				m_S1Buff.dispose();
 				UnLock4();
 				m_cPipeS1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS1, this, THREAD_PRIORITY_ABOVE_NORMAL);
 			}
@@ -369,13 +373,13 @@ void CDataIO::EnableTuner(int iID, BOOL bEnable)
 				m_cPipeT0.StopServer();
 				Lock1();
 				m_dwT0OverFlowCount = 0;
-				m_T0Buff.dispose();
+				m_T0Buff.clear();
 				UnLock1();
 			}else{
 				m_cPipeT1.StopServer();
 				Lock2();
 				m_dwT1OverFlowCount = 0;
-				m_T1Buff.dispose();
+				m_T1Buff.clear();
 				UnLock2();
 			}
 		}else{
@@ -383,13 +387,13 @@ void CDataIO::EnableTuner(int iID, BOOL bEnable)
 				m_cPipeS0.StopServer();
 				Lock3();
 				m_dwS0OverFlowCount = 0;
-				m_S0Buff.dispose();
+				m_S0Buff.clear();
 				UnLock3();
 			}else{
 				m_cPipeS1.StopServer();
 				Lock4();
 				m_dwS1OverFlowCount = 0;
-				m_S1Buff.dispose();
+				m_S1Buff.clear();
 				UnLock4();
 			}
 		}

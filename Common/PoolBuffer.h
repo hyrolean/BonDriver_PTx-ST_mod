@@ -4,6 +4,7 @@
 #define _POOLBUFFER_20210321220639424_H_INCLUDED_
 //---------------------------------------------------------------------------
 
+#include <vector>
 #include <functional>
 //===========================================================================
 namespace PRY8EAlByw {
@@ -79,7 +80,7 @@ public:
 
 template<class T>
 class pool_objects {
-	fixed_queue<T> pool_; // プール領域
+	std::vector<T> pool_; // プール領域
 	fixed_queue<size_t> uses_; // 使用領域インデックスリスト
 	fixed_queue<size_t> empties_; // 空き領域インデックスリスト
 	size_t maximum_pool_, minimum_pool_; // 最大容量／最小容量
@@ -87,16 +88,17 @@ protected:
 	bool growup() {
 		if(total()>=maximum_pool_) return false ;
 		empties_.push_front(total());
-		pool_.push(T());
+		pool_.push_back(T());
 		return true;
 	}
 public:
 	pool_objects(size_t maximum_pool, size_t minimum_pool=0)
 	 : maximum_pool_(maximum_pool), minimum_pool_(minimum_pool),
-	   pool_(maximum_pool), uses_(maximum_pool), empties_(maximum_pool) {
+	   uses_(maximum_pool), empties_(maximum_pool) {
 		if(minimum_pool_>maximum_pool_) minimum_pool_ = maximum_pool_;
+		pool_.reserve(maximum_pool);
 		for(decltype(empties_)::size_type i = 0; i<minimum_pool_ ; i++) {
-			pool_.push(T());
+			pool_.push_back(T());
 			empties_.push(i);
 		}
 	}
@@ -119,11 +121,8 @@ public:
 		uses_.pop();
 		return &pool_[empties_.back()];
 	}
-	void dispose() {
-		clear();
-		for(decltype(pool_)::size_type i=0;i<pool_.size();i++) pool_[i].free();
-	}
 	void clear() { while(pull()!=nullptr); }
+	void dispose() { clear(); for(auto v: pool_) v.free(); }
 	bool empty() const { return uses_.empty(); }
 	bool no_pool() const { return empties_.size()<=minimum_pool_&&total()>=maximum_pool_; }
 	auto size() const { return uses_.size(); }
