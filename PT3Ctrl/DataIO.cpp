@@ -793,10 +793,7 @@ bool CDataIO::ReadAddBuff(EARTH::EX::Buffer* buffer, uint32 index, PTBUFFER &tsB
 			OverFlow = 0 ;
 		}
 		auto head = tsBuff.head();
-		if(head->size()>=head->capacity()) {
-			head->resize(0);
-			head->growup(DATA_BUFF_SIZE);
-		}
+		head->resize(DATA_BUFF_SIZE);
 		memcpy(head->data(), ptr+i, DATA_BUFF_SIZE);
 		tsBuff.push();
 	}
