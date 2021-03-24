@@ -5,13 +5,16 @@
 #include "inc/EX_Buffer.h"
 #include "../Common/PTOutsideCtrlCmdDef.h"
 #include "../Common/PipeServer.h"
+#include "../Common/SharedMem.h"
+
+#define DATA_TIMEOUT (10*1000)
 
 using namespace EARTH;
 
 class CDataIO
 {
 public:
-	CDataIO(void);
+	CDataIO(BOOL bMemStreaming=FALSE);
 	~CDataIO(void);
 
 	void SetDevice(PT::Device* pcDevice){ m_pcDevice = pcDevice; };
@@ -95,22 +98,22 @@ protected:
 	static UINT WINAPI RecvThread3(LPVOID pParam);
 	static UINT WINAPI RecvThread4(LPVOID pParam);
 
-	void Lock1();
+	bool Lock1(DWORD timeout=DATA_TIMEOUT);
 	void UnLock1();
-	void Lock2();
+	bool Lock2(DWORD timeout=DATA_TIMEOUT);
 	void UnLock2();
-	void Lock3();
+	bool Lock3(DWORD timeout=DATA_TIMEOUT);
 	void UnLock3();
-	void Lock4();
+	bool Lock4(DWORD timeout=DATA_TIMEOUT);
 	void UnLock4();
 
-	void BuffLock1();
+	bool BuffLock1(DWORD timeout=DATA_TIMEOUT);
 	void BuffUnLock1();
-	void BuffLock2();
+	bool BuffLock2(DWORD timeout=DATA_TIMEOUT);
 	void BuffUnLock2();
-	void BuffLock3();
+	bool BuffLock3(DWORD timeout=DATA_TIMEOUT);
 	void BuffUnLock3();
-	void BuffLock4();
+	bool BuffLock4(DWORD timeout=DATA_TIMEOUT);
 	void BuffUnLock4();
 
 	void ChkTransferInfo();
@@ -126,4 +129,17 @@ protected:
 	bool ReadAddBuff(EARTH::EX::Buffer* buffer, uint32 index, PTBUFFER &tsBuff, DWORD dwID, DWORD &OverFlow);
 
 	void Flush(PTBUFFER &buf, BOOL dispose = FALSE );
+
+protected:
+	// MemStreamer
+	BOOL m_bMemStreaming;
+	BOOL m_bMemStreamingTerm;
+	HANDLE m_hMemStreamingThread;
+	CSharedTransportStreamer *m_T0MemStreamer;
+	CSharedTransportStreamer *m_T1MemStreamer;
+	CSharedTransportStreamer *m_S0MemStreamer;
+	CSharedTransportStreamer *m_S1MemStreamer;
+	UINT MemStreamingThreadMain();
+	static UINT WINAPI MemStreamingThread(LPVOID pParam);
+
 };

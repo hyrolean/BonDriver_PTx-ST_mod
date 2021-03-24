@@ -6,6 +6,7 @@
 #include "inc/Prefix.h"
 #include "../Common/PTOutsideCtrlCmdDef.h"
 #include "../Common/PipeServer.h"
+#include "../Common/SharedMem.h"
 #include "MicroPacketUtil.h"
 
 #define TRANSFER_SIZE (4096*PT::Device::BUFFER_PAGE_COUNT)
@@ -14,13 +15,14 @@
 #define LOCK_SIZE 4
 #define READ_BLOCK_COUNT 8
 #define READ_BLOCK_SIZE (TRANSFER_SIZE / READ_BLOCK_COUNT)
+#define DATA_TIMEOUT (10*1000)
 
 using namespace EARTH;
 
 class CDataIO
 {
 public:
-	CDataIO(void);
+	CDataIO(BOOL bMemStreaming=FALSE);
 	~CDataIO(void);
 
 	void SetDevice(PT::Device* pcDevice){ m_pcDevice = pcDevice; };
@@ -74,13 +76,13 @@ protected:
 protected:
 	static UINT WINAPI RecvThread(LPVOID pParam);
 
-	void Lock1();
+	bool Lock1(DWORD timeout=DATA_TIMEOUT);
 	void UnLock1();
-	void Lock2();
+	bool Lock2(DWORD timeout=DATA_TIMEOUT);
 	void UnLock2();
-	void Lock3();
+	bool Lock3(DWORD timeout=DATA_TIMEOUT);
 	void UnLock3();
-	void Lock4();
+	bool Lock4(DWORD timeout=DATA_TIMEOUT);
 	void UnLock4();
 
 	bool WaitBlock();
@@ -101,4 +103,17 @@ protected:
 	void ResetDMA();
 
 	void Flush(PTBUFFER &buf, BOOL dispose = FALSE );
+
+protected:
+	// MemStreamer
+	BOOL m_bMemStreaming;
+	BOOL m_bMemStreamingTerm;
+	HANDLE m_hMemStreamingThread;
+	CSharedTransportStreamer *m_T0MemStreamer;
+	CSharedTransportStreamer *m_T1MemStreamer;
+	CSharedTransportStreamer *m_S0MemStreamer;
+	CSharedTransportStreamer *m_S1MemStreamer;
+	UINT MemStreamingThreadMain();
+	static UINT WINAPI MemStreamingThread(LPVOID pParam);
+
 };

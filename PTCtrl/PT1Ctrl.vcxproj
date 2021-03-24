@@ -197,6 +197,7 @@
       <FileType>CppCode</FileType>
     </ClInclude>
     <ClCompile Include="..\Common\ServiceUtil.cpp" />
+    <ClCompile Include="..\Common\SharedMem.cpp" />
     <ClCompile Include="..\Common\StringUtil.cpp" />
     <ClCompile Include="..\Common\Util.cpp" />
     <ClCompile Include="DataIO.cpp" />
@@ -218,6 +219,7 @@
     <ClInclude Include="..\Common\PTOutsideCtrlCmdDef.h" />
     <ClInclude Include="..\Common\PTSendCtrlCmdUtil.h" />
     <ClInclude Include="..\Common\ServiceUtil.h" />
+    <ClInclude Include="..\Common\SharedMem.h" />
     <ClInclude Include="..\Common\StringUtil.h" />
     <ClInclude Include="..\Common\Util.h" />
     <ClInclude Include="DataIO.h" />

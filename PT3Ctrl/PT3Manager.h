@@ -47,7 +47,7 @@ protected:
 		BOOL bLnbS0;
 		BOOL bLnbS1;
 		CDataIO cDataIO;
-		_DEV_STATUS(void){
+		_DEV_STATUS(BOOL bMemStreaming=FALSE) : cDataIO(bMemStreaming) {
 			bOpen = FALSE;
 			pcDevice = NULL;
 			bUseT0 = FALSE;

@@ -22,8 +22,8 @@
 using namespace std;
 #include <TCHAR.h>
 
-#define SAFE_DELETE(p)       { if(p) { delete (p);     (p)=NULL; } }
-#define SAFE_DELETE_ARRAY(p) { if(p) { delete[] (p);   (p)=NULL; } }
+#define SAFE_DELETE(p)       do { if(p) { delete (p);     (p)=NULL; } } while(0)
+#define SAFE_DELETE_ARRAY(p) do { if(p) { delete[] (p);   (p)=NULL; } } while(0)
 
 HANDLE _CreateEvent(BOOL bManualReset, BOOL bInitialState, LPCTSTR lpName );
 HANDLE _CreateFile( LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile );

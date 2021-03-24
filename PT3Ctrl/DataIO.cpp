@@ -8,7 +8,7 @@
 #define MAX_DATA_BUFF_COUNT	500
 #define NOT_SYNC_BYTE		0x74
 
-CDataIO::CDataIO(void)
+CDataIO::CDataIO(BOOL bMemStreaming)
  : m_T0Buff(MAX_DATA_BUFF_COUNT, 1), m_T1Buff(MAX_DATA_BUFF_COUNT, 1),
  	m_S0Buff(MAX_DATA_BUFF_COUNT, 1), m_S1Buff(MAX_DATA_BUFF_COUNT, 1)
 {
@@ -41,6 +41,15 @@ CDataIO::CDataIO(void)
 	m_dwT1OverFlowCount = 0;
 	m_dwS0OverFlowCount = 0;
 	m_dwS1OverFlowCount = 0;
+
+	// MemStreamer
+	m_bMemStreaming = bMemStreaming ;
+	m_bMemStreamingTerm = TRUE ;
+	m_hMemStreamingThread = INVALID_HANDLE_VALUE ;
+	m_T0MemStreamer = NULL ;
+	m_T1MemStreamer = NULL ;
+	m_S0MemStreamer = NULL ;
+	m_S1MemStreamer = NULL ;
 }
 
 CDataIO::~CDataIO(void)
@@ -51,6 +60,20 @@ CDataIO::~CDataIO(void)
 		::CloseHandle(m_hStopEvent);
 		m_hStopEvent = NULL;
 	}*/
+
+	// MemStreamer
+	if(m_T0MemStreamer != NULL) {
+		SAFE_DELETE(m_T0MemStreamer);
+	}
+	if(m_T1MemStreamer != NULL) {
+		SAFE_DELETE(m_T1MemStreamer);
+	}
+	if(m_S0MemStreamer != NULL) {
+		SAFE_DELETE(m_S0MemStreamer);
+	}
+	if(m_S1MemStreamer != NULL) {
+		SAFE_DELETE(m_S1MemStreamer);
+	}
 
 	SAFE_DELETE(m_T0SetBuff);
 	SAFE_DELETE(m_T1SetBuff);
@@ -105,14 +128,16 @@ CDataIO::~CDataIO(void)
 	}
 }
 
-void CDataIO::Lock1()
+bool CDataIO::Lock1(DWORD timeout)
 {
 	if( m_hEvent1 == NULL ){
-		return ;
+		return false ;
 	}
-	if( WaitForSingleObject(m_hEvent1, 10*1000) == WAIT_TIMEOUT ){
+	if( WaitForSingleObject(m_hEvent1, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out1");
+		return false ;
 	}
+	return true ;
 }
 
 void CDataIO::UnLock1()
@@ -122,14 +147,16 @@ void CDataIO::UnLock1()
 	}
 }
 
-void CDataIO::Lock2()
+bool CDataIO::Lock2(DWORD timeout)
 {
 	if( m_hEvent2 == NULL ){
-		return ;
+		return false ;
 	}
-	if( WaitForSingleObject(m_hEvent2, 10*1000) == WAIT_TIMEOUT ){
+	if( WaitForSingleObject(m_hEvent2, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out2");
+		return false ;
 	}
+	return true ;
 }
 
 void CDataIO::UnLock2()
@@ -139,14 +166,16 @@ void CDataIO::UnLock2()
 	}
 }
 
-void CDataIO::Lock3()
+bool CDataIO::Lock3(DWORD timeout)
 {
 	if( m_hEvent3 == NULL ){
-		return ;
+		return false ;
 	}
-	if( WaitForSingleObject(m_hEvent3, 10*1000) == WAIT_TIMEOUT ){
+	if( WaitForSingleObject(m_hEvent3, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out3");
+		return false ;
 	}
+	return true ;
 }
 
 void CDataIO::UnLock3()
@@ -156,14 +185,16 @@ void CDataIO::UnLock3()
 	}
 }
 
-void CDataIO::Lock4()
+bool CDataIO::Lock4(DWORD timeout)
 {
 	if( m_hEvent4 == NULL ){
-		return ;
+		return false ;
 	}
-	if( WaitForSingleObject(m_hEvent4, 10*1000) == WAIT_TIMEOUT ){
+	if( WaitForSingleObject(m_hEvent4, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out4");
+		return false ;
 	}
+	return true ;
 }
 
 void CDataIO::UnLock4()
@@ -173,14 +204,16 @@ void CDataIO::UnLock4()
 	}
 }
 
-void CDataIO::BuffLock1()
+bool CDataIO::BuffLock1(DWORD timeout)
 {
 	if( m_hBuffEvent1 == NULL ){
-		return ;
+		return false ;
 	}
-	if( WaitForSingleObject(m_hBuffEvent1, 10*1000) == WAIT_TIMEOUT ){
+	if( WaitForSingleObject(m_hBuffEvent1, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out1b");
+		return false ;
 	}
+	return true ;
 }
 
 void CDataIO::BuffUnLock1()
@@ -190,14 +223,16 @@ void CDataIO::BuffUnLock1()
 	}
 }
 
-void CDataIO::BuffLock2()
+bool CDataIO::BuffLock2(DWORD timeout)
 {
 	if( m_hBuffEvent2 == NULL ){
-		return ;
+		return false ;
 	}
-	if( WaitForSingleObject(m_hBuffEvent2, 10*1000) == WAIT_TIMEOUT ){
+	if( WaitForSingleObject(m_hBuffEvent2, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out2b");
+		return false ;
 	}
+	return true ;
 }
 
 void CDataIO::BuffUnLock2()
@@ -207,14 +242,16 @@ void CDataIO::BuffUnLock2()
 	}
 }
 
-void CDataIO::BuffLock3()
+bool CDataIO::BuffLock3(DWORD timeout)
 {
 	if( m_hBuffEvent3 == NULL ){
-		return ;
+		return false ;
 	}
-	if( WaitForSingleObject(m_hBuffEvent3, 10*1000) == WAIT_TIMEOUT ){
+	if( WaitForSingleObject(m_hBuffEvent3, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out3b");
+		return false ;
 	}
+	return true ;
 }
 
 void CDataIO::BuffUnLock3()
@@ -224,14 +261,16 @@ void CDataIO::BuffUnLock3()
 	}
 }
 
-void CDataIO::BuffLock4()
+bool CDataIO::BuffLock4(DWORD timeout)
 {
 	if( m_hBuffEvent4 == NULL ){
-		return ;
+		return false ;
 	}
-	if( WaitForSingleObject(m_hBuffEvent4, 10*1000) == WAIT_TIMEOUT ){
+	if( WaitForSingleObject(m_hBuffEvent4, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out4b");
+		return false ;
 	}
+	return true ;
 }
 
 void CDataIO::BuffUnLock4()
@@ -288,8 +327,20 @@ void CDataIO::Run(PT::Device::ISDB enISDB, uint32 iTuner)
 	if( m_hThread1 == INVALID_HANDLE_VALUE &&
 		m_hThread2 == INVALID_HANDLE_VALUE &&
 		m_hThread3 == INVALID_HANDLE_VALUE &&
-		m_hThread4 == INVALID_HANDLE_VALUE )
-			m_bThTerm=FALSE;
+		m_hThread4 == INVALID_HANDLE_VALUE ) {
+
+		m_bThTerm=FALSE;
+
+		// MemStreamer
+		if(m_bMemStreaming) {
+			m_hMemStreamingThread = (HANDLE)_beginthreadex(NULL, 0, MemStreamingThread, (LPVOID)this, CREATE_SUSPENDED, NULL);
+			if(m_hMemStreamingThread != INVALID_HANDLE_VALUE) {
+				m_bMemStreamingTerm = FALSE;
+				SetThreadPriority( m_hMemStreamingThread, THREAD_PRIORITY_ABOVE_NORMAL );
+				ResumeThread(m_hMemStreamingThread);
+			}
+		}
+	}
 
 	if(enISDB == PT::Device::ISDB_T) {
 		// Thread 1 - T0
@@ -346,6 +397,17 @@ void CDataIO::Stop()
 		m_hThread3 = INVALID_HANDLE_VALUE;
 		m_hThread4 = INVALID_HANDLE_VALUE;
 	}
+
+	// MemStreamer
+	if( m_hMemStreamingThread != INVALID_HANDLE_VALUE) {
+		// スレッド終了待ち
+		m_bMemStreamingTerm = TRUE ;
+		if ( ::WaitForSingleObject(m_hMemStreamingThread, 15000) == WAIT_TIMEOUT ){
+			::TerminateThread(m_hMemStreamingThread, 0xffffffff);
+		}
+		CloseHandle(m_hMemStreamingThread) ;
+		m_hMemStreamingThread = INVALID_HANDLE_VALUE ;
+	}
 }
 
 void CDataIO::StartPipeServer(int iID)
@@ -358,6 +420,10 @@ void CDataIO::StartPipeServer(int iID)
 	wstring strEvent = L"";
 	Format(strPipe, L"%s%d", CMD_PT1_DATA_PIPE, iID );
 	Format(strEvent, L"%s%d", CMD_PT1_DATA_EVENT_WAIT_CONNECT, iID );
+
+	// MemStreamer
+	wstring strStreamerName;
+	Format(strStreamerName, SHAREDMEM_TRANSPORT_STREAM_FORMAT, PT_VER, iID);
 
 	status enStatus = m_pcDevice->SetTransferTestMode(enISDB, iTuner);
 	if( enStatus != PT::STATUS_OK ){
@@ -383,10 +449,15 @@ void CDataIO::StartPipeServer(int iID)
 
 				BuffLock1();
 				m_dwT0OverFlowCount = 0;
+				if(m_bMemStreaming&&m_T0MemStreamer==NULL)
+					m_T0MemStreamer = new CSharedTransportStreamer(
+						strStreamerName, FALSE, SHAREDMEM_TRANSPORT_PACKET_SIZE,
+						SHAREDMEM_TRANSPORT_PACKET_NUM);
 				BuffUnLock1();
 			}
 			UnLock1();
-			m_cPipeT0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT0, this, THREAD_PRIORITY_ABOVE_NORMAL);
+			if(!m_bMemStreaming)
+				m_cPipeT0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT0, this, THREAD_PRIORITY_ABOVE_NORMAL);
 		}else{
 			Lock2();
 			if( m_T1SetBuff == NULL ){
@@ -406,10 +477,15 @@ void CDataIO::StartPipeServer(int iID)
 
 				BuffLock2();
 				m_dwT1OverFlowCount = 0;
+				if(m_bMemStreaming&&m_T1MemStreamer==NULL)
+					m_T1MemStreamer = new CSharedTransportStreamer(
+						strStreamerName, FALSE, SHAREDMEM_TRANSPORT_PACKET_SIZE,
+						SHAREDMEM_TRANSPORT_PACKET_NUM);
 				BuffUnLock2();
 			}
 			UnLock2();
-			m_cPipeT1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT1, this, THREAD_PRIORITY_ABOVE_NORMAL);
+			if(!m_bMemStreaming)
+				m_cPipeT1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT1, this, THREAD_PRIORITY_ABOVE_NORMAL);
 		}
 	}else{
 		if( iTuner == 0 ){
@@ -431,10 +507,15 @@ void CDataIO::StartPipeServer(int iID)
 
 				BuffLock3();
 				m_dwS0OverFlowCount = 0;
+				if(m_bMemStreaming&&m_S0MemStreamer==NULL)
+					m_S0MemStreamer = new CSharedTransportStreamer(
+						strStreamerName, FALSE, SHAREDMEM_TRANSPORT_PACKET_SIZE,
+						SHAREDMEM_TRANSPORT_PACKET_NUM);
 				BuffUnLock3();
 			}
 			UnLock3();
-			m_cPipeS0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS0, this, THREAD_PRIORITY_ABOVE_NORMAL);
+			if(!m_bMemStreaming)
+				m_cPipeS0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS0, this, THREAD_PRIORITY_ABOVE_NORMAL);
 		}else{
 			Lock4();
 			if( m_S1SetBuff == NULL ){
@@ -454,10 +535,15 @@ void CDataIO::StartPipeServer(int iID)
 
 				BuffLock4();
 				m_dwS1OverFlowCount = 0;
+				if(m_bMemStreaming&&m_S1MemStreamer==NULL)
+					m_S1MemStreamer = new CSharedTransportStreamer(
+						strStreamerName, FALSE, SHAREDMEM_TRANSPORT_PACKET_SIZE,
+						SHAREDMEM_TRANSPORT_PACKET_NUM);
 				BuffUnLock4();
 			}
 			UnLock4();
-			m_cPipeS1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS1, this, THREAD_PRIORITY_ABOVE_NORMAL);
+			if(!m_bMemStreaming)
+				m_cPipeS1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS1, this, THREAD_PRIORITY_ABOVE_NORMAL);
 		}
 	}
 }
@@ -470,18 +556,22 @@ void CDataIO::StopPipeServer(int iID)
 
 	if( enISDB == PT::Device::ISDB_T ){
 		if( iTuner == 0 ){
-			m_cPipeT0.StopServer();
+			if(!m_bMemStreaming) m_cPipeT0.StopServer();
 			Lock1();
 			BuffLock1();
+			if(m_bMemStreaming&&m_T0MemStreamer)
+				SAFE_DELETE(m_T0MemStreamer);
 			m_dwT0OverFlowCount = 0;
 			SAFE_DELETE(m_T0SetBuff);
 			Flush(m_T0Buff);
 			BuffUnLock1();
 			UnLock1();
 		}else{
-			m_cPipeT1.StopServer();
+			if(!m_bMemStreaming) m_cPipeT1.StopServer();
 			Lock2();
 			BuffLock2();
+			if(m_bMemStreaming&&m_T1MemStreamer)
+				SAFE_DELETE(m_T1MemStreamer);
 			m_dwT1OverFlowCount = 0;
 			SAFE_DELETE(m_T1SetBuff);
 			Flush(m_T1Buff);
@@ -490,18 +580,22 @@ void CDataIO::StopPipeServer(int iID)
 		}
 	}else{
 		if( iTuner == 0 ){
-			m_cPipeS0.StopServer();
+			if(!m_bMemStreaming) m_cPipeS0.StopServer();
 			Lock3();
 			BuffLock3();
+			if(m_bMemStreaming&&m_S0MemStreamer)
+				SAFE_DELETE(m_S0MemStreamer);
 			m_dwS0OverFlowCount = 0;
 			SAFE_DELETE(m_S0SetBuff);
 			Flush(m_S0Buff);
 			BuffUnLock3();
 			UnLock3();
 		}else{
-			m_cPipeS1.StopServer();
+			if(!m_bMemStreaming) m_cPipeS1.StopServer();
 			Lock4();
 			BuffLock4();
+			if(m_bMemStreaming&&m_S1MemStreamer)
+				SAFE_DELETE(m_S1MemStreamer);
 			m_dwS1OverFlowCount = 0;
 			SAFE_DELETE(m_S1SetBuff);
 			Flush(m_S1Buff);
@@ -1061,6 +1155,79 @@ DWORD CDataIO::GetOverFlowCount(int iID)
 		}
 	}
 	return dwRet;
+}
+
+// MemStreamer
+UINT CDataIO::MemStreamingThreadMain()
+{
+	const DWORD CmdWait = 50 ;
+
+	while (!m_bMemStreamingTerm) {
+		int cnt=0;
+
+		if(BuffLock1(CmdWait)) {
+			if(!m_T0Buff.empty()) {
+				if(m_T0MemStreamer!=NULL) {
+					auto p = m_T0Buff.pull() ;
+					if(!m_T0MemStreamer->Tx(p->data(),(DWORD)p->size(),CmdWait))
+						m_T0Buff.pull_undo();
+					if(!m_T0Buff.empty()) cnt++;
+				}
+			}
+			BuffUnLock1();
+		}else cnt++;
+
+		if(BuffLock2(CmdWait)) {
+			if(!m_T1Buff.empty()) {
+				if(m_T1MemStreamer!=NULL) {
+					auto p = m_T1Buff.pull() ;
+					if(!m_T1MemStreamer->Tx(p->data(),(DWORD)p->size(),CmdWait))
+						m_T1Buff.pull_undo();
+					if(!m_T1Buff.empty()) cnt++;
+				}
+			}
+			BuffUnLock2();
+		}else cnt++;
+
+		if(BuffLock3(CmdWait)) {
+			if(!m_S0Buff.empty()) {
+				if(m_S0MemStreamer!=NULL) {
+					auto p = m_S0Buff.pull() ;
+					if(!m_S0MemStreamer->Tx(p->data(),(DWORD)p->size(),CmdWait))
+						m_S0Buff.pull_undo();
+					if(!m_S0Buff.empty()) cnt++;
+				}
+			}
+			BuffUnLock3();
+		}else cnt++;
+
+		if(BuffLock4(CmdWait)) {
+			if(!m_S1Buff.empty()) {
+				if(m_S1MemStreamer!=NULL) {
+					auto p = m_S1Buff.pull() ;
+					if(!m_S1MemStreamer->Tx(p->data(),(DWORD)p->size(),CmdWait))
+						m_S1Buff.pull_undo();
+					if(!m_S1Buff.empty()) cnt++;
+				}
+			}
+			BuffUnLock4();
+		}else cnt++;
+
+		if(!cnt) Sleep(10);
+	}
+
+	return 0;
+}
+
+// MemStreamer
+UINT WINAPI CDataIO::MemStreamingThread(LPVOID pParam)
+{
+	CDataIO* pSys = (CDataIO*)pParam;
+
+	HANDLE hCurThread = GetCurrentThread();
+	SetThreadPriority(hCurThread, THREAD_PRIORITY_HIGHEST);
+
+	return pSys->MemStreamingThreadMain();
 }
 
 void CDataIO::Flush(PTBUFFER &buf, BOOL dispose)

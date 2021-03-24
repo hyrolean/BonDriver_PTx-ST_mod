@@ -4,12 +4,13 @@
 #define _PTXWDMCMD_20210301140612558_H_INCLUDED_
 //---------------------------------------------------------------------------
 
+#include <algorithm>
 #include "../Common/SharedMem.h"
 //===========================================================================
 namespace PRY8EAlByw {
 //---------------------------------------------------------------------------
 
-#define	PTXWDMCMDMAXDATA	8
+#define	PTXWDMCMDMAXDATA	std::min<size_t>(sizeof TSIDLIST,sizeof SERVER_SETTINGS)
 #define	PTXWDMCMDTIMEOUT	30000
 
 enum PTXWDMCMD : DWORD {
@@ -43,7 +44,8 @@ struct SERVER_SETTINGS {
   DWORD MAXDUR_TMCC;
   DWORD MAXDUR_TSID;
   DWORD StreamerPacketSize;
-  BOOL LNB11V;
+  BOOL LNB11V:1;
+  BOOL PipeStreaming:1;
 };
 
   // CPTxWDMCmdOperator (PTxWDM Command Operator)

@@ -28,6 +28,7 @@ CPTxWDMCmdServiceOperator::CPTxWDMCmdServiceOperator(wstring name)
 	Settings_.MAXDUR_TSID = 3000; //TSIDê›íËÇ…îÔÇ‚Ç∑ç≈ëÂéûä‘(msec)
 	Settings_.StreamerPacketSize = SHAREDMEM_TRANSPORT_PACKET_SIZE ;
 	Settings_.LNB11V = FALSE;
+	Settings_.PipeStreaming = FALSE;
 	InitializeCriticalSection(&Critical_);
 	KeepAlive();
 }

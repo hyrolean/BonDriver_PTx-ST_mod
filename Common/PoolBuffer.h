@@ -55,6 +55,11 @@ public:
     size_-- ;
     return true ;
   }
+  bool pop_back() {
+    if(empty()) return false ;
+    size_-- ;
+    return true ;
+  }
   void clear() { cue_ = 0 ; size_ = 0 ; }
   reference_type front() {
   #ifdef _DEBUG
@@ -121,8 +126,14 @@ public:
 		uses_.pop();
 		return &pool_[empties_.back()];
 	}
+	bool pull_undo() { // empties ‚ÌÅŒã”ö‚ğ uses ‚Ìæ“ª ‚ÉˆÚ‚µ‚Äˆê‚Â–ß‚·
+		if(empties_.size()<=minimum_pool_) return false;
+		uses_.push_front(empties_.back());
+		empties_.pop_back();
+		return true;
+	}
 	void clear() { while(pull()!=nullptr); }
-	void dispose() { clear(); for(auto v: pool_) v.free(); }
+	void dispose() { clear(); for(auto &v: pool_) v.free(); }
 	bool empty() const { return uses_.empty(); }
 	bool no_pool() const { return empties_.size()<=minimum_pool_&&total()>=maximum_pool_; }
 	auto size() const { return uses_.size(); }

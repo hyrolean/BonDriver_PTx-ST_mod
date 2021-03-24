@@ -63,6 +63,9 @@
     <ClCompile Include="..\Common\PTCtrlMain.cpp">
       <Filter>ソース ファイル\Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\Common\SharedMem.cpp">
+      <Filter>ソース ファイル\Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DataIO.h">
@@ -126,6 +129,9 @@
       <Filter>ソース ファイル\Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\PoolBuffer.h">
+      <Filter>ヘッダー ファイル\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\SharedMem.h">
       <Filter>ヘッダー ファイル\Common</Filter>
     </ClInclude>
   </ItemGroup>

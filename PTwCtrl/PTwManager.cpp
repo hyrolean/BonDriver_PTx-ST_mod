@@ -48,6 +48,7 @@ CPTwManager::CPTwManager(void)
 	if( m_uiVirtualCount == 0 ){
 		m_uiVirtualCount = 8;
 	}
+	m_bMemStreaming = GetPrivateProfileInt(L"SET", L"StreamingMethod", 0, strIni.c_str());
 
 	m_dwMaxDurFREQ = GetPrivateProfileInt(L"SET", L"MAXDUR_FREQ", 1000, strIni.c_str() ); //Žü”g”’²®‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
 	m_dwMaxDurTMCC = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC", 1500, strIni.c_str() ); //TMCCŽæ“¾‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
@@ -250,6 +251,8 @@ int CPTwManager::OpenTuner2(BOOL bSate, int iTunerID)
 		SrvOpt.MAXDUR_TSID = m_dwMaxDurTSID ;
 		SrvOpt.StreamerPacketSize = SHAREDMEM_TRANSPORT_PACKET_SIZE ;
 		SrvOpt.LNB11V = m_bLNB11V ;
+		SrvOpt.PipeStreaming
+			= GetStreamingMethod()==PTSTREAMING_PIPEIO? TRUE: FALSE;
 		if(!client->CmdSetupServer(&SrvOpt)) {
 			MessageBeep(MB_ICONEXCLAMATION);
 			do_abort(); break;

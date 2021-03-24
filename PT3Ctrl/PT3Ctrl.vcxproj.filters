@@ -98,6 +98,9 @@
     <ClInclude Include="..\Common\PoolBuffer.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\SharedMem.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -131,6 +134,9 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\PTCtrlMain.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\SharedMem.cpp">
       <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>

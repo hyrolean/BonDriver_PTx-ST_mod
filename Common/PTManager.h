@@ -17,7 +17,8 @@ public:
 	virtual BOOL Init() = 0 ;
 	virtual void UnInit() = 0 ;
 
-	virtual PTSTREAMING GetStreamingMethod() {return PTSTREAMING_PIPEIO;}
+	virtual PTSTREAMING GetStreamingMethod()
+	{ return m_bMemStreaming? PTSTREAMING_SHAREDMEM: PTSTREAMING_PIPEIO; }
 
 	virtual DWORD GetTotalTunerCount() = 0 ;
 	virtual DWORD GetActiveTunerCount(BOOL bSate) = 0 ;
@@ -39,6 +40,7 @@ protected:
 	BOOL m_bUseLNB;
 	BOOL m_bLNB11V;
 	UINT m_uiVirtualCount;
+	BOOL m_bMemStreaming;
 
 	DWORD m_dwMaxDurFREQ;
 	DWORD m_dwMaxDurTMCC;

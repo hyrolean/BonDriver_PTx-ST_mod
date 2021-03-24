@@ -66,7 +66,7 @@ protected:
 		BOOL bLnbS0;
 		BOOL bLnbS1;
 		CDataIO cDataIO;
-		_DEV_STATUS(void){
+		_DEV_STATUS(BOOL bMemStreaming=FALSE) : cDataIO(bMemStreaming) {
 			bOpen = FALSE;
 			pcDevice = NULL;
 			bUseT0 = FALSE;
@@ -89,6 +89,8 @@ protected:
 #include "PtDrvWrap.h"
 #include "../Common/PTOutsideCtrlCmdDef.h"
 #include "../Common/StringUtil.h"
+#include "../Common/PipeServer.h"
+#include "../Common/SharedMem.h"
 #include "PTxWDMCmdSrv.h"
 
 #define AuxiliaryMaxWait	5000
@@ -99,18 +101,19 @@ class CPTxWDMCtrlAuxiliary
 protected:
 	CPTxWDMCmdServiceOperator	Op;
 	CSharedTransportStreamer	*St;
+	CPipeServer					*Ps;
 	DWORD CmdWait, Timeout;
 	HANDLE Thread;
 	BOOL ThTerm;
 
-private:
+private: // MemStreaming
 	BOOL TxWriteDone;
 	static BOOL __stdcall TxDirectWriteProc(LPVOID dst, DWORD &sz, PVOID arg) {
 		auto this_ = static_cast<CPTxWDMCtrlAuxiliary*>(arg) ;
 		return (this_->TxWriteDone = this_->Op.GetStreamData(dst, sz)) ;
 	}
 
-	int StreamingThreadProcMain() {
+	int MemStreamingThreadProcMain() {
 		const DWORD szp = Op.StreamerPacketSize() ;
 		bool retry=false;
 		while(!ThTerm) {
@@ -127,48 +130,101 @@ private:
 		return 0;
 	}
 
-	static unsigned int __stdcall StreamingThreadProc (PVOID pv) {
+	static unsigned int __stdcall MemStreamingThreadProc (PVOID pv) {
 		auto this_ = static_cast<CPTxWDMCtrlAuxiliary*>(pv) ;
-		unsigned int result = this_->StreamingThreadProcMain() ;
+		unsigned int result = this_->MemStreamingThreadProcMain() ;
 		_endthreadex(result) ;
 		return result;
 	}
 
+private: // PipeStreaming
+	void PipeCmdSendData(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam,
+			BOOL* /*pbResDataAbandon*/) {
+		const DWORD szp = Op.StreamerPacketSize() ;
+		BOOL bSend = FALSE;
+		if(Op.CurStreamSize()>=szp) {
+			BYTE *data = new BYTE[szp];
+			DWORD sz=szp;
+			if(Op.GetStreamData(data, sz) && sz>0) {
+				pResParam->dwSize = sz;
+				pResParam->bData = data;
+				bSend = TRUE ;
+			}else
+				delete [] data ;
+		}
+		pResParam->dwParam = bSend? CMD_SUCCESS: CMD_ERR_BUSY;
+	}
+
+	static int CALLBACK PipeCmdCallback(void* pParam, CMD_STREAM* pCmdParam,
+			CMD_STREAM* pResParam, BOOL* pbResDataAbandon) {
+		auto pSys = static_cast<CPTxWDMCtrlAuxiliary*>(pParam);
+		switch( pCmdParam->dwParam ){
+			case CMD_SEND_DATA:
+				pSys->PipeCmdSendData(pCmdParam, pResParam, pbResDataAbandon);
+				break;
+			default:
+				pResParam->dwParam = CMD_NON_SUPPORT;
+				break;
+		}
+		return 0;
+	}
+
 protected:
 	void StartStreaming() {
-		if(Thread != INVALID_HANDLE_VALUE) return /*already activated*/;
-		Thread = (HANDLE)_beginthreadex(NULL, 0, StreamingThreadProc, this,
-			CREATE_SUSPENDED, NULL) ;
-		if(Thread != INVALID_HANDLE_VALUE) {
-			if(St) delete St;
-			St = new CSharedTransportStreamer(
-				Op.Name()+SHAREDMEM_TRANSPORT_STREAM_SUFFIX, FALSE,
-				Op.StreamerPacketSize(), Op.CtrlPackets() );
-			DBGOUT("AUX Streamer memName: %s\n", wcs2mbcs(St->Name()).c_str());
-			DBGOUT("-- Start Streaming --\n");
-			::SetThreadPriority( Thread, Op.StreamerThreadPriority() );
-			ThTerm=FALSE;
-			::ResumeThread(Thread) ;
-		}else {
-			DBGOUT("*** Streaming thread creation failed. ***\n");
+		if(!Op.PipeStreaming()&&Thread==INVALID_HANDLE_VALUE) { // MemStreaming
+			Thread = (HANDLE)_beginthreadex(NULL, 0, MemStreamingThreadProc, this,
+				CREATE_SUSPENDED, NULL) ;
+			if(Thread != INVALID_HANDLE_VALUE) {
+				if(St) delete St;
+				St = new CSharedTransportStreamer(
+					Op.Name()+SHAREDMEM_TRANSPORT_STREAM_SUFFIX, FALSE,
+					Op.StreamerPacketSize(), Op.CtrlPackets() );
+				DBGOUT("AUX MemStreamer memName: %s\n", wcs2mbcs(St->Name()).c_str());
+				DBGOUT("-- Start MemStreaming --\n");
+				::SetThreadPriority( Thread, Op.StreamerThreadPriority() );
+				ThTerm=FALSE;
+				::ResumeThread(Thread) ;
+			}else {
+				DBGOUT("*** MemStreaming thread creation failed. ***\n");
+			}
+		}else if(Ps==NULL) { // PipeStreaming
+			int iPtVer=PT_VER, iID=-1;
+			swscanf_s(Op.Name().c_str(), SHAREDMEM_TRANSPORT_FORMAT, &iPtVer, &iID);
+			Ps = new CPipeServer();
+			if(Ps) {
+				wstring strPipe = L"";
+				wstring strEvent = L"";
+				Format(strPipe, L"%s%d", CMD_PT1_DATA_PIPE, iID );
+				Format(strEvent, L"%s%d", CMD_PT1_DATA_EVENT_WAIT_CONNECT, iID );
+				if(Ps->StartServer(strEvent.c_str(), strPipe.c_str(), PipeCmdCallback,
+						this, Op.StreamerThreadPriority()))
+					DBGOUT("-- Start PipeStreaming --\n");
+				else
+					DBGOUT("*** PipeStreaming failed to StartServer. ***\n");
+			}
 		}
 	}
 
 	void StopStreaming() {
-		if(Thread == INVALID_HANDLE_VALUE) return /*already inactivated*/;
-		ThTerm=TRUE;
-		if(::WaitForSingleObject(Thread,Timeout*2) != WAIT_OBJECT_0) {
-			::TerminateThread(Thread, 0);
+		if(!Op.PipeStreaming()&&Thread!=INVALID_HANDLE_VALUE) { // MemStreaming
+			ThTerm=TRUE;
+			if(::WaitForSingleObject(Thread,Timeout*2) != WAIT_OBJECT_0) {
+				::TerminateThread(Thread, 0);
+			}
+			CloseHandle(Thread);
+			Thread = INVALID_HANDLE_VALUE ;
+			DBGOUT("-- Stop MemStreaming --\n");
+		}else if(Ps!=NULL) { // PipeStreaming
+			Ps->StopServer();
+			DBGOUT("-- Stop PipeStreaming --\n");
 		}
-		CloseHandle(Thread);
-		Thread = INVALID_HANDLE_VALUE ;
 		if(St) { delete St; St=NULL; }
-		DBGOUT("-- Stop Streaming --\n");
+		if(Ps) { delete Ps; Ps=NULL; }
 	}
 
 public:
 	CPTxWDMCtrlAuxiliary(wstring name, DWORD cmdwait=INFINITE, DWORD timeout=INFINITE)
-	 :	Op( name ), St( NULL ), Thread(INVALID_HANDLE_VALUE), ThTerm(TRUE)
+	 :	Op( name ), St( NULL ), Ps(NULL), Thread(INVALID_HANDLE_VALUE), ThTerm(TRUE)
 	{ CmdWait = cmdwait ; Timeout = timeout ; }
 	~CPTxWDMCtrlAuxiliary() { StopStreaming(); }
 
@@ -230,7 +286,7 @@ public:
 	BOOL Init();
 	void UnInit();
 
-	PTSTREAMING GetStreamingMethod() {return PTSTREAMING_SHAREDMEM;}
+	//PTSTREAMING GetStreamingMethod() {return PTSTREAMING_SHAREDMEM;}
 
 	DWORD GetTotalTunerCount() { return DWORD(m_EnumDev.size()<<1) ; }
 	DWORD GetActiveTunerCount(BOOL bSate);

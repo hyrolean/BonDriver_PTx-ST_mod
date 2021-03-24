@@ -54,6 +54,7 @@ CPTxManager::CPTxManager(void)
 	if( m_uiVirtualCount == 0 ){
 		m_uiVirtualCount = 8;
 	}
+	m_bMemStreaming = GetPrivateProfileInt(L"SET", L"StreamingMethod", 0, strIni.c_str());
 
 	m_dwMaxDurFREQ = GetPrivateProfileInt(L"SET", L"MAXDUR_FREQ", 1000, strIni.c_str() ); //ü”g”’²®‚É”ï‚â‚·Å‘åŠÔ(msec)
 	m_dwMaxDurTMCC = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC", 1500, strIni.c_str() ); //TMCCæ“¾‚É”ï‚â‚·Å‘åŠÔ(msec)
@@ -130,7 +131,7 @@ BOOL CPTxManager::Init()
 #if PT_VER==1
 		if( deviceInfo[i].BadBitCount != 0 ) continue ;
 #endif
-		DEV_STATUS* pItem = new DEV_STATUS;
+		DEV_STATUS* pItem = new DEV_STATUS(m_bMemStreaming);
 #if PT_VER==2
 		#ifdef _DEBUG
 		for(int j=0;j<4;j++) {

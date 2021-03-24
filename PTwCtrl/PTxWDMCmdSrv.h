@@ -60,6 +60,7 @@ public:
 	int StreamerThreadPriority() { return Settings_.StreamerThreadPriority; }
 	DWORD StreamerPacketSize() { return Settings_.StreamerPacketSize; }
 	DWORD CtrlPackets() { return Settings_.CtrlPackets; }
+	BOOL PipeStreaming() { return Settings_.PipeStreaming; }
 	DWORD CurStreamSize();
 	BOOL GetStreamData(LPVOID data, DWORD &size);
 };
