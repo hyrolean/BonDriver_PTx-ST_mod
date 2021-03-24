@@ -100,4 +100,5 @@ protected:
 
 	void ResetDMA();
 
+	void Flush(PTBUFFER &buf, BOOL dispose = FALSE );
 };

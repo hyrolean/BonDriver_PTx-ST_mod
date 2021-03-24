@@ -15,6 +15,7 @@
 using namespace std;
 
 #define DATA_BUFF_SIZE	(188*256)
+#define INI_BUFF_COUNT	50
 #define MAX_BUFF_COUNT	500
 
 static CRITICAL_SECTION secBonTuners;
@@ -462,6 +463,9 @@ const BOOL CBonTuner::OpenTuner(void)
 		break;
 	}
 	if(m_hThread!=INVALID_HANDLE_VALUE) {
+		::EnterCriticalSection(&m_CriticalSection);
+		FlushPtBuff(TRUE);
+		::LeaveCriticalSection(&m_CriticalSection);
 		ResumeThread(m_hThread);
 	}
 
@@ -514,7 +518,7 @@ void CBonTuner::CloseTuner(void)
 
 	//バッファ解放
 	::EnterCriticalSection(&m_CriticalSection);
-	m_PtBuff.dispose();
+	FlushPtBuff();
 	::LeaveCriticalSection(&m_CriticalSection);
 }
 
@@ -606,7 +610,7 @@ void CBonTuner::PurgeTsStream(void)
 {
 	//バッファ解放
 	::EnterCriticalSection(&m_CriticalSection);
-	m_PtBuff.clear();
+	FlushPtBuff();
 	::LeaveCriticalSection(&m_CriticalSection);
 }
 
@@ -857,5 +861,18 @@ const BOOL CBonTuner::SetLnbPower(const BOOL bEnable)
 	if(!m_hThread) return FALSE;
 	if(m_iID<0) return FALSE;
 	return m_pCmdSender->SetLnbPower(m_iID,bEnable) == CMD_SUCCESS ? TRUE : FALSE ;
+}
+
+void CBonTuner::FlushPtBuff(BOOL dispose)
+{
+	PTBUFFER &buf = m_PtBuff ;
+	if(dispose) {
+		buf.dispose();
+		for(size_t i=0; i<INI_BUFF_COUNT; i++) {
+			buf.head()->growup(DATA_BUFF_SIZE);
+			buf.push();
+		}
+	}
+	buf.clear();
 }
 

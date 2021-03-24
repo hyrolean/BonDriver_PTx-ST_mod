@@ -3,6 +3,7 @@
 #include <process.h>
 
 #define DATA_BUFF_SIZE 188*256
+#define INI_DATA_BUFF_COUNT 50
 #define MAX_DATA_BUFF_COUNT 500
 
 CDataIO::CDataIO(void)
@@ -150,24 +151,24 @@ void CDataIO::ClearBuff(int iID)
 		if( iTuner == 0 ){
 			Lock1();
 			m_dwT0OverFlowCount = 0;
-			m_T0Buff.clear();
+			Flush(m_T0Buff);
 			UnLock1();
 		}else{
 			Lock2();
 			m_dwT1OverFlowCount = 0;
-			m_T1Buff.clear();
+			Flush(m_T1Buff);
 			UnLock2();
 		}
 	}else{
 		if( iTuner == 0 ){
 			Lock3();
 			m_dwS0OverFlowCount = 0;
-			m_S0Buff.clear();
+			Flush(m_S0Buff);
 			UnLock3();
 		}else{
 			Lock4();
 			m_dwS1OverFlowCount = 0;
-			m_S1Buff.clear();
+			Flush(m_S1Buff);
 			UnLock4();
 		}
 	}
@@ -342,13 +343,13 @@ void CDataIO::EnableTuner(int iID, BOOL bEnable)
 			if( iTuner == 0 ){
 				Lock1();
 				m_dwT0OverFlowCount = 0;
-				m_T0Buff.dispose();
+				Flush(m_T0Buff, TRUE);
 				UnLock1();
 				m_cPipeT0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT0, this, THREAD_PRIORITY_ABOVE_NORMAL);
 			}else{
 				Lock2();
 				m_dwT1OverFlowCount = 0;
-				m_T1Buff.dispose();
+				Flush(m_T1Buff, TRUE);
 				UnLock2();
 				m_cPipeT1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT1, this, THREAD_PRIORITY_ABOVE_NORMAL);
 			}
@@ -356,13 +357,13 @@ void CDataIO::EnableTuner(int iID, BOOL bEnable)
 			if( iTuner == 0 ){
 				Lock3();
 				m_dwS0OverFlowCount = 0;
-				m_S0Buff.dispose();
+				Flush(m_S0Buff, TRUE);
 				UnLock3();
 				m_cPipeS0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS0, this, THREAD_PRIORITY_ABOVE_NORMAL);
 			}else{
 				Lock4();
 				m_dwS1OverFlowCount = 0;
-				m_S1Buff.dispose();
+				Flush(m_S1Buff, TRUE);
 				UnLock4();
 				m_cPipeS1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS1, this, THREAD_PRIORITY_ABOVE_NORMAL);
 			}
@@ -373,13 +374,13 @@ void CDataIO::EnableTuner(int iID, BOOL bEnable)
 				m_cPipeT0.StopServer();
 				Lock1();
 				m_dwT0OverFlowCount = 0;
-				m_T0Buff.clear();
+				Flush(m_T0Buff);
 				UnLock1();
 			}else{
 				m_cPipeT1.StopServer();
 				Lock2();
 				m_dwT1OverFlowCount = 0;
-				m_T1Buff.clear();
+				Flush(m_T1Buff);
 				UnLock2();
 			}
 		}else{
@@ -387,13 +388,13 @@ void CDataIO::EnableTuner(int iID, BOOL bEnable)
 				m_cPipeS0.StopServer();
 				Lock3();
 				m_dwS0OverFlowCount = 0;
-				m_S0Buff.clear();
+				Flush(m_S0Buff);
 				UnLock3();
 			}else{
 				m_cPipeS1.StopServer();
 				Lock4();
 				m_dwS1OverFlowCount = 0;
-				m_S1Buff.clear();
+				Flush(m_S1Buff);
 				UnLock4();
 			}
 		}
@@ -797,5 +798,17 @@ DWORD CDataIO::GetOverFlowCount(int iID)
 		}
 	}
 	return dwRet;
+}
+
+void CDataIO::Flush(PTBUFFER &buf, BOOL dispose)
+{
+	if(dispose) {
+		buf.dispose();
+		for(size_t i=0; i<INI_DATA_BUFF_COUNT; i++) {
+			buf.head()->growup(DATA_BUFF_SIZE);
+			buf.push();
+		}
+	}
+	buf.clear();
 }
 

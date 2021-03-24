@@ -4,10 +4,13 @@
 
 #define UNIT_SIZE			(4096 * 47)	// 4096と188の最小公倍数
 #define DATA_BUFF_SIZE		(188 * 256)	// UNIT_SIZEを割り切れる値である事
+#define INI_DATA_BUFF_COUNT	50
 #define MAX_DATA_BUFF_COUNT	500
 #define NOT_SYNC_BYTE		0x74
 
 CDataIO::CDataIO(void)
+ : m_T0Buff(MAX_DATA_BUFF_COUNT, 1), m_T1Buff(MAX_DATA_BUFF_COUNT, 1),
+ 	m_S0Buff(MAX_DATA_BUFF_COUNT, 1), m_S1Buff(MAX_DATA_BUFF_COUNT, 1)
 {
 	VIRTUAL_COUNT = 8*8;
 
@@ -54,10 +57,10 @@ CDataIO::~CDataIO(void)
 	SAFE_DELETE(m_S0SetBuff);
 	SAFE_DELETE(m_S1SetBuff);
 
-	Flush(m_T0Buff);
-	Flush(m_T1Buff);
-	Flush(m_S0Buff);
-	Flush(m_S1Buff);
+	Flush(m_T0Buff, TRUE);
+	Flush(m_T1Buff, TRUE);
+	Flush(m_S0Buff, TRUE);
+	Flush(m_S1Buff, TRUE);
 
 	if( m_hEvent1 != NULL ){
 		UnLock1();
@@ -525,6 +528,7 @@ BOOL CDataIO::EnableTuner(int iID, BOOL bEnable)
 					m_dwT0OverFlowCount = 0;
 					m_T0WriteIndex = 0;
 				}
+				Flush(m_T0Buff, TRUE);
 				BuffUnLock1();
 				UnLock1();
 			}else{
@@ -534,6 +538,7 @@ BOOL CDataIO::EnableTuner(int iID, BOOL bEnable)
 					m_dwT1OverFlowCount = 0;
 					m_T1WriteIndex = 0;
 				}
+				Flush(m_T1Buff, TRUE);
 				BuffUnLock2();
 				UnLock2();
 			}
@@ -545,6 +550,7 @@ BOOL CDataIO::EnableTuner(int iID, BOOL bEnable)
 					m_dwS0OverFlowCount = 0;
 					m_S0WriteIndex = 0;
 				}
+				Flush(m_S0Buff, TRUE);
 				BuffUnLock3();
 				UnLock3();
 			}else{
@@ -554,6 +560,7 @@ BOOL CDataIO::EnableTuner(int iID, BOOL bEnable)
 					m_dwS1OverFlowCount = 0;
 					m_S1WriteIndex = 0;
 				}
+				Flush(m_S1Buff, TRUE);
 				BuffUnLock4();
 				UnLock4();
 			}
@@ -750,7 +757,7 @@ bool CDataIO::CheckReady(EARTH::EX::Buffer* buffer, uint32 index)
 	return false;
 }
 
-bool CDataIO::ReadAddBuff(EARTH::EX::Buffer* buffer, uint32 index, deque<BUFF_DATA*> &tsBuff, DWORD dwID)
+bool CDataIO::ReadAddBuff(EARTH::EX::Buffer* buffer, uint32 index, PTBUFFER &tsBuff, DWORD dwID, DWORD &OverFlow)
 {
 	status status = PT::STATUS_OK;
 	status = buffer->SyncIo(index);
@@ -773,9 +780,25 @@ bool CDataIO::ReadAddBuff(EARTH::EX::Buffer* buffer, uint32 index, deque<BUFF_DA
 	}
 
 	for (uint32 i = 0; i<UNIT_SIZE; i += DATA_BUFF_SIZE){
-		BUFF_DATA* pDataBuff = new BUFF_DATA(DATA_BUFF_SIZE);
-		memcpy(pDataBuff->pbBuff, ptr+i, DATA_BUFF_SIZE);
-		tsBuff.push_back(pDataBuff);
+		if(tsBuff.no_pool()) { // overflow
+			tsBuff.pull();
+			OverFlow++ ;
+			switch(dwID) {
+			case 0: OutputDebugString(L"T0 Buff Full"); break;
+			case 1: OutputDebugString(L"T1 Buff Full"); break;
+			case 2: OutputDebugString(L"S0 Buff Full"); break;
+			case 3: OutputDebugString(L"S1 Buff Full"); break;
+			}
+		}else {
+			OverFlow = 0 ;
+		}
+		auto head = tsBuff.head();
+		if(head->size()>=head->capacity()) {
+			head->resize(0);
+			head->growup(DATA_BUFF_SIZE);
+		}
+		memcpy(head->data(), ptr+i, DATA_BUFF_SIZE);
+		tsBuff.push();
 	}
 
 	switch(dwID) {
@@ -803,18 +826,8 @@ UINT WINAPI CDataIO::RecvThread1(LPVOID pParam)
 		pSys->Lock1();
 		if( pSys->m_T0SetBuff != NULL ){
 			if( pSys->CheckReady(pSys->m_T0SetBuff, pSys->m_T0WriteIndex) ){
-				if( pSys->ReadAddBuff(pSys->m_T0SetBuff, pSys->m_T0WriteIndex, pSys->m_T0Buff, 0) ){
-					pSys->BuffLock1();
-					if( pSys->m_T0Buff.size() > MAX_DATA_BUFF_COUNT ){
-						BUFF_DATA *p = pSys->m_T0Buff.front();
-						pSys->m_T0Buff.pop_front();
-						delete p;
-						pSys->m_dwT0OverFlowCount++;
-						OutputDebugString(L"T0 Buff Full");
-					}else{
-						pSys->m_dwT0OverFlowCount = 0;
-					}
-					pSys->BuffUnLock1();
+				if( pSys->ReadAddBuff(pSys->m_T0SetBuff, pSys->m_T0WriteIndex,
+						pSys->m_T0Buff, 0, pSys->m_dwT0OverFlowCount) ){
 					pSys->m_T0WriteIndex++;
 					if (pSys->VIRTUAL_COUNT <= pSys->m_T0WriteIndex) {
 						pSys->m_T0WriteIndex = 0;
@@ -842,18 +855,8 @@ UINT WINAPI CDataIO::RecvThread2(LPVOID pParam)
 		pSys->Lock2();
 		if( pSys->m_T1SetBuff != NULL ){
 			if( pSys->CheckReady(pSys->m_T1SetBuff, pSys->m_T1WriteIndex) ){
-				if( pSys->ReadAddBuff(pSys->m_T1SetBuff, pSys->m_T1WriteIndex, pSys->m_T1Buff, 1) ){
-					pSys->BuffLock2();
-					if( pSys->m_T1Buff.size() > MAX_DATA_BUFF_COUNT ){
-						BUFF_DATA *p = pSys->m_T1Buff.front();
-						pSys->m_T1Buff.pop_front();
-						delete p;
-						pSys->m_dwT1OverFlowCount++;
-						OutputDebugString(L"T1 Buff Full");
-					}else{
-						pSys->m_dwT1OverFlowCount = 0;
-					}
-					pSys->BuffUnLock2();
+				if( pSys->ReadAddBuff(pSys->m_T1SetBuff, pSys->m_T1WriteIndex,
+						pSys->m_T1Buff, 1, pSys->m_dwT1OverFlowCount) ){
 					pSys->m_T1WriteIndex++;
 					if (pSys->VIRTUAL_COUNT <= pSys->m_T1WriteIndex) {
 						pSys->m_T1WriteIndex = 0;
@@ -881,18 +884,8 @@ UINT WINAPI CDataIO::RecvThread3(LPVOID pParam)
 		pSys->Lock3();
 		if( pSys->m_S0SetBuff != NULL ){
 			if( pSys->CheckReady(pSys->m_S0SetBuff, pSys->m_S0WriteIndex) ){
-				if( pSys->ReadAddBuff(pSys->m_S0SetBuff, pSys->m_S0WriteIndex, pSys->m_S0Buff, 2) ){
-					pSys->BuffLock3();
-					if( pSys->m_S0Buff.size() > MAX_DATA_BUFF_COUNT ){
-						BUFF_DATA *p = pSys->m_S0Buff.front();
-						pSys->m_S0Buff.pop_front();
-						delete p;
-						pSys->m_dwS0OverFlowCount++;
-						OutputDebugString(L"S0 Buff Full");
-					}else{
-						pSys->m_dwS0OverFlowCount = 0;
-					}
-					pSys->BuffUnLock3();
+				if( pSys->ReadAddBuff(pSys->m_S0SetBuff, pSys->m_S0WriteIndex,
+						pSys->m_S0Buff, 2, pSys->m_dwS0OverFlowCount) ){
 					pSys->m_S0WriteIndex++;
 					if (pSys->VIRTUAL_COUNT <= pSys->m_S0WriteIndex) {
 						pSys->m_S0WriteIndex = 0;
@@ -920,18 +913,8 @@ UINT WINAPI CDataIO::RecvThread4(LPVOID pParam)
 		pSys->Lock4();
 		if( pSys->m_S1SetBuff != NULL ){
 			if( pSys->CheckReady(pSys->m_S1SetBuff, pSys->m_S1WriteIndex) ){
-				if( pSys->ReadAddBuff(pSys->m_S1SetBuff, pSys->m_S1WriteIndex, pSys->m_S1Buff, 3) ){
-					pSys->BuffLock4();
-					if( pSys->m_S1Buff.size() > MAX_DATA_BUFF_COUNT ){
-						BUFF_DATA *p = pSys->m_S1Buff.front();
-						pSys->m_S1Buff.pop_front();
-						delete p;
-						pSys->m_dwS1OverFlowCount++;
-						OutputDebugString(L"S1 Buff Full");
-					}else{
-						pSys->m_dwS1OverFlowCount = 0;
-					}
-					pSys->BuffUnLock4();
+				if( pSys->ReadAddBuff(pSys->m_S1SetBuff, pSys->m_S1WriteIndex,
+						pSys->m_S1Buff, 3, pSys->m_dwS1OverFlowCount) ){
 					pSys->m_S1WriteIndex++;
 					if (pSys->VIRTUAL_COUNT <= pSys->m_S1WriteIndex) {
 						pSys->m_S1WriteIndex = 0;
@@ -1012,12 +995,10 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 		case 0:
 			BuffLock1();
 			if( m_T0Buff.size() > 0 ){
-				BUFF_DATA *p = m_T0Buff.front();
-				m_T0Buff.pop_front();
-				pResParam->dwSize = p->dwSize;
-				pResParam->bData = p->pbBuff;
-				p->pbBuff = NULL;	// ポインタをコピーしてるのでdelete pで削除されないようにする
-				delete p;
+				auto p = m_T0Buff.pull();
+				pResParam->dwSize = (DWORD)p->size();
+				pResParam->bData = p->data();
+				*pbResDataAbandon = TRUE;
 				bSend = TRUE;
 			}
 			BuffUnLock1();
@@ -1025,12 +1006,10 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 		case 1:
 			BuffLock2();
 			if( m_T1Buff.size() > 0 ){
-				BUFF_DATA *p = m_T1Buff.front();
-				m_T1Buff.pop_front();
-				pResParam->dwSize = p->dwSize;
-				pResParam->bData = p->pbBuff;
-				p->pbBuff = NULL;	// ポインタをコピーしてるのでdelete pで削除されないようにする
-				delete p;
+				auto p = m_T1Buff.pull();
+				pResParam->dwSize = (DWORD)p->size();
+				pResParam->bData = p->data();
+				*pbResDataAbandon = TRUE;
 				bSend = TRUE;
 			}
 			BuffUnLock2();
@@ -1038,12 +1017,10 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 		case 2:
 			BuffLock3();
 			if( m_S0Buff.size() > 0 ){
-				BUFF_DATA *p = m_S0Buff.front();
-				m_S0Buff.pop_front();
-				pResParam->dwSize = p->dwSize;
-				pResParam->bData = p->pbBuff;
-				p->pbBuff = NULL;	// ポインタをコピーしてるのでdelete pで削除されないようにする
-				delete p;
+				auto p = m_S0Buff.pull();
+				pResParam->dwSize = (DWORD)p->size();
+				pResParam->bData = p->data();
+				*pbResDataAbandon = TRUE;
 				bSend = TRUE;
 			}
 			BuffUnLock3();
@@ -1051,12 +1028,10 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 		case 3:
 			BuffLock4();
 			if( m_S1Buff.size() > 0 ){
-				BUFF_DATA *p = m_S1Buff.front();
-				m_S1Buff.pop_front();
-				pResParam->dwSize = p->dwSize;
-				pResParam->bData = p->pbBuff;
-				p->pbBuff = NULL;	// ポインタをコピーしてるのでdelete pで削除されないようにする
-				delete p;
+				auto p = m_S1Buff.pull();
+				pResParam->dwSize = (DWORD)p->size();
+				pResParam->bData = p->data();
+				*pbResDataAbandon = TRUE;
 				bSend = TRUE;
 			}
 			BuffUnLock4();
@@ -1090,3 +1065,16 @@ DWORD CDataIO::GetOverFlowCount(int iID)
 	}
 	return dwRet;
 }
+
+void CDataIO::Flush(PTBUFFER &buf, BOOL dispose)
+{
+	if(dispose) {
+		buf.dispose();
+		for(size_t i=0; i<INI_DATA_BUFF_COUNT; i++) {
+			buf.head()->growup(DATA_BUFF_SIZE) ;
+			buf.push();
+		}
+	}
+	buf.clear();
+}
+

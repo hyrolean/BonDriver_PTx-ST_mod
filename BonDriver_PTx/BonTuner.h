@@ -79,6 +79,7 @@ protected:
 	TS_DATA* m_LastBuff;*/
 
 	PTBUFFER m_PtBuff;
+	void FlushPtBuff(BOOL dispose=FALSE);
 
 	HANDLE m_hStopEvent;
 	HANDLE m_hThread;

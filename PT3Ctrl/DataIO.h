@@ -41,6 +41,7 @@ protected:
 	CPipeServer m_cPipeS0;
 	CPipeServer m_cPipeS1;
 
+	/*
 	typedef struct _BUFF_DATA {
 		BYTE* pbBuff;
 		DWORD dwSize;
@@ -56,6 +57,12 @@ protected:
 	deque<BUFF_DATA*> m_T1Buff;
 	deque<BUFF_DATA*> m_S0Buff;
 	deque<BUFF_DATA*> m_S1Buff;
+	*/
+
+	PTBUFFER m_T0Buff;
+	PTBUFFER m_T1Buff;
+	PTBUFFER m_S0Buff;
+	PTBUFFER m_S1Buff;
 
 	EARTH::EX::Buffer* m_T0SetBuff;
 	EARTH::EX::Buffer* m_T1SetBuff;
@@ -116,13 +123,7 @@ protected:
 	void CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon);
 
 	bool CheckReady(EARTH::EX::Buffer* buffer, uint32 index);
-	bool ReadAddBuff(EARTH::EX::Buffer* buffer, uint32 index, deque<BUFF_DATA*> &tsBuff, DWORD dwID);
+	bool ReadAddBuff(EARTH::EX::Buffer* buffer, uint32 index, PTBUFFER &tsBuff, DWORD dwID, DWORD &OverFlow);
 
-	void Flush(deque<BUFF_DATA*> &buf) {
-		while (!buf.empty()){
-			BUFF_DATA *p = buf.front();
-			buf.pop_front();
-			delete p;
-		}
-	};
+	void Flush(PTBUFFER &buf, BOOL dispose = FALSE );
 };
