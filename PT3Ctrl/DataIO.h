@@ -32,7 +32,6 @@ protected:
 	UINT VIRTUAL_COUNT;
 	PT::Device* m_pcDevice;
 
-	//HANDLE m_hStopEvent;
 	BOOL m_bThTerm;
 	HANDLE m_hThread1;
 	HANDLE m_hThread2;
@@ -43,44 +42,75 @@ protected:
 	CPipeServer m_cPipeT1;
 	CPipeServer m_cPipeS0;
 	CPipeServer m_cPipeS1;
-
-	/*
-	typedef struct _BUFF_DATA {
-		BYTE* pbBuff;
-		DWORD dwSize;
-		_BUFF_DATA(DWORD dw) : dwSize(dw){
-			pbBuff = new BYTE[dw];
+	CPipeServer &Pipe(DWORD dwID) {
+		switch(dwID) {
+		case 1: return m_cPipeT1;
+		case 2: return m_cPipeS0;
+		case 3: return m_cPipeS1;
+		default: return m_cPipeT0;
 		}
-		~_BUFF_DATA(){
-			delete[] pbBuff;
-		}
-	} BUFF_DATA;
-
-	deque<BUFF_DATA*> m_T0Buff;
-	deque<BUFF_DATA*> m_T1Buff;
-	deque<BUFF_DATA*> m_S0Buff;
-	deque<BUFF_DATA*> m_S1Buff;
-	*/
+	}
 
 	PTBUFFER m_T0Buff;
 	PTBUFFER m_T1Buff;
 	PTBUFFER m_S0Buff;
 	PTBUFFER m_S1Buff;
+	PTBUFFER &Buff(DWORD dwID) {
+		switch(dwID) {
+		case 1: return m_T1Buff;
+		case 2: return m_S0Buff;
+		case 3: return m_S1Buff;
+		default: return m_T0Buff;
+		}
+	}
 
 	EARTH::EX::Buffer* m_T0SetBuff;
 	EARTH::EX::Buffer* m_T1SetBuff;
 	EARTH::EX::Buffer* m_S0SetBuff;
 	EARTH::EX::Buffer* m_S1SetBuff;
+	EARTH::EX::Buffer* &SetBuff(DWORD dwID) {
+		switch(dwID) {
+		case 1: return m_T1SetBuff;
+		case 2: return m_S0SetBuff;
+		case 3: return m_S1SetBuff;
+		default: return m_T0SetBuff;
+		}
+	}
 
 	uint32 m_T0WriteIndex;
 	uint32 m_T1WriteIndex;
 	uint32 m_S0WriteIndex;
 	uint32 m_S1WriteIndex;
+	uint32 &WriteIndex(DWORD dwID) {
+		switch(dwID) {
+		case 1: return m_T1WriteIndex;
+		case 2: return m_S0WriteIndex;
+		case 3: return m_S1WriteIndex;
+		default: return m_T0WriteIndex;
+		}
+	}
 
 	DWORD m_dwT0OverFlowCount;
 	DWORD m_dwT1OverFlowCount;
 	DWORD m_dwS0OverFlowCount;
 	DWORD m_dwS1OverFlowCount;
+	DWORD &OverFlowCount(DWORD dwID) {
+		switch(dwID) {
+		case 1: return m_dwT1OverFlowCount;
+		case 2: return m_dwS0OverFlowCount;
+		case 3: return m_dwS1OverFlowCount;
+		default: return m_dwT0OverFlowCount;
+		}
+	}
+
+	std::wstring IdentStr(DWORD dwID, std::wstring suffix=L"") {
+		switch(dwID) {
+		case 1: return L"T1"+suffix;
+		case 2: return L"S0"+suffix;
+		case 3: return L"S1"+suffix;
+		default: return L"T0"+suffix;
+		}
+	}
 
 	HANDLE m_hEvent1;
 	HANDLE m_hEvent2;
@@ -93,10 +123,13 @@ protected:
 	HANDLE m_hBuffEvent4;
 
 protected:
-	static UINT WINAPI RecvThread1(LPVOID pParam);
-	static UINT WINAPI RecvThread2(LPVOID pParam);
-	static UINT WINAPI RecvThread3(LPVOID pParam);
-	static UINT WINAPI RecvThread4(LPVOID pParam);
+	struct RECVTHREAD_PARAM {
+		CDataIO *pSys;
+		DWORD dwID;
+		RECVTHREAD_PARAM(CDataIO *pSys_, DWORD dwID_)
+		 : pSys(pSys_), dwID(dwID_) {}
+	};
+	static UINT WINAPI RecvThread(LPVOID pParam);
 
 	bool Lock1(DWORD timeout=DATA_TIMEOUT);
 	void UnLock1();
@@ -106,6 +139,22 @@ protected:
 	void UnLock3();
 	bool Lock4(DWORD timeout=DATA_TIMEOUT);
 	void UnLock4();
+	bool Lock(DWORD dwID, DWORD timeout=DATA_TIMEOUT) {
+		switch(dwID) {
+		case 1: return Lock2(timeout);
+		case 2: return Lock3(timeout);
+		case 3: return Lock4(timeout);
+		default: return Lock1(timeout);
+		}
+	}
+	void UnLock(DWORD dwID) {
+		switch(dwID) {
+		case 1: UnLock2(); break;
+		case 2: UnLock3(); break;
+		case 3: UnLock4(); break;
+		default: UnLock1(); break;
+		}
+	}
 
 	bool BuffLock1(DWORD timeout=DATA_TIMEOUT);
 	void BuffUnLock1();
@@ -115,6 +164,22 @@ protected:
 	void BuffUnLock3();
 	bool BuffLock4(DWORD timeout=DATA_TIMEOUT);
 	void BuffUnLock4();
+	bool BuffLock(DWORD dwID, DWORD timeout=DATA_TIMEOUT) {
+		switch(dwID) {
+		case 1: return BuffLock2(timeout);
+		case 2: return BuffLock3(timeout);
+		case 3: return BuffLock4(timeout);
+		default: return BuffLock1(timeout);
+		}
+	}
+	void BuffUnLock(DWORD dwID) {
+		switch(dwID) {
+		case 1: BuffUnLock2(); break;
+		case 2: BuffUnLock3(); break;
+		case 3: BuffUnLock4(); break;
+		default: BuffUnLock1(); break;
+		}
+	}
 
 	void ChkTransferInfo();
 
@@ -122,11 +187,19 @@ protected:
 	static int CALLBACK OutsideCmdCallbackT1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon);
 	static int CALLBACK OutsideCmdCallbackS0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon);
 	static int CALLBACK OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon);
+    CMD_CALLBACK_PROC OutsideCmdCallback(DWORD dwID) {
+		switch(dwID) {
+		case 1: return &OutsideCmdCallbackT1;
+		case 2: return &OutsideCmdCallbackS0;
+		case 3: return &OutsideCmdCallbackS1;
+		default: return &OutsideCmdCallbackT0;
+		}
+	}
 
 	void CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon);
 
-	bool CheckReady(EARTH::EX::Buffer* buffer, uint32 index);
-	bool ReadAddBuff(EARTH::EX::Buffer* buffer, uint32 index, PTBUFFER &tsBuff, DWORD dwID, DWORD &OverFlow);
+	bool CheckReady(DWORD dwID);
+	bool ReadAddBuff(DWORD dwID);
 
 	void Flush(PTBUFFER &buf, BOOL dispose = FALSE );
 
@@ -139,6 +212,14 @@ protected:
 	CSharedTransportStreamer *m_T1MemStreamer;
 	CSharedTransportStreamer *m_S0MemStreamer;
 	CSharedTransportStreamer *m_S1MemStreamer;
+	CSharedTransportStreamer *&MemStreamer(DWORD dwID) {
+		switch(dwID) {
+		case 1: return m_T1MemStreamer;
+		case 2: return m_S0MemStreamer;
+		case 3: return m_S1MemStreamer;
+		default: return m_T0MemStreamer;
+		}
+	}
 	UINT MemStreamingThreadMain();
 	static UINT WINAPI MemStreamingThread(LPVOID pParam);
 

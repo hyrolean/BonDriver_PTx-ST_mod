@@ -14,10 +14,6 @@
 
 using namespace std;
 
-#define DATA_BUFF_SIZE	(188*256)
-#define INI_BUFF_COUNT	50
-#define MAX_BUFF_COUNT	500
-
 static CRITICAL_SECTION secBonTuners;
 static set<CBonTuner*> BonTuners ;
 
@@ -64,7 +60,7 @@ HINSTANCE CBonTuner::m_hModule = NULL;
 
 
 CBonTuner::CBonTuner()
-  : m_PtBuff(MAX_BUFF_COUNT,1)
+  : m_PtBuff(MAX_DATA_BUFF_COUNT,1)
 {
 	m_hOnStreamEvent = NULL;
 
@@ -868,7 +864,7 @@ void CBonTuner::FlushPtBuff(BOOL dispose)
 	PTBUFFER &buf = m_PtBuff ;
 	if(dispose) {
 		buf.dispose();
-		for(size_t i=0; i<INI_BUFF_COUNT; i++) {
+		for(size_t i=0; i<INI_DATA_BUFF_COUNT; i++) {
 			buf.head()->growup(DATA_BUFF_SIZE);
 			buf.push();
 		}

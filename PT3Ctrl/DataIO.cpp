@@ -2,10 +2,6 @@
 #include "DataIO.h"
 #include <process.h>
 
-#define UNIT_SIZE			(4096 * 47)	// 4096と188の最小公倍数
-#define DATA_BUFF_SIZE		(188 * 256)	// UNIT_SIZEを割り切れる値である事
-#define INI_DATA_BUFF_COUNT	50
-#define MAX_DATA_BUFF_COUNT	500
 #define NOT_SYNC_BYTE		0x74
 
 CDataIO::CDataIO(BOOL bMemStreaming)
@@ -62,18 +58,10 @@ CDataIO::~CDataIO(void)
 	}*/
 
 	// MemStreamer
-	if(m_T0MemStreamer != NULL) {
-		SAFE_DELETE(m_T0MemStreamer);
-	}
-	if(m_T1MemStreamer != NULL) {
-		SAFE_DELETE(m_T1MemStreamer);
-	}
-	if(m_S0MemStreamer != NULL) {
-		SAFE_DELETE(m_S0MemStreamer);
-	}
-	if(m_S1MemStreamer != NULL) {
-		SAFE_DELETE(m_S1MemStreamer);
-	}
+	SAFE_DELETE(m_T0MemStreamer);
+	SAFE_DELETE(m_T1MemStreamer);
+	SAFE_DELETE(m_S0MemStreamer);
+	SAFE_DELETE(m_S1MemStreamer);
 
 	SAFE_DELETE(m_T0SetBuff);
 	SAFE_DELETE(m_T1SetBuff);
@@ -287,39 +275,19 @@ void CDataIO::ClearBuff(int iID)
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
 	uint32 iTuner = iID&0x000000FF;
 
-	if( enISDB == PT::Device::ISDB_T ){
-		if( iTuner == 0 ){
-			Lock1();
-			BuffLock1();
-			m_dwT0OverFlowCount = 0;
-			Flush(m_T0Buff);
-			BuffUnLock1();
-			UnLock1();
-		}else{
-			Lock2();
-			BuffLock2();
-			m_dwT1OverFlowCount = 0;
-			Flush(m_T1Buff);
-			BuffUnLock2();
-			UnLock2();
-		}
-	}else{
-		if( iTuner == 0 ){
-			Lock3();
-			BuffLock3();
-			m_dwS0OverFlowCount = 0;
-			Flush(m_S0Buff);
-			BuffUnLock3();
-			UnLock3();
-		}else{
-			Lock4();
-			BuffLock4();
-			m_dwS1OverFlowCount = 0;
-			Flush(m_S1Buff);
-			BuffUnLock4();
-			UnLock4();
-		}
-	}
+	auto clear = [&](DWORD dwID) {
+		Lock(dwID);
+		BuffLock(dwID);
+		OverFlowCount(dwID) = 0;
+		Flush(Buff(dwID));
+		BuffUnLock(dwID);
+		UnLock(dwID);
+	};
+
+	if( enISDB == PT::Device::ISDB_T )
+		clear( iTuner==0 ? 0 : 1 );
+	else
+		clear( iTuner==0 ? 2 : 3 );
 }
 
 void CDataIO::Run(PT::Device::ISDB enISDB, uint32 iTuner)
@@ -345,26 +313,30 @@ void CDataIO::Run(PT::Device::ISDB enISDB, uint32 iTuner)
 	if(enISDB == PT::Device::ISDB_T) {
 		// Thread 1 - T0
 		if(iTuner==0 && m_hThread1==INVALID_HANDLE_VALUE) {
-			m_hThread1 = (HANDLE)_beginthreadex(NULL, 0, RecvThread1, (LPVOID)this, CREATE_SUSPENDED, NULL);
+			m_hThread1 = (HANDLE)_beginthreadex(NULL, 0, RecvThread,
+				(LPVOID) new RECVTHREAD_PARAM(this,0), CREATE_SUSPENDED, NULL);
 			SetThreadPriority( m_hThread1, THREAD_PRIORITY_ABOVE_NORMAL );
 			ResumeThread(m_hThread1);
 		}
 		// Thread 2 - T1
 		else if(iTuner==1 && m_hThread2==INVALID_HANDLE_VALUE) {
-			m_hThread2 = (HANDLE)_beginthreadex(NULL, 0, RecvThread2, (LPVOID)this, CREATE_SUSPENDED, NULL);
+			m_hThread2 = (HANDLE)_beginthreadex(NULL, 0, RecvThread,
+				(LPVOID) new RECVTHREAD_PARAM(this,1), CREATE_SUSPENDED, NULL);
 			SetThreadPriority( m_hThread2, THREAD_PRIORITY_ABOVE_NORMAL );
 			ResumeThread(m_hThread2);
 		}
 	}else if(enISDB == PT::Device::ISDB_S) {
 		// Thread 3 - S0
 		if(iTuner==0 && m_hThread3==INVALID_HANDLE_VALUE) {
-			m_hThread3 = (HANDLE)_beginthreadex(NULL, 0, RecvThread3, (LPVOID)this, CREATE_SUSPENDED, NULL);
+			m_hThread3 = (HANDLE)_beginthreadex(NULL, 0, RecvThread,
+				(LPVOID) new RECVTHREAD_PARAM(this,2), CREATE_SUSPENDED, NULL);
 			SetThreadPriority( m_hThread3, THREAD_PRIORITY_ABOVE_NORMAL );
 			ResumeThread(m_hThread3);
 		}
 		// Thread 4 - S1
 		else if(iTuner==1 && m_hThread4==INVALID_HANDLE_VALUE) {
-			m_hThread4 = (HANDLE)_beginthreadex(NULL, 0, RecvThread4, (LPVOID)this, CREATE_SUSPENDED, NULL);
+			m_hThread4 = (HANDLE)_beginthreadex(NULL, 0, RecvThread,
+				(LPVOID) new RECVTHREAD_PARAM(this,3), CREATE_SUSPENDED, NULL);
 			SetThreadPriority( m_hThread4, THREAD_PRIORITY_ABOVE_NORMAL );
 			ResumeThread(m_hThread4);
 		}
@@ -429,123 +401,46 @@ void CDataIO::StartPipeServer(int iID)
 	if( enStatus != PT::STATUS_OK ){
 		return ;
 	}
-	if( enISDB == PT::Device::ISDB_T ){
-		if( iTuner == 0 ){
-			Lock1();
-			if( m_T0SetBuff == NULL ){
-				m_T0SetBuff = new EARTH::EX::Buffer(m_pcDevice);
-				m_T0SetBuff->Alloc(UNIT_SIZE, VIRTUAL_COUNT);
-				m_T0WriteIndex = 0;
 
-				uint8 *ptr = static_cast<uint8 *>(m_T0SetBuff->Ptr(0));
-				for (uint32 i=0; i<VIRTUAL_COUNT; i++) {
-					ptr[UNIT_SIZE*i] = NOT_SYNC_BYTE;	// 同期バイト部分に NOT_SYNC_BYTE を書き込む
-					m_T0SetBuff->SyncCpu(i);		// CPU キャッシュをフラッシュ
-				}
+	auto start = [&](DWORD dwID) {
+		Lock(dwID);
+		auto &buff = SetBuff(dwID);
+		if( buff == NULL ){
+			buff = new EARTH::EX::Buffer(m_pcDevice);
+			buff->Alloc(DATA_UNIT_SIZE, VIRTUAL_COUNT);
+			WriteIndex(dwID) = 0;
 
-				uint64 pageAddress = m_T0SetBuff->PageDescriptorAddress();
-
-				enStatus = m_pcDevice->SetTransferPageDescriptorAddress(enISDB, iTuner, pageAddress);
-
-				BuffLock1();
-				m_dwT0OverFlowCount = 0;
-				if(m_bMemStreaming&&m_T0MemStreamer==NULL)
-					m_T0MemStreamer = new CSharedTransportStreamer(
-						strStreamerName, FALSE, SHAREDMEM_TRANSPORT_PACKET_SIZE,
-						SHAREDMEM_TRANSPORT_PACKET_NUM);
-				BuffUnLock1();
+			uint8 *ptr = static_cast<uint8 *>(buff->Ptr(0));
+			for (uint32 i=0; i<VIRTUAL_COUNT; i++) {
+				ptr[DATA_UNIT_SIZE*i] = NOT_SYNC_BYTE;	// 同期バイト部分に NOT_SYNC_BYTE を書き込む
+				buff->SyncCpu(i);		// CPU キャッシュをフラッシュ
 			}
-			UnLock1();
-			if(!m_bMemStreaming)
-				m_cPipeT0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT0, this, THREAD_PRIORITY_ABOVE_NORMAL);
-		}else{
-			Lock2();
-			if( m_T1SetBuff == NULL ){
-				m_T1SetBuff = new EARTH::EX::Buffer(m_pcDevice);
-				m_T1SetBuff->Alloc(UNIT_SIZE, VIRTUAL_COUNT);
-				m_T1WriteIndex = 0;
 
-				uint8 *ptr = static_cast<uint8 *>(m_T1SetBuff->Ptr(0));
-				for (uint32 i=0; i<VIRTUAL_COUNT; i++) {
-					ptr[UNIT_SIZE*i] = NOT_SYNC_BYTE;	// 同期バイト部分に NOT_SYNC_BYTE を書き込む
-					m_T1SetBuff->SyncCpu(i);		// CPU キャッシュをフラッシュ
-				}
+			uint64 pageAddress = buff->PageDescriptorAddress();
 
-				uint64 pageAddress = m_T1SetBuff->PageDescriptorAddress();
+			enStatus = m_pcDevice->SetTransferPageDescriptorAddress(
+				enISDB, iTuner, pageAddress);
 
-				enStatus = m_pcDevice->SetTransferPageDescriptorAddress(enISDB, iTuner, pageAddress);
-
-				BuffLock2();
-				m_dwT1OverFlowCount = 0;
-				if(m_bMemStreaming&&m_T1MemStreamer==NULL)
-					m_T1MemStreamer = new CSharedTransportStreamer(
-						strStreamerName, FALSE, SHAREDMEM_TRANSPORT_PACKET_SIZE,
-						SHAREDMEM_TRANSPORT_PACKET_NUM);
-				BuffUnLock2();
-			}
-			UnLock2();
-			if(!m_bMemStreaming)
-				m_cPipeT1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT1, this, THREAD_PRIORITY_ABOVE_NORMAL);
+			BuffLock(dwID);
+			OverFlowCount(dwID) = 0;
+			auto &st = MemStreamer(dwID) ;
+			if(m_bMemStreaming&&st==NULL)
+				st = new CSharedTransportStreamer(
+					strStreamerName, FALSE, SHAREDMEM_TRANSPORT_PACKET_SIZE,
+					SHAREDMEM_TRANSPORT_PACKET_NUM);
+			BuffUnLock(dwID);
 		}
-	}else{
-		if( iTuner == 0 ){
-			Lock3();
-			if( m_S0SetBuff == NULL ){
-				m_S0SetBuff = new EARTH::EX::Buffer(m_pcDevice);
-				m_S0SetBuff->Alloc(UNIT_SIZE, VIRTUAL_COUNT);
-				m_S0WriteIndex = 0;
+		UnLock(dwID);
+		if(!m_bMemStreaming)
+			Pipe(dwID).StartServer(strEvent.c_str(), strPipe.c_str(),
+				OutsideCmdCallback(dwID), this, THREAD_PRIORITY_ABOVE_NORMAL);
+	};
 
-				uint8 *ptr = static_cast<uint8 *>(m_S0SetBuff->Ptr(0));
-				for (uint32 i=0; i<VIRTUAL_COUNT; i++) {
-					ptr[UNIT_SIZE*i] = NOT_SYNC_BYTE;	// 同期バイト部分に NOT_SYNC_BYTE を書き込む
-					m_S0SetBuff->SyncCpu(i);		// CPU キャッシュをフラッシュ
-				}
 
-				uint64 pageAddress = m_S0SetBuff->PageDescriptorAddress();
-
-				enStatus = m_pcDevice->SetTransferPageDescriptorAddress(enISDB, iTuner, pageAddress);
-
-				BuffLock3();
-				m_dwS0OverFlowCount = 0;
-				if(m_bMemStreaming&&m_S0MemStreamer==NULL)
-					m_S0MemStreamer = new CSharedTransportStreamer(
-						strStreamerName, FALSE, SHAREDMEM_TRANSPORT_PACKET_SIZE,
-						SHAREDMEM_TRANSPORT_PACKET_NUM);
-				BuffUnLock3();
-			}
-			UnLock3();
-			if(!m_bMemStreaming)
-				m_cPipeS0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS0, this, THREAD_PRIORITY_ABOVE_NORMAL);
-		}else{
-			Lock4();
-			if( m_S1SetBuff == NULL ){
-				m_S1SetBuff = new EARTH::EX::Buffer(m_pcDevice);
-				m_S1SetBuff->Alloc(UNIT_SIZE, VIRTUAL_COUNT);
-				m_S1WriteIndex = 0;
-
-				uint8 *ptr = static_cast<uint8 *>(m_S1SetBuff->Ptr(0));
-				for (uint32 i=0; i<VIRTUAL_COUNT; i++) {
-					ptr[UNIT_SIZE*i] = NOT_SYNC_BYTE;	// 同期バイト部分に NOT_SYNC_BYTE を書き込む
-					m_S1SetBuff->SyncCpu(i);		// CPU キャッシュをフラッシュ
-				}
-
-				uint64 pageAddress = m_S1SetBuff->PageDescriptorAddress();
-
-				enStatus = m_pcDevice->SetTransferPageDescriptorAddress(enISDB, iTuner, pageAddress);
-
-				BuffLock4();
-				m_dwS1OverFlowCount = 0;
-				if(m_bMemStreaming&&m_S1MemStreamer==NULL)
-					m_S1MemStreamer = new CSharedTransportStreamer(
-						strStreamerName, FALSE, SHAREDMEM_TRANSPORT_PACKET_SIZE,
-						SHAREDMEM_TRANSPORT_PACKET_NUM);
-				BuffUnLock4();
-			}
-			UnLock4();
-			if(!m_bMemStreaming)
-				m_cPipeS1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS1, this, THREAD_PRIORITY_ABOVE_NORMAL);
-		}
-	}
+	if( enISDB == PT::Device::ISDB_T )
+		start( iTuner == 0 ? 0 : 1 );
+	else
+		start( iTuner == 0 ? 2 : 3 );
 }
 
 void CDataIO::StopPipeServer(int iID)
@@ -554,55 +449,24 @@ void CDataIO::StopPipeServer(int iID)
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
 	uint32 iTuner = iID&0x000000FF;
 
-	if( enISDB == PT::Device::ISDB_T ){
-		if( iTuner == 0 ){
-			if(!m_bMemStreaming) m_cPipeT0.StopServer();
-			Lock1();
-			BuffLock1();
-			if(m_bMemStreaming&&m_T0MemStreamer)
-				SAFE_DELETE(m_T0MemStreamer);
-			m_dwT0OverFlowCount = 0;
-			SAFE_DELETE(m_T0SetBuff);
-			Flush(m_T0Buff);
-			BuffUnLock1();
-			UnLock1();
-		}else{
-			if(!m_bMemStreaming) m_cPipeT1.StopServer();
-			Lock2();
-			BuffLock2();
-			if(m_bMemStreaming&&m_T1MemStreamer)
-				SAFE_DELETE(m_T1MemStreamer);
-			m_dwT1OverFlowCount = 0;
-			SAFE_DELETE(m_T1SetBuff);
-			Flush(m_T1Buff);
-			BuffUnLock2();
-			UnLock2();
-		}
-	}else{
-		if( iTuner == 0 ){
-			if(!m_bMemStreaming) m_cPipeS0.StopServer();
-			Lock3();
-			BuffLock3();
-			if(m_bMemStreaming&&m_S0MemStreamer)
-				SAFE_DELETE(m_S0MemStreamer);
-			m_dwS0OverFlowCount = 0;
-			SAFE_DELETE(m_S0SetBuff);
-			Flush(m_S0Buff);
-			BuffUnLock3();
-			UnLock3();
-		}else{
-			if(!m_bMemStreaming) m_cPipeS1.StopServer();
-			Lock4();
-			BuffLock4();
-			if(m_bMemStreaming&&m_S1MemStreamer)
-				SAFE_DELETE(m_S1MemStreamer);
-			m_dwS1OverFlowCount = 0;
-			SAFE_DELETE(m_S1SetBuff);
-			Flush(m_S1Buff);
-			BuffUnLock4();
-			UnLock4();
-		}
-	}
+	auto stop = [&](DWORD dwID) {
+		if(!m_bMemStreaming) Pipe(dwID).StopServer();
+		Lock(dwID);
+		BuffLock(dwID);
+		auto &st = MemStreamer(dwID);
+		SAFE_DELETE(st);
+		OverFlowCount(dwID) = 0;
+		auto &buff = SetBuff(dwID);
+		SAFE_DELETE(buff);
+		Flush(Buff(dwID));
+		BuffUnLock(dwID);
+		UnLock(dwID);
+	};
+
+	if( enISDB == PT::Device::ISDB_T )
+		stop( iTuner == 0 ? 0 : 1 );
+	else
+		stop( iTuner == 0 ? 2 : 3 );
 }
 
 BOOL CDataIO::EnableTuner(int iID, BOOL bEnable)
@@ -614,51 +478,24 @@ BOOL CDataIO::EnableTuner(int iID, BOOL bEnable)
 	status enStatus = PT::STATUS_OK;
 
 	if( bEnable ){
-		if( enISDB == PT::Device::ISDB_T ){
-			if( iTuner == 0 ){
-				Lock1();
-				BuffLock1();
-				if( m_T0SetBuff != NULL ){
-					m_dwT0OverFlowCount = 0;
-					m_T0WriteIndex = 0;
-				}
-				Flush(m_T0Buff, TRUE);
-				BuffUnLock1();
-				UnLock1();
-			}else{
-				Lock2();
-				BuffLock2();
-				if( m_T1SetBuff != NULL ){
-					m_dwT1OverFlowCount = 0;
-					m_T1WriteIndex = 0;
-				}
-				Flush(m_T1Buff, TRUE);
-				BuffUnLock2();
-				UnLock2();
+
+		auto enable = [&](DWORD dwID) {
+			Lock(dwID);
+			BuffLock(dwID);
+			if( SetBuff(dwID) != NULL ){
+				OverFlowCount(dwID) = 0;
+				WriteIndex(dwID) = 0;
 			}
-		}else{
-			if( iTuner == 0 ){
-				Lock3();
-				BuffLock3();
-				if( m_S0SetBuff != NULL ){
-					m_dwS0OverFlowCount = 0;
-					m_S0WriteIndex = 0;
-				}
-				Flush(m_S0Buff, TRUE);
-				BuffUnLock3();
-				UnLock3();
-			}else{
-				Lock4();
-				BuffLock4();
-				if( m_S1SetBuff != NULL ){
-					m_dwS1OverFlowCount = 0;
-					m_S1WriteIndex = 0;
-				}
-				Flush(m_S1Buff, TRUE);
-				BuffUnLock4();
-				UnLock4();
-			}
-		}
+			Flush(Buff(dwID), TRUE);
+			BuffUnLock(dwID);
+			UnLock(dwID);
+		};
+
+		if( enISDB == PT::Device::ISDB_T )
+			enable( iTuner == 0 ? 0 : 1 );
+		else
+			enable( iTuner == 0 ? 2 : 3 );
+
 		enStatus = m_pcDevice->SetTransferTestMode(enISDB, iTuner);
 		enStatus = m_pcDevice->SetTransferEnabled(enISDB, iTuner, true);
 		_OutputDebugString(L"Device::SetTransferEnabled ISDB:%d tuner:%d enable:true●",enISDB,iTuner);
@@ -666,46 +503,30 @@ BOOL CDataIO::EnableTuner(int iID, BOOL bEnable)
 			_OutputDebugString(L"★SetTransferEnabled true err");
 			return FALSE;
 		}
+
 	}else{
+
 		enStatus = m_pcDevice->SetTransferEnabled(enISDB, iTuner, false);
 		_OutputDebugString(L"Device::SetTransferEnabled ISDB:%d tuner:%d enable:false■",enISDB,iTuner);
 		if( enStatus != PT::STATUS_OK ){
 			_OutputDebugString(L"★SetTransferEnabled false err");
 //			return FALSE;
 		}
-		if( enISDB == PT::Device::ISDB_T ){
-			if( iTuner == 0 ){
-				Lock1();
-				BuffLock1();
-				m_dwT0OverFlowCount = 0;
-				Flush(m_T0Buff);
-				BuffUnLock1();
-				UnLock1();
-			}else{
-				Lock2();
-				BuffLock2();
-				m_dwT1OverFlowCount = 0;
-				Flush(m_T1Buff);
-				BuffUnLock2();
-				UnLock2();
-			}
-		}else{
-			if( iTuner == 0 ){
-				Lock3();
-				BuffLock3();
-				m_dwS0OverFlowCount = 0;
-				Flush(m_S0Buff);
-				BuffUnLock3();
-				UnLock3();
-			}else{
-				Lock4();
-				BuffLock4();
-				m_dwS1OverFlowCount = 0;
-				Flush(m_S1Buff);
-				BuffUnLock4();
-				UnLock4();
-			}
-		}
+
+		auto disable = [&](DWORD dwID) {
+			Lock(dwID);
+			BuffLock(dwID);
+			OverFlowCount(dwID) = 0;
+			Flush(Buff(dwID));
+			BuffUnLock(dwID);
+			UnLock(dwID);
+		};
+
+		if( enISDB == PT::Device::ISDB_T )
+			disable( iTuner == 0 ? 0 : 1 );
+		else
+			disable( iTuner == 0 ? 2 : 3 );
+
 	}
 	return TRUE;
 }
@@ -830,8 +651,11 @@ void CDataIO::ChkTransferInfo()
 	}
 }
 
-bool CDataIO::CheckReady(EARTH::EX::Buffer* buffer, uint32 index)
+bool CDataIO::CheckReady(DWORD dwID)
 {
+	auto buffer = SetBuff(dwID) ;
+	auto index = WriteIndex(dwID) ;
+
 	status status = PT::STATUS_OK;
 	uint32 nextIndex = index+1;
 	if( nextIndex >= VIRTUAL_COUNT ){
@@ -851,8 +675,13 @@ bool CDataIO::CheckReady(EARTH::EX::Buffer* buffer, uint32 index)
 	return false;
 }
 
-bool CDataIO::ReadAddBuff(EARTH::EX::Buffer* buffer, uint32 index, PTBUFFER &tsBuff, DWORD dwID, DWORD &OverFlow)
+bool CDataIO::ReadAddBuff(DWORD dwID)
 {
+	auto buffer = SetBuff(dwID) ;
+	auto index = WriteIndex(dwID) ;
+	auto &tsBuff = Buff(dwID) ;
+	auto &OverFlow = OverFlowCount(dwID) ;
+
 	status status = PT::STATUS_OK;
 	status = buffer->SyncIo(index);
 	if( status != PT::STATUS_OK){
@@ -866,23 +695,13 @@ bool CDataIO::ReadAddBuff(EARTH::EX::Buffer* buffer, uint32 index, PTBUFFER &tsB
 	WriteFile(hFile, ptr, UNIT_SIZE, &w, NULL);
 	CloseHandle(hFile);
 	*/
-	switch(dwID) {
-	case 0: BuffLock1(); break;
-	case 1: BuffLock2(); break;
-	case 2: BuffLock3(); break;
-	case 3: BuffLock4(); break;
-	}
+	BuffLock(dwID);
 
-	for (uint32 i = 0; i<UNIT_SIZE; i += DATA_BUFF_SIZE){
+	for (uint32 i = 0; i<DATA_UNIT_SIZE; i += DATA_BUFF_SIZE){
 		if(tsBuff.no_pool()) { // overflow
 			tsBuff.pull();
 			OverFlow++ ;
-			switch(dwID) {
-			case 0: OutputDebugString(L"T0 Buff Full"); break;
-			case 1: OutputDebugString(L"T1 Buff Full"); break;
-			case 2: OutputDebugString(L"S0 Buff Full"); break;
-			case 3: OutputDebugString(L"S1 Buff Full"); break;
-			}
+			OutputDebugString(IdentStr(dwID,L" Buff Full").c_str());
 		}else {
 			OverFlow = 0 ;
 		}
@@ -892,12 +711,7 @@ bool CDataIO::ReadAddBuff(EARTH::EX::Buffer* buffer, uint32 index, PTBUFFER &tsB
 		tsBuff.push();
 	}
 
-	switch(dwID) {
-	case 0: BuffUnLock1(); break;
-	case 1: BuffUnLock2(); break;
-	case 2: BuffUnLock3(); break;
-	case 3: BuffUnLock4(); break;
-	}
+	BuffUnLock(dwID);
 
 	ptr[0] = NOT_SYNC_BYTE;
 	status = buffer->SyncCpu(index);
@@ -905,116 +719,32 @@ bool CDataIO::ReadAddBuff(EARTH::EX::Buffer* buffer, uint32 index, PTBUFFER &tsB
 	return true;
 }
 
-UINT WINAPI CDataIO::RecvThread1(LPVOID pParam)
+
+UINT WINAPI CDataIO::RecvThread(LPVOID pParam)
 {
-	CDataIO* pSys = (CDataIO*)pParam;
+	RECVTHREAD_PARAM *p = (RECVTHREAD_PARAM*) pParam;
+	CDataIO* pSys = p->pSys ;
+	DWORD dwID = p->dwID ;
+	delete p;
 
 	HANDLE hCurThread = GetCurrentThread();
 	SetThreadPriority(hCurThread, THREAD_PRIORITY_HIGHEST);
 
 	while(!pSys->m_bThTerm) {
 		DWORD sleepy=10 ;
-		pSys->Lock1();
-		if( pSys->m_T0SetBuff != NULL ){
-			if( pSys->CheckReady(pSys->m_T0SetBuff, pSys->m_T0WriteIndex) ){
-				if( pSys->ReadAddBuff(pSys->m_T0SetBuff, pSys->m_T0WriteIndex,
-						pSys->m_T0Buff, 0, pSys->m_dwT0OverFlowCount) ){
-					pSys->m_T0WriteIndex++;
-					if (pSys->VIRTUAL_COUNT <= pSys->m_T0WriteIndex) {
-						pSys->m_T0WriteIndex = 0;
+		pSys->Lock(dwID);
+		if( pSys->SetBuff(dwID) != NULL ){
+			if( pSys->CheckReady(dwID) ){
+				if( pSys->ReadAddBuff(dwID) ){
+					pSys->WriteIndex(dwID)++;
+					if (pSys->VIRTUAL_COUNT <= pSys->WriteIndex(dwID)) {
+						pSys->WriteIndex(dwID) = 0;
 					}
 					sleepy=0;
 				}
 			}
 		}else sleepy=250 ;
-		pSys->UnLock1();
-		if(sleepy) Sleep(sleepy);
-	}
-
-	return 0;
-}
-
-UINT WINAPI CDataIO::RecvThread2(LPVOID pParam)
-{
-	CDataIO* pSys = (CDataIO*)pParam;
-
-	HANDLE hCurThread = GetCurrentThread();
-	SetThreadPriority(hCurThread, THREAD_PRIORITY_HIGHEST);
-
-	while(!pSys->m_bThTerm) {
-		DWORD sleepy=10 ;
-		pSys->Lock2();
-		if( pSys->m_T1SetBuff != NULL ){
-			if( pSys->CheckReady(pSys->m_T1SetBuff, pSys->m_T1WriteIndex) ){
-				if( pSys->ReadAddBuff(pSys->m_T1SetBuff, pSys->m_T1WriteIndex,
-						pSys->m_T1Buff, 1, pSys->m_dwT1OverFlowCount) ){
-					pSys->m_T1WriteIndex++;
-					if (pSys->VIRTUAL_COUNT <= pSys->m_T1WriteIndex) {
-						pSys->m_T1WriteIndex = 0;
-					}
-					sleepy=0;
-				}
-			}
-		}else sleepy=250 ;
-		pSys->UnLock2();
-		if(sleepy) Sleep(sleepy);
-	}
-
-	return 0;
-}
-
-UINT WINAPI CDataIO::RecvThread3(LPVOID pParam)
-{
-	CDataIO* pSys = (CDataIO*)pParam;
-
-	HANDLE hCurThread = GetCurrentThread();
-	SetThreadPriority(hCurThread, THREAD_PRIORITY_HIGHEST);
-
-	while(!pSys->m_bThTerm) {
-		DWORD sleepy=10 ;
-		pSys->Lock3();
-		if( pSys->m_S0SetBuff != NULL ){
-			if( pSys->CheckReady(pSys->m_S0SetBuff, pSys->m_S0WriteIndex) ){
-				if( pSys->ReadAddBuff(pSys->m_S0SetBuff, pSys->m_S0WriteIndex,
-						pSys->m_S0Buff, 2, pSys->m_dwS0OverFlowCount) ){
-					pSys->m_S0WriteIndex++;
-					if (pSys->VIRTUAL_COUNT <= pSys->m_S0WriteIndex) {
-						pSys->m_S0WriteIndex = 0;
-					}
-					sleepy=0;
-				}
-			}
-		}else sleepy=250 ;
-		pSys->UnLock3();
-		if(sleepy) Sleep(sleepy);
-	}
-
-	return 0;
-}
-
-UINT WINAPI CDataIO::RecvThread4(LPVOID pParam)
-{
-	CDataIO* pSys = (CDataIO*)pParam;
-
-	HANDLE hCurThread = GetCurrentThread();
-	SetThreadPriority(hCurThread, THREAD_PRIORITY_HIGHEST);
-
-	while(!pSys->m_bThTerm) {
-		DWORD sleepy=10 ;
-		pSys->Lock4();
-		if( pSys->m_S1SetBuff != NULL ){
-			if( pSys->CheckReady(pSys->m_S1SetBuff, pSys->m_S1WriteIndex) ){
-				if( pSys->ReadAddBuff(pSys->m_S1SetBuff, pSys->m_S1WriteIndex,
-						pSys->m_S1Buff, 3, pSys->m_dwS1OverFlowCount) ){
-					pSys->m_S1WriteIndex++;
-					if (pSys->VIRTUAL_COUNT <= pSys->m_S1WriteIndex) {
-						pSys->m_S1WriteIndex = 0;
-					}
-					sleepy=0;
-				}
-			}
-		}else sleepy=250 ;
-		pSys->UnLock4();
+		pSys->UnLock(dwID);
 		if(sleepy) Sleep(sleepy);
 	}
 
@@ -1082,52 +812,19 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 	pResParam->dwParam = CMD_SUCCESS;
 	BOOL bSend = FALSE;
 
-	switch(dwID){
-		case 0:
-			BuffLock1();
-			if( m_T0Buff.size() > 0 ){
-				auto p = m_T0Buff.pull();
-				pResParam->dwSize = (DWORD)p->size();
-				pResParam->bData = p->data();
-				*pbResDataAbandon = TRUE;
-				bSend = TRUE;
-			}
-			BuffUnLock1();
-			break;
-		case 1:
-			BuffLock2();
-			if( m_T1Buff.size() > 0 ){
-				auto p = m_T1Buff.pull();
-				pResParam->dwSize = (DWORD)p->size();
-				pResParam->bData = p->data();
-				*pbResDataAbandon = TRUE;
-				bSend = TRUE;
-			}
-			BuffUnLock2();
-			break;
-		case 2:
-			BuffLock3();
-			if( m_S0Buff.size() > 0 ){
-				auto p = m_S0Buff.pull();
-				pResParam->dwSize = (DWORD)p->size();
-				pResParam->bData = p->data();
-				*pbResDataAbandon = TRUE;
-				bSend = TRUE;
-			}
-			BuffUnLock3();
-			break;
-		case 3:
-			BuffLock4();
-			if( m_S1Buff.size() > 0 ){
-				auto p = m_S1Buff.pull();
-				pResParam->dwSize = (DWORD)p->size();
-				pResParam->bData = p->data();
-				*pbResDataAbandon = TRUE;
-				bSend = TRUE;
-			}
-			BuffUnLock4();
-			break;
-	}
+	auto tx = [&](PTBUFFER &buf) {
+		if( buf.size() > 0 ){
+			auto p = buf.pull();
+			pResParam->dwSize = (DWORD)p->size();
+			pResParam->bData = p->data();
+			*pbResDataAbandon = TRUE;
+			bSend = TRUE;
+		}
+	};
+
+	BuffLock(dwID);
+	tx(Buff(dwID));
+	BuffUnLock(dwID);
 
 	if( bSend == FALSE ){
 		pResParam->dwParam = CMD_ERR_BUSY;
@@ -1165,53 +862,23 @@ UINT CDataIO::MemStreamingThreadMain()
 	while (!m_bMemStreamingTerm) {
 		int cnt=0;
 
-		if(BuffLock1(CmdWait)) {
-			if(!m_T0Buff.empty()) {
-				if(m_T0MemStreamer!=NULL) {
-					auto p = m_T0Buff.pull() ;
-					if(!m_T0MemStreamer->Tx(p->data(),(DWORD)p->size(),CmdWait))
-						m_T0Buff.pull_undo();
-					if(!m_T0Buff.empty()) cnt++;
+		auto tx = [&](PTBUFFER &buf, CSharedTransportStreamer *st) {
+			if(!buf.empty()) {
+				if(st!=NULL) {
+					auto p = buf.pull() ;
+					if(!st->Tx(p->data(),(DWORD)p->size(),CmdWait))
+						buf.pull_undo();
+					if(!buf.empty()) cnt++;
 				}
 			}
-			BuffUnLock1();
-		}else cnt++;
+		};
 
-		if(BuffLock2(CmdWait)) {
-			if(!m_T1Buff.empty()) {
-				if(m_T1MemStreamer!=NULL) {
-					auto p = m_T1Buff.pull() ;
-					if(!m_T1MemStreamer->Tx(p->data(),(DWORD)p->size(),CmdWait))
-						m_T1Buff.pull_undo();
-					if(!m_T1Buff.empty()) cnt++;
-				}
-			}
-			BuffUnLock2();
-		}else cnt++;
-
-		if(BuffLock3(CmdWait)) {
-			if(!m_S0Buff.empty()) {
-				if(m_S0MemStreamer!=NULL) {
-					auto p = m_S0Buff.pull() ;
-					if(!m_S0MemStreamer->Tx(p->data(),(DWORD)p->size(),CmdWait))
-						m_S0Buff.pull_undo();
-					if(!m_S0Buff.empty()) cnt++;
-				}
-			}
-			BuffUnLock3();
-		}else cnt++;
-
-		if(BuffLock4(CmdWait)) {
-			if(!m_S1Buff.empty()) {
-				if(m_S1MemStreamer!=NULL) {
-					auto p = m_S1Buff.pull() ;
-					if(!m_S1MemStreamer->Tx(p->data(),(DWORD)p->size(),CmdWait))
-						m_S1Buff.pull_undo();
-					if(!m_S1Buff.empty()) cnt++;
-				}
-			}
-			BuffUnLock4();
-		}else cnt++;
+		for(DWORD dwID=0; dwID<4; dwID++) {
+			if(BuffLock(dwID,CmdWait)) {
+				tx(Buff(dwID), MemStreamer(dwID)) ;
+				BuffUnLock(dwID);
+			}else cnt++;
+		}
 
 		if(!cnt) Sleep(10);
 	}

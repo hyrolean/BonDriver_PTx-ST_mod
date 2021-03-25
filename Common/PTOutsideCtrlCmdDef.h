@@ -3,9 +3,15 @@
 
 #include "Util.h"
 
-#define SEND_BUFF_SIZE 1024*64
-#define RES_BUFF_SIZE 1024*64
+// パイプの送受信サイズ
+#define SEND_BUFF_SIZE (1024*64)
+#define RES_BUFF_SIZE (1024*64)
 
+// データバッファ
+#define DATA_UNIT_SIZE		(4096 * 47)	// 4096と188の最小公倍数
+#define DATA_BUFF_SIZE		(188 * 256)	// UNIT_SIZEを割り切れる値である事
+#define INI_DATA_BUFF_COUNT	32   // 初期バッファ充填数
+#define MAX_DATA_BUFF_COUNT	512  // 上限バッファ充填数
 
 #ifdef PT_VER
 
@@ -61,8 +67,8 @@
 	#define SHAREDMEM_TRANSPORT_STREAM_FORMAT SHAREDMEM_TRANSPORT_FORMAT SHAREDMEM_TRANSPORT_STREAM_SUFFIX
 
 	//共有メモリのパケットサイズとパケット数
-	#define SHAREDMEM_TRANSPORT_PACKET_SIZE (188*256)
-	#define SHAREDMEM_TRANSPORT_PACKET_NUM 3
+	#define SHAREDMEM_TRANSPORT_PACKET_SIZE	DATA_BUFF_SIZE
+	#define SHAREDMEM_TRANSPORT_PACKET_NUM	(DATA_UNIT_SIZE/DATA_BUFF_SIZE)
 
 
 //モジュール内コマンド実行イベント

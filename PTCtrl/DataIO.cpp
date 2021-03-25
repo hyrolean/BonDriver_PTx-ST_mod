@@ -2,10 +2,6 @@
 #include "DataIO.h"
 #include <process.h>
 
-#define DATA_BUFF_SIZE 188*256
-#define INI_DATA_BUFF_COUNT 50
-#define MAX_DATA_BUFF_COUNT 500
-
 CDataIO::CDataIO(BOOL bMemStreaming)
   : m_T0Buff(MAX_DATA_BUFF_COUNT,1), m_T1Buff(MAX_DATA_BUFF_COUNT,1),
 	m_S0Buff(MAX_DATA_BUFF_COUNT,1), m_S1Buff(MAX_DATA_BUFF_COUNT,1)
@@ -63,18 +59,10 @@ CDataIO::~CDataIO(void)
 		CloseHandle(m_hMemStreamingThread) ;
 		m_hMemStreamingThread = INVALID_HANDLE_VALUE ;
 	}
-	if(m_T0MemStreamer != NULL) {
-		SAFE_DELETE(m_T0MemStreamer);
-	}
-	if(m_T1MemStreamer != NULL) {
-		SAFE_DELETE(m_T1MemStreamer);
-	}
-	if(m_S0MemStreamer != NULL) {
-		SAFE_DELETE(m_S0MemStreamer);
-	}
-	if(m_S1MemStreamer != NULL) {
-		SAFE_DELETE(m_S1MemStreamer);
-	}
+	SAFE_DELETE(m_T0MemStreamer);
+	SAFE_DELETE(m_T1MemStreamer);
+	SAFE_DELETE(m_S0MemStreamer);
+	SAFE_DELETE(m_S1MemStreamer);
 
 	if( m_hStopEvent != NULL ){
 		::CloseHandle(m_hStopEvent);
@@ -188,31 +176,17 @@ void CDataIO::ClearBuff(int iID)
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
 	uint iTuner = iID&0x000000FF;
 
-	if( enISDB == PT::Device::ISDB_T ){
-		if( iTuner == 0 ){
-			Lock1();
-			m_dwT0OverFlowCount = 0;
-			Flush(m_T0Buff);
-			UnLock1();
-		}else{
-			Lock2();
-			m_dwT1OverFlowCount = 0;
-			Flush(m_T1Buff);
-			UnLock2();
-		}
-	}else{
-		if( iTuner == 0 ){
-			Lock3();
-			m_dwS0OverFlowCount = 0;
-			Flush(m_S0Buff);
-			UnLock3();
-		}else{
-			Lock4();
-			m_dwS1OverFlowCount = 0;
-			Flush(m_S1Buff);
-			UnLock4();
-		}
-	}
+	auto clear = [&](DWORD dwID) {
+		Lock(dwID);
+		OverFlowCount(dwID) = 0;
+		Flush(Buff(dwID));
+		UnLock(dwID);
+	};
+
+	if( enISDB == PT::Device::ISDB_T )
+		clear(iTuner == 0 ? 0 : 1 ) ;
+	else
+		clear(iTuner == 0 ? 2 : 3 ) ;
 }
 
 void CDataIO::Run()
@@ -406,93 +380,44 @@ void CDataIO::EnableTuner(int iID, BOOL bEnable)
 	Format(strStreamerName, SHAREDMEM_TRANSPORT_STREAM_FORMAT, PT_VER, iID);
 
 	if( bEnable ){
-		if( enISDB == PT::Device::ISDB_T ){
-			if( iTuner == 0 ){
-				Lock1();
-				m_dwT0OverFlowCount = 0;
-				Flush(m_T0Buff, TRUE);
-				if(m_bMemStreaming&&m_T0MemStreamer==NULL)
-					m_T0MemStreamer = new CSharedTransportStreamer(
-						strStreamerName, FALSE, SHAREDMEM_TRANSPORT_PACKET_SIZE,
-						SHAREDMEM_TRANSPORT_PACKET_NUM);
-				UnLock1();
-				if(!m_bMemStreaming)
-					m_cPipeT0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT0, this, THREAD_PRIORITY_ABOVE_NORMAL);
-			}else{
-				Lock2();
-				m_dwT1OverFlowCount = 0;
-				Flush(m_T1Buff, TRUE);
-				if(m_bMemStreaming&&m_T1MemStreamer==NULL)
-					m_T1MemStreamer = new CSharedTransportStreamer(
-						strStreamerName, FALSE, SHAREDMEM_TRANSPORT_PACKET_SIZE,
-						SHAREDMEM_TRANSPORT_PACKET_NUM);
-				UnLock2();
-				if(!m_bMemStreaming)
-					m_cPipeT1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackT1, this, THREAD_PRIORITY_ABOVE_NORMAL);
-			}
-		}else{
-			if( iTuner == 0 ){
-				Lock3();
-				m_dwS0OverFlowCount = 0;
-				Flush(m_S0Buff, TRUE);
-				if(m_bMemStreaming&&m_S0MemStreamer==NULL)
-					m_S0MemStreamer = new CSharedTransportStreamer(
-						strStreamerName, FALSE, SHAREDMEM_TRANSPORT_PACKET_SIZE,
-						SHAREDMEM_TRANSPORT_PACKET_NUM);
-				UnLock3();
-				if(!m_bMemStreaming)
-					m_cPipeS0.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS0, this, THREAD_PRIORITY_ABOVE_NORMAL);
-			}else{
-				Lock4();
-				m_dwS1OverFlowCount = 0;
-				Flush(m_S1Buff, TRUE);
-				if(m_bMemStreaming&&m_S1MemStreamer==NULL)
-					m_S1MemStreamer = new CSharedTransportStreamer(
-						strStreamerName, FALSE, SHAREDMEM_TRANSPORT_PACKET_SIZE,
-						SHAREDMEM_TRANSPORT_PACKET_NUM);
-				UnLock4();
-				if(!m_bMemStreaming)
-					m_cPipeS1.StartServer(strEvent.c_str(), strPipe.c_str(), OutsideCmdCallbackS1, this, THREAD_PRIORITY_ABOVE_NORMAL);
-			}
-		}
+
+		auto enable = [&](DWORD dwID) {
+			Lock(dwID);
+			OverFlowCount(dwID) = 0;
+			Flush(Buff(dwID), TRUE);
+			auto &st = MemStreamer(dwID) ;
+			if(m_bMemStreaming&&st==NULL)
+				st = new CSharedTransportStreamer(
+					strStreamerName, FALSE, SHAREDMEM_TRANSPORT_PACKET_SIZE,
+					SHAREDMEM_TRANSPORT_PACKET_NUM);
+			UnLock(dwID);
+			if(!m_bMemStreaming)
+				Pipe(dwID).StartServer(strEvent.c_str(), strPipe.c_str(),
+					OutsideCmdCallback(dwID), this, THREAD_PRIORITY_ABOVE_NORMAL);
+		};
+
+		if( enISDB == PT::Device::ISDB_T )
+			enable(iTuner == 0 ? 0 : 1 ) ;
+		else
+			enable(iTuner == 0 ? 2 : 3 ) ;
+
 	}else{ // Disable
-		if( enISDB == PT::Device::ISDB_T ){
-			if( iTuner == 0 ){
-				if(!m_bMemStreaming) m_cPipeT0.StopServer();
-				Lock1();
-				if(m_bMemStreaming&&m_T0MemStreamer)
-					SAFE_DELETE(m_T0MemStreamer);
-				m_dwT0OverFlowCount = 0;
-				Flush(m_T0Buff);
-				UnLock1();
-			}else{
-				if(!m_bMemStreaming) m_cPipeT1.StopServer();
-				Lock2();
-				if(m_bMemStreaming&&m_T1MemStreamer)
-					SAFE_DELETE(m_T1MemStreamer);
-				m_dwT1OverFlowCount = 0;
-				Flush(m_T1Buff);
-				UnLock2();
-			}
-		}else{
-			if( iTuner == 0 ){
-				if(!m_bMemStreaming) m_cPipeS0.StopServer();
-				Lock3();
-				if(m_bMemStreaming&&m_S0MemStreamer)
-					SAFE_DELETE(m_S0MemStreamer);
-				m_dwS0OverFlowCount = 0;
-				Flush(m_S0Buff);
-				UnLock3();
-			}else{
-				if(!m_bMemStreaming) m_cPipeS1.StopServer();
-				Lock4();
-				if(m_bMemStreaming&&m_S1MemStreamer)
-					SAFE_DELETE(m_S1MemStreamer);
-				m_dwS1OverFlowCount = 0;
-				Flush(m_S1Buff);
-				UnLock4();
-			}
-		}
+
+		auto disable = [&](DWORD dwID) {
+			if(!m_bMemStreaming) Pipe(dwID).StopServer();
+			Lock(dwID);
+			auto &st = MemStreamer(dwID);
+			SAFE_DELETE(st);
+			OverFlowCount(dwID) = 0;
+			Flush(Buff(dwID));
+			UnLock(dwID);
+		};
+
+		if( enISDB == PT::Device::ISDB_T )
+			disable(iTuner == 0 ? 0 : 1 ) ;
+		else
+			disable(iTuner == 0 ? 2 : 3 ) ;
+
 	}
 }
 
@@ -668,94 +593,38 @@ void CDataIO::MicroPacket(BYTE* pbPacket)
 	};
 
 	BOOL bCreate1TS = FALSE;
+
+	DWORD dwID;
 	switch(packetId){
-		case 2:
-			bCreate1TS = m_cT0Micro.MicroPacket(pbPacket);
-			if( bCreate1TS && m_T0Buff.head() != NULL){
-				Lock1();
-				auto head = m_T0Buff.head(); init_head(head);
-				auto sz = head->size() ;
-				head->resize(sz+188);
-				memcpy(head->data()+sz, m_cT0Micro.Get1TS(), 188);
-				if( head->size() >= head->capacity() ){
-					m_T0Buff.push();
-					if(m_T0Buff.no_pool()) { // overflow
-						m_T0Buff.pull();
-						m_dwT0OverFlowCount++;
-						OutputDebugString(L"T0 Buff Full");
-					}else{
-						m_dwT0OverFlowCount = 0;
-					}
-				}
-				UnLock1();
+	case 2: dwID=0; break;
+	case 4: dwID=1; break;
+	case 1: dwID=2; break;
+	case 3: dwID=3; break;
+	default: return;
+	}
+
+	auto &micro = Micro(dwID);
+	auto &buf = Buff(dwID);
+	auto &overflow = OverFlowCount(dwID);
+
+	bCreate1TS = micro.MicroPacket(pbPacket);
+	if( bCreate1TS && buf.head() != NULL){
+		Lock(dwID);
+		auto head = buf.head(); init_head(head);
+		auto sz = head->size() ;
+		head->resize(sz+188);
+		memcpy(head->data()+sz, micro.Get1TS(), 188);
+		if( head->size() >= head->capacity() ){
+			buf.push();
+			if(buf.no_pool()) { // overflow
+				buf.pull();
+				overflow++;
+				OutputDebugString(IdentStr(dwID,L" Buff Full").c_str());
+			}else{
+				overflow ^= overflow;
 			}
-			break;
-		case 4:
-			bCreate1TS = m_cT1Micro.MicroPacket(pbPacket);
-			if( bCreate1TS && m_T1Buff.head() != NULL){
-				Lock2();
-				auto head = m_T1Buff.head(); init_head(head);
-				auto sz = head->size() ;
-				head->resize(sz+188);
-				memcpy(head->data()+sz, m_cT1Micro.Get1TS(), 188);
-				if( head->size() >= head->capacity() ){
-					m_T1Buff.push();
-					if(m_T1Buff.no_pool()) { // overflow
-						m_T1Buff.pull();
-						m_dwT1OverFlowCount++;
-						OutputDebugString(L"T1 Buff Full");
-					}else{
-						m_dwT1OverFlowCount = 0;
-					}
-				}
-				UnLock2();
-			}
-			break;
-		case 1:
-			bCreate1TS = m_cS0Micro.MicroPacket(pbPacket);
-			if( bCreate1TS && m_S0Buff.head() != NULL){
-				Lock3();
-				auto head = m_S0Buff.head(); init_head(head);
-				auto sz = head->size() ;
-				head->resize(sz+188);
-				memcpy(head->data()+sz, m_cS0Micro.Get1TS(), 188);
-				if( head->size() >= head->capacity() ){
-					m_S0Buff.push();
-					if(m_S0Buff.no_pool()) { // overflow
-						m_S0Buff.pull();
-						m_dwS0OverFlowCount++;
-						OutputDebugString(L"S0 Buff Full");
-					}else{
-						m_dwS0OverFlowCount = 0;
-					}
-				}
-				UnLock3();
-			}
-			break;
-		case 3:
-			bCreate1TS = m_cS1Micro.MicroPacket(pbPacket);
-			if( bCreate1TS && m_S1Buff.head() != NULL){
-				Lock4();
-				auto head = m_S1Buff.head(); init_head(head);
-				auto sz = head->size() ;
-				head->resize(sz+188);
-				memcpy(head->data()+sz, m_cS1Micro.Get1TS(), 188);
-				if( head->size() >= head->capacity() ){
-					m_S1Buff.push();
-					if(m_S1Buff.no_pool()) { // overflow
-						m_S1Buff.pull();
-						m_dwS1OverFlowCount++;
-						OutputDebugString(L"S1 Buff Full");
-					}else{
-						m_dwS1OverFlowCount = 0;
-					}
-				}
-				UnLock4();
-			}
-			break;
-		default:
-			return;
-			break;
+		}
+		UnLock(dwID);
 	}
 }
 
@@ -820,51 +689,16 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 	pResParam->dwParam = CMD_SUCCESS;
 	BOOL bSend = FALSE;
 
-	switch(dwID){
-		case 0:
-			Lock1();
-			if( m_T0Buff.size() > 0 ){
-				auto p = m_T0Buff.pull();
-				pResParam->dwSize = (DWORD)p->size();
-				pResParam->bData = p->data();
-				*pbResDataAbandon = TRUE;
-				bSend = TRUE;
-			}
-			UnLock1();
-			break;
-		case 1:
-			Lock2();
-			if( m_T1Buff.size() > 0 ){
-				auto p = m_T1Buff.pull();
-				pResParam->dwSize = (DWORD)p->size();
-				pResParam->bData = p->data();
-				*pbResDataAbandon = TRUE;
-				bSend = TRUE;
-			}
-			UnLock2();
-			break;
-		case 2:
-			Lock3();
-			if( m_S0Buff.size() > 0 ){
-				auto p = m_S0Buff.pull();
-				pResParam->dwSize = (DWORD)p->size();
-				pResParam->bData = p->data();
-				*pbResDataAbandon = TRUE;
-				bSend = TRUE;
-			}
-			UnLock3();
-			break;
-		case 3:
-			Lock4();
-			if( m_S1Buff.size() > 0 ){
-				auto p = m_S1Buff.pull();
-				pResParam->dwSize = (DWORD)p->size();
-				pResParam->bData = p->data();
-				*pbResDataAbandon = TRUE;
-				bSend = TRUE;
-			}
-			UnLock4();
-			break;
+	if(Lock(dwID)) {
+		auto &buf = Buff(dwID);
+		if( buf.size() > 0 ){
+			auto p = buf.pull();
+			pResParam->dwSize = (DWORD)p->size();
+			pResParam->bData = p->data();
+			*pbResDataAbandon = TRUE;
+			bSend = TRUE;
+		}
+		UnLock(dwID);
 	}
 
 	if( bSend == FALSE ){
@@ -903,53 +737,23 @@ UINT CDataIO::MemStreamingThreadMain()
 	while (!m_bMemStreamingTerm) {
 		int cnt=0;
 
-		if(Lock1(CmdWait)) {
-			if(!m_T0Buff.empty()) {
-				if(m_T0MemStreamer!=NULL) {
-					auto p = m_T0Buff.pull() ;
-					if(!m_T0MemStreamer->Tx(p->data(),(DWORD)p->size(),CmdWait))
-						m_T0Buff.pull_undo();
-					if(!m_T0Buff.empty()) cnt++;
+		auto tx = [&](PTBUFFER &buf, CSharedTransportStreamer *st) {
+			if(!buf.empty()) {
+				if(st!=NULL) {
+					auto p = buf.pull() ;
+					if(!st->Tx(p->data(),(DWORD)p->size(),CmdWait))
+						buf.pull_undo();
+					if(!buf.empty()) cnt++;
 				}
 			}
-			UnLock1();
-		}else cnt++;
+		};
 
-		if(Lock2(CmdWait)){
-			if(!m_T1Buff.empty()) {
-				if(m_T1MemStreamer!=NULL) {
-					auto p = m_T1Buff.pull() ;
-					if(!m_T1MemStreamer->Tx(p->data(),(DWORD)p->size(),CmdWait))
-						m_T1Buff.pull_undo();
-					if(!m_T1Buff.empty()) cnt++;
-				}
-			}
-			UnLock2();
-		}else cnt++;
-
-		if(Lock3(CmdWait)) {
-			if(!m_S0Buff.empty()) {
-				if(m_S0MemStreamer!=NULL) {
-					auto p = m_S0Buff.pull() ;
-					if(!m_S0MemStreamer->Tx(p->data(),(DWORD)p->size(),CmdWait))
-						m_S0Buff.pull_undo();
-					if(!m_S0Buff.empty()) cnt++;
-				}
-			}
-			UnLock3();
-		}else cnt++;
-
-		if(Lock4(CmdWait)) {
-			if(!m_S1Buff.empty()) {
-				if(m_S1MemStreamer!=NULL) {
-					auto p = m_S1Buff.pull() ;
-					if(!m_S1MemStreamer->Tx(p->data(),(DWORD)p->size(),CmdWait))
-						m_S1Buff.pull_undo();
-					if(!m_S1Buff.empty()) cnt++;
-				}
-			}
-			UnLock4();
-		}else cnt++;
+		for(DWORD dwID=0; dwID<4; dwID++) {
+			if(Lock(dwID,CmdWait)) {
+				tx(Buff(dwID), MemStreamer(dwID)) ;
+				UnLock(dwID);
+			}else cnt++;
+		}
 
 		if(!cnt) Sleep(10);
 	}

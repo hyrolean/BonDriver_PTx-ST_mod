@@ -10,7 +10,7 @@
 namespace PRY8EAlByw {
 //---------------------------------------------------------------------------
 
-#define	PTXWDMCMDMAXDATA	std::min<size_t>(sizeof TSIDLIST,sizeof SERVER_SETTINGS)
+#define	PTXWDMCMDMAXDATA	(std::max<size_t>(sizeof TSIDLIST,sizeof SERVER_SETTINGS)/sizeof DWORD)
 #define	PTXWDMCMDTIMEOUT	30000
 
 enum PTXWDMCMD : DWORD {

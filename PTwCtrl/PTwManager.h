@@ -102,6 +102,7 @@ protected:
 	CPTxWDMCmdServiceOperator	Op;
 	CSharedTransportStreamer	*St;
 	CPipeServer					*Ps;
+	BYTE *PsBuff;
 	DWORD CmdWait, Timeout;
 	HANDLE Thread;
 	BOOL ThTerm;
@@ -115,7 +116,7 @@ private: // MemStreaming
 
 	int MemStreamingThreadProcMain() {
 		const DWORD szp = Op.StreamerPacketSize() ;
-		bool retry=false;
+		bool retry=false; int cnt=0;
 		while(!ThTerm) {
 			if(!retry) {
 				if(Op.CurStreamSize()<szp) {Sleep(10);continue;}
@@ -125,6 +126,7 @@ private: // MemStreaming
 				St->TxDirect(NULL, &TxWriteDone, CmdWait):
 				St->TxDirect(TxDirectWriteProc, this, CmdWait);
 			retry = !r && TxWriteDone ;
+			if(r&&!(cnt++&1023)) Op.KeepAlive();
 		}
 		DBGOUT("-- Streaming Done --\n");
 		return 0;
@@ -139,18 +141,18 @@ private: // MemStreaming
 
 private: // PipeStreaming
 	void PipeCmdSendData(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam,
-			BOOL* /*pbResDataAbandon*/) {
+			BOOL* pbResDataAbandon) {
 		const DWORD szp = Op.StreamerPacketSize() ;
-		BOOL bSend = FALSE;
+		BOOL bSend = FALSE; int cnt=0;
 		if(Op.CurStreamSize()>=szp) {
-			BYTE *data = new BYTE[szp];
 			DWORD sz=szp;
-			if(Op.GetStreamData(data, sz) && sz>0) {
+			if(Op.GetStreamData(PsBuff, sz) && sz>0) {
 				pResParam->dwSize = sz;
-				pResParam->bData = data;
+				pResParam->bData = PsBuff;
+				*pbResDataAbandon = TRUE;
+				if(!(cnt++&1023)) Op.KeepAlive();
 				bSend = TRUE ;
-			}else
-				delete [] data ;
+			}
 		}
 		pResParam->dwParam = bSend? CMD_SUCCESS: CMD_ERR_BUSY;
 	}
@@ -175,7 +177,7 @@ protected:
 			Thread = (HANDLE)_beginthreadex(NULL, 0, MemStreamingThreadProc, this,
 				CREATE_SUSPENDED, NULL) ;
 			if(Thread != INVALID_HANDLE_VALUE) {
-				if(St) delete St;
+				SAFE_DELETE(St);
 				St = new CSharedTransportStreamer(
 					Op.Name()+SHAREDMEM_TRANSPORT_STREAM_SUFFIX, FALSE,
 					Op.StreamerPacketSize(), Op.CtrlPackets() );
@@ -196,6 +198,8 @@ protected:
 				wstring strEvent = L"";
 				Format(strPipe, L"%s%d", CMD_PT1_DATA_PIPE, iID );
 				Format(strEvent, L"%s%d", CMD_PT1_DATA_EVENT_WAIT_CONNECT, iID );
+				SAFE_DELETE_ARRAY(PsBuff);
+				PsBuff = new BYTE[Op.StreamerPacketSize()] ;
 				if(Ps->StartServer(strEvent.c_str(), strPipe.c_str(), PipeCmdCallback,
 						this, Op.StreamerThreadPriority()))
 					DBGOUT("-- Start PipeStreaming --\n");
@@ -218,14 +222,15 @@ protected:
 			Ps->StopServer();
 			DBGOUT("-- Stop PipeStreaming --\n");
 		}
-		if(St) { delete St; St=NULL; }
-		if(Ps) { delete Ps; Ps=NULL; }
+		SAFE_DELETE(St);
+		SAFE_DELETE(Ps);
+		SAFE_DELETE_ARRAY(PsBuff) ;
 	}
 
 public:
 	CPTxWDMCtrlAuxiliary(wstring name, DWORD cmdwait=INFINITE, DWORD timeout=INFINITE)
 	 :	Op( name ), St( NULL ), Ps(NULL), Thread(INVALID_HANDLE_VALUE), ThTerm(TRUE)
-	{ CmdWait = cmdwait ; Timeout = timeout ; }
+	{ CmdWait = cmdwait ; Timeout = timeout ; PsBuff = NULL ; }
 	~CPTxWDMCtrlAuxiliary() { StopStreaming(); }
 
 	int MainLoop() {
