@@ -114,6 +114,8 @@ protected:
 
 	BYTE* m_bDMABuff;
 
+	bool m_fDataCarry[4];
+
 protected:
 	static UINT WINAPI RecvThread(LPVOID pParam);
 

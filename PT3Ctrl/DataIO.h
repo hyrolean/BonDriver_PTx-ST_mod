@@ -122,6 +122,8 @@ protected:
 	HANDLE m_hBuffEvent3;
 	HANDLE m_hBuffEvent4;
 
+	bool m_fDataCarry[4];
+
 protected:
 	struct RECVTHREAD_PARAM {
 		CDataIO *pSys;

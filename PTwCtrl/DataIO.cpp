@@ -27,6 +27,8 @@ CDataIO::CDataIO(BOOL bMemStreaming)
 
 	m_bDMABuff = NULL;
 
+	for(auto &c: m_fDataCarry) c = false ;
+
 	// MemStreamer
 	m_bMemStreaming = bMemStreaming ;
 	m_bMemStreamingTerm = TRUE ;
@@ -406,6 +408,7 @@ void CDataIO::EnableTuner(int iID, BOOL bEnable)
 		auto disable = [&](DWORD dwID) {
 			if(!m_bMemStreaming) Pipe(dwID).StopServer();
 			Lock(dwID);
+			m_fDataCarry[dwID] = false;
 			auto &st = MemStreamer(dwID);
 			SAFE_DELETE(st);
 			OverFlowCount(dwID) = 0;
@@ -623,6 +626,7 @@ void CDataIO::MicroPacket(BYTE* pbPacket)
 			}else{
 				overflow ^= overflow;
 			}
+			m_fDataCarry[dwID] = true;
 		}
 		UnLock(dwID);
 	}
@@ -686,6 +690,11 @@ int CALLBACK CDataIO::OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, 
 
 void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
+	if(!m_fDataCarry[dwID]) {
+		pResParam->dwParam = CMD_ERR_BUSY;
+		return;
+	}
+
 	pResParam->dwParam = CMD_SUCCESS;
 	BOOL bSend = FALSE;
 
@@ -698,6 +707,8 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 			*pbResDataAbandon = TRUE;
 			bSend = TRUE;
 		}
+		if(buf.empty())
+			m_fDataCarry[dwID] = false ;
 		UnLock(dwID);
 	}
 
@@ -737,22 +748,26 @@ UINT CDataIO::MemStreamingThreadMain()
 	while (!m_bMemStreamingTerm) {
 		int cnt=0;
 
-		auto tx = [&](PTBUFFER &buf, CSharedTransportStreamer *st) {
+		auto tx = [&](PTBUFFER &buf, CSharedTransportStreamer *st) -> bool {
 			if(!buf.empty()) {
 				if(st!=NULL) {
 					auto p = buf.pull() ;
 					if(!st->Tx(p->data(),(DWORD)p->size(),CmdWait))
 						buf.pull_undo();
-					if(!buf.empty()) cnt++;
+					return !buf.empty();
 				}
 			}
+			return false;
 		};
 
 		for(DWORD dwID=0; dwID<4; dwID++) {
-			if(Lock(dwID,CmdWait)) {
-				tx(Buff(dwID), MemStreamer(dwID)) ;
+			if(m_fDataCarry[dwID]&&Lock(dwID,CmdWait)) {
+				if(!tx(Buff(dwID), MemStreamer(dwID)))
+					m_fDataCarry[dwID] = false ;
+				else
+					cnt++;
 				UnLock(dwID);
-			}else cnt++;
+			}
 		}
 
 		if(!cnt) Sleep(10);

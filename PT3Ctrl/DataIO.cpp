@@ -38,6 +38,8 @@ CDataIO::CDataIO(BOOL bMemStreaming)
 	m_dwS0OverFlowCount = 0;
 	m_dwS1OverFlowCount = 0;
 
+	for(auto &c : m_fDataCarry) c = false ;
+
 	// MemStreamer
 	m_bMemStreaming = bMemStreaming ;
 	m_bMemStreamingTerm = TRUE ;
@@ -453,6 +455,7 @@ void CDataIO::StopPipeServer(int iID)
 		if(!m_bMemStreaming) Pipe(dwID).StopServer();
 		Lock(dwID);
 		BuffLock(dwID);
+		m_fDataCarry[dwID] = false;
 		auto &st = MemStreamer(dwID);
 		SAFE_DELETE(st);
 		OverFlowCount(dwID) = 0;
@@ -516,6 +519,7 @@ BOOL CDataIO::EnableTuner(int iID, BOOL bEnable)
 		auto disable = [&](DWORD dwID) {
 			Lock(dwID);
 			BuffLock(dwID);
+			m_fDataCarry[dwID] = false;
 			OverFlowCount(dwID) = 0;
 			Flush(Buff(dwID));
 			BuffUnLock(dwID);
@@ -711,6 +715,7 @@ bool CDataIO::ReadAddBuff(DWORD dwID)
 		tsBuff.push();
 	}
 
+	m_fDataCarry[dwID] = true ;
 	BuffUnLock(dwID);
 
 	ptr[0] = NOT_SYNC_BYTE;
@@ -809,6 +814,11 @@ int CALLBACK CDataIO::OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, 
 
 void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
+	if(!m_fDataCarry[dwID]) {
+		pResParam->dwParam = CMD_ERR_BUSY;
+		return;
+	}
+
 	pResParam->dwParam = CMD_SUCCESS;
 	BOOL bSend = FALSE;
 
@@ -820,6 +830,8 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 			*pbResDataAbandon = TRUE;
 			bSend = TRUE;
 		}
+		if(buf.empty())
+			m_fDataCarry[dwID] = false ;
 	};
 
 	BuffLock(dwID);
@@ -862,22 +874,26 @@ UINT CDataIO::MemStreamingThreadMain()
 	while (!m_bMemStreamingTerm) {
 		int cnt=0;
 
-		auto tx = [&](PTBUFFER &buf, CSharedTransportStreamer *st) {
+		auto tx = [&](PTBUFFER &buf, CSharedTransportStreamer *st) -> bool {
 			if(!buf.empty()) {
 				if(st!=NULL) {
 					auto p = buf.pull() ;
 					if(!st->Tx(p->data(),(DWORD)p->size(),CmdWait))
 						buf.pull_undo();
-					if(!buf.empty()) cnt++;
+					return !buf.empty();
 				}
 			}
+			return false;
 		};
 
 		for(DWORD dwID=0; dwID<4; dwID++) {
-			if(BuffLock(dwID,CmdWait)) {
-				tx(Buff(dwID), MemStreamer(dwID)) ;
+			if(m_fDataCarry[dwID]&&BuffLock(dwID,CmdWait)) {
+				if(!tx(Buff(dwID), MemStreamer(dwID)))
+					m_fDataCarry[dwID] = false ;
+				else
+					cnt++;
 				BuffUnLock(dwID);
-			}else cnt++;
+			}
 		}
 
 		if(!cnt) Sleep(10);

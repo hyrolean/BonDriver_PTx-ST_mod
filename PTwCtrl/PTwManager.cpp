@@ -54,7 +54,7 @@ CPTwManager::CPTwManager(void)
 	m_dwMaxDurTMCC = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC", 1500, strIni.c_str() ); //TMCCæ“¾‚É”ï‚â‚·Å‘åŠÔ(msec)
 	m_dwMaxDurTSID = GetPrivateProfileInt(L"SET", L"MAXDUR_TSID", 3000, strIni.c_str() ); //TSIDİ’è‚É”ï‚â‚·Å‘åŠÔ(msec)
 
-	m_bAuxiliaryRedirectAll = GetPrivateProfileInt(L"SET", L"AuxiliaryRedirectAll", 0, strIni.c_str());
+	m_bAuxiliaryRedirectAll = GetPrivateProfileInt(L"SET", L"wAuxiliaryRedirectAll", 0, strIni.c_str());
 }
 //---------------------------------------------------------------------------
 CPTwManager::~CPTwManager(void)
