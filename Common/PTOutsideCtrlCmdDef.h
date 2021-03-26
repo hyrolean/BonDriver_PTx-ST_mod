@@ -10,8 +10,8 @@
 // データバッファ
 #define DATA_UNIT_SIZE		(4096 * 47)	// 4096と188の最小公倍数
 #define DATA_BUFF_SIZE		(188 * 256)	// UNIT_SIZEを割り切れる値である事
-#define INI_DATA_BUFF_COUNT	32   // 初期バッファ充填数
-#define MAX_DATA_BUFF_COUNT	512  // 上限バッファ充填数
+#define INI_DATA_BUFF_COUNT	25	// 初期バッファ充填数
+#define MAX_DATA_BUFF_COUNT	500	// 上限バッファ充填数
 
 #ifdef PT_VER
 

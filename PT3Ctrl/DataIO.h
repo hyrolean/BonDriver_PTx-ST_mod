@@ -19,7 +19,7 @@ public:
 
 	void SetDevice(PT::Device* pcDevice){ m_pcDevice = pcDevice; };
 	void SetVirtualCount(UINT uiVirtualCount){ VIRTUAL_COUNT = uiVirtualCount*8; };
-	void Run(PT::Device::ISDB enISDB, uint32 iTuner);
+	void Run(int iID);
 	void Stop();
 	BOOL EnableTuner(int iID, BOOL bEnable);
 	void StartPipeServer(int iID);
@@ -131,7 +131,7 @@ protected:
 		RECVTHREAD_PARAM(CDataIO *pSys_, DWORD dwID_)
 		 : pSys(pSys_), dwID(dwID_) {}
 	};
-	static UINT WINAPI RecvThread(LPVOID pParam);
+	static UINT WINAPI RecvThreadProc(LPVOID pParam);
 
 	bool Lock1(DWORD timeout=DATA_TIMEOUT);
 	void UnLock1();
@@ -206,10 +206,9 @@ protected:
 	void Flush(PTBUFFER &buf, BOOL dispose = FALSE );
 
 protected:
-	// MemStreamer
+	// MemStreaming
 	BOOL m_bMemStreaming;
 	BOOL m_bMemStreamingTerm;
-	HANDLE m_hMemStreamingThread;
 	CSharedTransportStreamer *m_T0MemStreamer;
 	CSharedTransportStreamer *m_T1MemStreamer;
 	CSharedTransportStreamer *m_S0MemStreamer;
@@ -222,7 +221,26 @@ protected:
 		default: return m_T0MemStreamer;
 		}
 	}
-	UINT MemStreamingThreadMain();
-	static UINT WINAPI MemStreamingThread(LPVOID pParam);
-
+	HANDLE m_hT0MemStreamingThread;
+	HANDLE m_hT1MemStreamingThread;
+	HANDLE m_hS0MemStreamingThread;
+	HANDLE m_hS1MemStreamingThread;
+	HANDLE &MemStreamingThread(DWORD dwID) {
+		switch(dwID) {
+		case 1: return m_hT1MemStreamingThread;
+		case 2: return m_hS0MemStreamingThread;
+		case 3: return m_hS1MemStreamingThread;
+		default: return m_hT0MemStreamingThread;
+		}
+	}
+	UINT MemStreamingThreadProcMain(DWORD dwID);
+	struct MEMSTREAMINGTHREAD_PARAM {
+		CDataIO *pSys;
+		DWORD dwID;
+		MEMSTREAMINGTHREAD_PARAM(CDataIO *pSys_, DWORD dwID_)
+		 : pSys(pSys_), dwID(dwID_) {}
+	};
+	static UINT WINAPI MemStreamingThreadProc(LPVOID pParam);
+	void StartMemStreaming(DWORD dwID);
+	void StopMemStreaming();
 };

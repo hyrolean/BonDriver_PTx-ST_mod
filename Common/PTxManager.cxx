@@ -622,13 +622,9 @@ int CPTxManager::OpenTuner2(BOOL bSate, int iTunerID)
 		m_EnumDev[iDevID]->bOpen = TRUE;
 		m_EnumDev[iDevID]->cDataIO.SetVirtualCount(m_uiVirtualCount);
 		m_EnumDev[iDevID]->cDataIO.SetDevice(m_EnumDev[iDevID]->pcDevice);
-#if PT_VER!=3
-		m_EnumDev[iDevID]->cDataIO.Run();
-#endif
 	}
-#if PT_VER==3
-	m_EnumDev[iDevID]->cDataIO.Run(enISDB, iTuner);
-#endif
+	m_EnumDev[iDevID]->cDataIO.Run(iID);
+
 	//スリープから復帰
 #if PT_VER==1 || PT_VER==2
 	enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerSleep(iTuner, enISDB, false);

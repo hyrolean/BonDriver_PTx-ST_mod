@@ -10,7 +10,6 @@ CDataIO::CDataIO(BOOL bMemStreaming)
 {
 	VIRTUAL_COUNT = 8*8;
 
-	//m_hStopEvent = _CreateEvent(FALSE, FALSE, NULL);
 	m_hThread1 = INVALID_HANDLE_VALUE;
 	m_hThread2 = INVALID_HANDLE_VALUE;
 	m_hThread3 = INVALID_HANDLE_VALUE;
@@ -40,26 +39,24 @@ CDataIO::CDataIO(BOOL bMemStreaming)
 
 	for(auto &c : m_fDataCarry) c = false ;
 
-	// MemStreamer
+	// MemStreaming
 	m_bMemStreaming = bMemStreaming ;
 	m_bMemStreamingTerm = TRUE ;
-	m_hMemStreamingThread = INVALID_HANDLE_VALUE ;
 	m_T0MemStreamer = NULL ;
 	m_T1MemStreamer = NULL ;
 	m_S0MemStreamer = NULL ;
 	m_S1MemStreamer = NULL ;
+	m_hT0MemStreamingThread = INVALID_HANDLE_VALUE ;
+	m_hT1MemStreamingThread = INVALID_HANDLE_VALUE ;
+	m_hS0MemStreamingThread = INVALID_HANDLE_VALUE ;
+	m_hS1MemStreamingThread = INVALID_HANDLE_VALUE ;
 }
 
 CDataIO::~CDataIO(void)
 {
 	Stop();
 
-	/*if( m_hStopEvent != NULL ){
-		::CloseHandle(m_hStopEvent);
-		m_hStopEvent = NULL;
-	}*/
-
-	// MemStreamer
+	// MemStreaming
 	SAFE_DELETE(m_T0MemStreamer);
 	SAFE_DELETE(m_T1MemStreamer);
 	SAFE_DELETE(m_S0MemStreamer);
@@ -292,55 +289,57 @@ void CDataIO::ClearBuff(int iID)
 		clear( iTuner==0 ? 2 : 3 );
 }
 
-void CDataIO::Run(PT::Device::ISDB enISDB, uint32 iTuner)
+void CDataIO::Run(int iID)
 {
+	int iDevID = iID>>16;
+	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
+	uint32 iTuner = iID&0x000000FF;
+
 	if( m_hThread1 == INVALID_HANDLE_VALUE &&
 		m_hThread2 == INVALID_HANDLE_VALUE &&
 		m_hThread3 == INVALID_HANDLE_VALUE &&
 		m_hThread4 == INVALID_HANDLE_VALUE ) {
 
 		m_bThTerm=FALSE;
-
-		// MemStreamer
-		if(m_bMemStreaming) {
-			m_hMemStreamingThread = (HANDLE)_beginthreadex(NULL, 0, MemStreamingThread, (LPVOID)this, CREATE_SUSPENDED, NULL);
-			if(m_hMemStreamingThread != INVALID_HANDLE_VALUE) {
-				m_bMemStreamingTerm = FALSE;
-				SetThreadPriority( m_hMemStreamingThread, THREAD_PRIORITY_ABOVE_NORMAL );
-				ResumeThread(m_hMemStreamingThread);
-			}
-		}
 	}
 
 	if(enISDB == PT::Device::ISDB_T) {
 		// Thread 1 - T0
 		if(iTuner==0 && m_hThread1==INVALID_HANDLE_VALUE) {
-			m_hThread1 = (HANDLE)_beginthreadex(NULL, 0, RecvThread,
+			m_hThread1 = (HANDLE)_beginthreadex(NULL, 0, RecvThreadProc,
 				(LPVOID) new RECVTHREAD_PARAM(this,0), CREATE_SUSPENDED, NULL);
 			SetThreadPriority( m_hThread1, THREAD_PRIORITY_ABOVE_NORMAL );
 			ResumeThread(m_hThread1);
+			// MemStreaming
+			StartMemStreaming(0);
 		}
 		// Thread 2 - T1
 		else if(iTuner==1 && m_hThread2==INVALID_HANDLE_VALUE) {
-			m_hThread2 = (HANDLE)_beginthreadex(NULL, 0, RecvThread,
+			m_hThread2 = (HANDLE)_beginthreadex(NULL, 0, RecvThreadProc,
 				(LPVOID) new RECVTHREAD_PARAM(this,1), CREATE_SUSPENDED, NULL);
 			SetThreadPriority( m_hThread2, THREAD_PRIORITY_ABOVE_NORMAL );
 			ResumeThread(m_hThread2);
+			// MemStreaming
+			StartMemStreaming(1);
 		}
 	}else if(enISDB == PT::Device::ISDB_S) {
 		// Thread 3 - S0
 		if(iTuner==0 && m_hThread3==INVALID_HANDLE_VALUE) {
-			m_hThread3 = (HANDLE)_beginthreadex(NULL, 0, RecvThread,
+			m_hThread3 = (HANDLE)_beginthreadex(NULL, 0, RecvThreadProc,
 				(LPVOID) new RECVTHREAD_PARAM(this,2), CREATE_SUSPENDED, NULL);
 			SetThreadPriority( m_hThread3, THREAD_PRIORITY_ABOVE_NORMAL );
 			ResumeThread(m_hThread3);
+			// MemStreaming
+			StartMemStreaming(2);
 		}
 		// Thread 4 - S1
 		else if(iTuner==1 && m_hThread4==INVALID_HANDLE_VALUE) {
-			m_hThread4 = (HANDLE)_beginthreadex(NULL, 0, RecvThread,
+			m_hThread4 = (HANDLE)_beginthreadex(NULL, 0, RecvThreadProc,
 				(LPVOID) new RECVTHREAD_PARAM(this,3), CREATE_SUSPENDED, NULL);
 			SetThreadPriority( m_hThread4, THREAD_PRIORITY_ABOVE_NORMAL );
 			ResumeThread(m_hThread4);
+			// MemStreaming
+			StartMemStreaming(3);
 		}
 	}
 }
@@ -372,16 +371,8 @@ void CDataIO::Stop()
 		m_hThread4 = INVALID_HANDLE_VALUE;
 	}
 
-	// MemStreamer
-	if( m_hMemStreamingThread != INVALID_HANDLE_VALUE) {
-		// スレッド終了待ち
-		m_bMemStreamingTerm = TRUE ;
-		if ( ::WaitForSingleObject(m_hMemStreamingThread, 15000) == WAIT_TIMEOUT ){
-			::TerminateThread(m_hMemStreamingThread, 0xffffffff);
-		}
-		CloseHandle(m_hMemStreamingThread) ;
-		m_hMemStreamingThread = INVALID_HANDLE_VALUE ;
-	}
+	// MemStreaming
+	StopMemStreaming();
 }
 
 void CDataIO::StartPipeServer(int iID)
@@ -395,7 +386,7 @@ void CDataIO::StartPipeServer(int iID)
 	Format(strPipe, L"%s%d", CMD_PT1_DATA_PIPE, iID );
 	Format(strEvent, L"%s%d", CMD_PT1_DATA_EVENT_WAIT_CONNECT, iID );
 
-	// MemStreamer
+	// MemStreaming
 	wstring strStreamerName;
 	Format(strStreamerName, SHAREDMEM_TRANSPORT_STREAM_FORMAT, PT_VER, iID);
 
@@ -725,7 +716,7 @@ bool CDataIO::ReadAddBuff(DWORD dwID)
 }
 
 
-UINT WINAPI CDataIO::RecvThread(LPVOID pParam)
+UINT WINAPI CDataIO::RecvThreadProc(LPVOID pParam)
 {
 	RECVTHREAD_PARAM *p = (RECVTHREAD_PARAM*) pParam;
 	CDataIO* pSys = p->pSys ;
@@ -748,7 +739,7 @@ UINT WINAPI CDataIO::RecvThread(LPVOID pParam)
 					sleepy=0;
 				}
 			}
-		}else sleepy=250 ;
+		}else sleepy=100 ;
 		pSys->UnLock(dwID);
 		if(sleepy) Sleep(sleepy);
 	}
@@ -866,51 +857,104 @@ DWORD CDataIO::GetOverFlowCount(int iID)
 	return dwRet;
 }
 
-// MemStreamer
-UINT CDataIO::MemStreamingThreadMain()
+// MemStreaming
+UINT CDataIO::MemStreamingThreadProcMain(DWORD dwID)
 {
-	const DWORD CmdWait = 50 ;
+	const DWORD CmdWait = 100 ;
 
 	while (!m_bMemStreamingTerm) {
-		int cnt=0;
 
 		auto tx = [&](PTBUFFER &buf, CSharedTransportStreamer *st) -> bool {
-			if(!buf.empty()) {
+			bool res = false ;
+			if(Lock(dwID,CmdWait)) {
 				if(st!=NULL) {
-					auto p = buf.pull() ;
-					if(!st->Tx(p->data(),(DWORD)p->size(),CmdWait))
-						buf.pull_undo();
-					return !buf.empty();
+					while((res = !buf.empty())!=false) {
+						auto p = buf.pull() ;
+						auto data = p->data() ;
+						auto size = p->size() ;
+						UnLock(dwID);
+						if(!st->Tx(data,(DWORD)size,CmdWait)) {
+							buf.pull_undo();  return false;
+						}
+						if(m_bMemStreamingTerm||!Lock(dwID,CmdWait))
+							return res;
+					}
 				}
+				UnLock(dwID);
 			}
-			return false;
+			return res;
 		};
 
-		for(DWORD dwID=0; dwID<4; dwID++) {
-			if(m_fDataCarry[dwID]&&BuffLock(dwID,CmdWait)) {
-				if(!tx(Buff(dwID), MemStreamer(dwID)))
-					m_fDataCarry[dwID] = false ;
-				else
-					cnt++;
-				BuffUnLock(dwID);
-			}
+		if(m_fDataCarry[dwID]) {
+			if(!tx(Buff(dwID), MemStreamer(dwID)))
+				m_fDataCarry[dwID] = false ;
 		}
 
-		if(!cnt) Sleep(10);
+		if(!m_fDataCarry[dwID])
+			Sleep(MemStreamer(dwID)?10:CmdWait);
 	}
 
 	return 0;
 }
 
-// MemStreamer
-UINT WINAPI CDataIO::MemStreamingThread(LPVOID pParam)
+// MemStreaming
+UINT WINAPI CDataIO::MemStreamingThreadProc(LPVOID pParam)
 {
-	CDataIO* pSys = (CDataIO*)pParam;
+	auto p = static_cast<MEMSTREAMINGTHREAD_PARAM*>(pParam);
+	CDataIO* pSys = p->pSys;
+	DWORD dwID = p->dwID ;
+	delete p;
 
 	HANDLE hCurThread = GetCurrentThread();
 	SetThreadPriority(hCurThread, THREAD_PRIORITY_HIGHEST);
 
-	return pSys->MemStreamingThreadMain();
+	return pSys->MemStreamingThreadProcMain(dwID);
+}
+
+// MemStreaming
+void CDataIO::StartMemStreaming(DWORD dwID)
+{
+	if( MemStreamingThread(0) == INVALID_HANDLE_VALUE &&
+		MemStreamingThread(1) == INVALID_HANDLE_VALUE &&
+		MemStreamingThread(2) == INVALID_HANDLE_VALUE &&
+		MemStreamingThread(3) == INVALID_HANDLE_VALUE )
+			m_bMemStreamingTerm = FALSE;
+
+	HANDLE &hThread = MemStreamingThread(dwID) ;
+	if(m_bMemStreaming&&hThread==INVALID_HANDLE_VALUE) {
+		hThread = (HANDLE)_beginthreadex(NULL, 0, MemStreamingThreadProc,
+			(LPVOID) new MEMSTREAMINGTHREAD_PARAM(this, dwID), CREATE_SUSPENDED, NULL);
+		if(hThread != INVALID_HANDLE_VALUE) {
+			SetThreadPriority( hThread, THREAD_PRIORITY_ABOVE_NORMAL );
+			ResumeThread(hThread);
+		}
+	}
+}
+
+// MemStreaming
+void CDataIO::StopMemStreaming()
+{
+	if( MemStreamingThread(0) != INVALID_HANDLE_VALUE ||
+		MemStreamingThread(1) != INVALID_HANDLE_VALUE ||
+		MemStreamingThread(2) != INVALID_HANDLE_VALUE ||
+		MemStreamingThread(3) != INVALID_HANDLE_VALUE ){
+		// スレッド終了待ち
+		HANDLE handles[4];
+		DWORD cnt=0;
+		for(DWORD dwID=0;dwID<4;dwID++)
+			if(MemStreamingThread(dwID)!=INVALID_HANDLE_VALUE)
+				handles[cnt++]=MemStreamingThread(dwID);
+		m_bMemStreamingTerm=TRUE;
+		if ( ::WaitForMultipleObjects(cnt,handles,TRUE, 15000) == WAIT_TIMEOUT ){
+			for(DWORD i=0;i<cnt;i++)
+				if(::WaitForSingleObject(handles[i],0)!=WAIT_OBJECT_0)
+					::TerminateThread(handles[i], 0xffffffff);
+		}
+		for(DWORD i=0;i<cnt;i++)
+			CloseHandle(handles[i]);
+		for(DWORD dwID=0;dwID<4;dwID++)
+			MemStreamingThread(dwID)=INVALID_HANDLE_VALUE;
+	}
 }
 
 void CDataIO::Flush(PTBUFFER &buf, BOOL dispose)

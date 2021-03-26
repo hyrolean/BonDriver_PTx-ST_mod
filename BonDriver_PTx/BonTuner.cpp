@@ -447,10 +447,10 @@ const BOOL CBonTuner::OpenTuner(void)
 	m_pCmdSender->GetStreamingMethod(&streaming_method);
 	switch(streaming_method) {
 	case PTSTREAMING_PIPEIO:
-		m_hThread = (HANDLE)_beginthreadex(NULL, 0, RecvThreadPipeIO, (LPVOID)this, CREATE_SUSPENDED, NULL);
+		m_hThread = (HANDLE)_beginthreadex(NULL, 0, RecvThreadPipeIOProc, (LPVOID)this, CREATE_SUSPENDED, NULL);
 		break;
 	case PTSTREAMING_SHAREDMEM:
-		m_hThread = (HANDLE)_beginthreadex(NULL, 0, RecvThreadSharedMem, (LPVOID)this, CREATE_SUSPENDED, NULL);
+		m_hThread = (HANDLE)_beginthreadex(NULL, 0, RecvThreadSharedMemProc, (LPVOID)this, CREATE_SUSPENDED, NULL);
 		{
 			wstring memName;
 			Format(memName,SHAREDMEM_TRANSPORT_FORMAT,m_pCmdSender->GetPTKind(),m_iID) ;
@@ -694,7 +694,7 @@ void CBonTuner::Release()
 	delete this;
 }
 
-UINT WINAPI CBonTuner::RecvThreadPipeIO(LPVOID pParam)
+UINT WINAPI CBonTuner::RecvThreadPipeIOProc(LPVOID pParam)
 {
 	CBonTuner* pSys = (CBonTuner*)pParam;
 
@@ -738,7 +738,7 @@ UINT WINAPI CBonTuner::RecvThreadPipeIO(LPVOID pParam)
 	return 0;
 }
 
-UINT WINAPI CBonTuner::RecvThreadSharedMem(LPVOID pParam)
+UINT WINAPI CBonTuner::RecvThreadSharedMemProc(LPVOID pParam)
 {
 	const DWORD MAXWAIT = 250;
 	CBonTuner* pSys = (CBonTuner*)pParam;
@@ -783,8 +783,8 @@ UINT WINAPI CBonTuner::RecvThreadSharedMem(LPVOID pParam)
 			}
 			DWORD dwSize=0;
 			if(streamer.Rx(pPtBuffObj->data(), dwSize, MAXWAIT)&&pSys->m_hasStream) {
-				pPtBuffObj->resize(dwSize);
 				::EnterCriticalSection(&pSys->m_CriticalSection);
+				pPtBuffObj->resize(dwSize);
 				bool done = pSys->m_PtBuff.push();
 				::LeaveCriticalSection(&pSys->m_CriticalSection);
 				if(done) {

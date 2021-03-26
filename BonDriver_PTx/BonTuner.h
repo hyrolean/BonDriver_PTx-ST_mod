@@ -66,18 +66,6 @@ protected:
 
 	BOOL m_hasStream;
 
-	/*typedef struct _TS_DATA{
-		BYTE* pbBuff;
-		DWORD dwSize;
-		_TS_DATA(BYTE* pb, DWORD dw) : pbBuff(pb), dwSize(dw){
-		}
-		~_TS_DATA(void){
-			delete[] pbBuff;
-		}
-	} TS_DATA;
-	deque<TS_DATA*> m_TsBuff;
-	TS_DATA* m_LastBuff;*/
-
 	PTBUFFER m_PtBuff;
 	void FlushPtBuff(BOOL dispose=FALSE);
 
@@ -99,7 +87,6 @@ protected:
 
 	void GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive);
 
-	//wstring m_strPT1CtrlExe;
 	wstring m_strDirPath;
 	wstring m_strTunerName;
 
@@ -110,7 +97,7 @@ protected:
 	BOOL TryOpenTuner(int iTunerID, int *piID);
 
 protected:
-	static UINT WINAPI RecvThreadPipeIO(LPVOID pParam);
-	static UINT WINAPI RecvThreadSharedMem(LPVOID pParam);
+	static UINT WINAPI RecvThreadPipeIOProc(LPVOID pParam);
+	static UINT WINAPI RecvThreadSharedMemProc(LPVOID pParam);
 };
 
