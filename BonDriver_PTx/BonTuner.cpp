@@ -783,8 +783,8 @@ UINT WINAPI CBonTuner::RecvThreadSharedMemProc(LPVOID pParam)
 			}
 			DWORD dwSize=0;
 			if(streamer.Rx(pPtBuffObj->data(), dwSize, MAXWAIT)&&pSys->m_hasStream) {
-				::EnterCriticalSection(&pSys->m_CriticalSection);
 				pPtBuffObj->resize(dwSize);
+				::EnterCriticalSection(&pSys->m_CriticalSection);
 				bool done = pSys->m_PtBuff.push();
 				::LeaveCriticalSection(&pSys->m_CriticalSection);
 				if(done) {

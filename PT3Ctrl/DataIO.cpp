@@ -700,9 +700,11 @@ bool CDataIO::ReadAddBuff(DWORD dwID)
 		}else {
 			OverFlow = 0 ;
 		}
+		BuffUnLock(dwID);
 		auto head = tsBuff.head();
 		head->resize(DATA_BUFF_SIZE);
 		memcpy(head->data(), ptr+i, DATA_BUFF_SIZE);
+		BuffLock(dwID);
 		tsBuff.push();
 	}
 

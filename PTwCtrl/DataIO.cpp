@@ -600,11 +600,11 @@ void CDataIO::MicroPacket(BYTE* pbPacket)
 
 	bCreate1TS = micro.MicroPacket(pbPacket);
 	if( bCreate1TS && buf.head() != NULL){
-		Lock(dwID);
 		auto head = buf.head(); init_head(head);
 		auto sz = head->size() ;
 		head->resize(sz+188);
 		memcpy(head->data()+sz, micro.Get1TS(), 188);
+		Lock(dwID);
 		if( head->size() >= head->capacity() ){
 			buf.push();
 			if(buf.no_pool()) { // overflow
