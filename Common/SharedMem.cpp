@@ -258,7 +258,6 @@ CSharedTransportStreamer::CSharedTransportStreamer(wstring name, BOOL receiver,
 {
 	PosSzPackets = Size() - extra_sz - packet_num*sizeof(DWORD) ;
 	LastLockedRecvCur = packet_num ;
-	TickLastTx = GetTickCount();
 }
 //---------------------------------------------------------------------------
 CSharedTransportStreamer::~CSharedTransportStreamer()
@@ -277,7 +276,6 @@ BOOL CSharedTransportStreamer::Tx(const LPVOID data, DWORD size, DWORD timeout)
 		static_cast<LPDWORD>(sizes_top)[CurPacketSend]=size;
 		BOOL res = Send(data, timeout);
 		if(!UnlockPacket(cur)) res = FALSE ;
-		if(res) TickLastTx = GetTickCount() ;
 		return res;
 	}
 	return FALSE;
@@ -301,7 +299,6 @@ BOOL CSharedTransportStreamer::TxDirect(TXDIRECTFUNC func, PVOID arg, DWORD time
 			res = Send(NULL, timeout);
 		}
 		if(!UnlockPacket(cur)) res = FALSE ;
-		if(res) TickLastTx = GetTickCount() ;
 		return res;
 	}
 	return FALSE;

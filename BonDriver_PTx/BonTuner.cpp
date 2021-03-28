@@ -617,7 +617,7 @@ LPCTSTR CBonTuner::GetTunerName(void)
 
 const BOOL CBonTuner::IsTunerOpening(void)
 {
-	return FALSE;
+	return m_iID>=0 ? TRUE : FALSE ;
 }
 
 LPCTSTR CBonTuner::EnumTuningSpace(const DWORD dwSpace)

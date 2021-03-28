@@ -116,7 +116,7 @@ private: // MemStreaming
 
 	int MemStreamingThreadProcMain() {
 		const DWORD szp = Op.StreamerPacketSize() ;
-		bool retry=false; int cnt=0;
+		bool retry=false;
 		while(!ThTerm) {
 			if(!retry) {
 				if(Op.CurStreamSize()<szp) {Sleep(10);continue;}
@@ -126,7 +126,6 @@ private: // MemStreaming
 				St->TxDirect(NULL, &TxWriteDone, CmdWait):
 				St->TxDirect(TxDirectWriteProc, this, CmdWait);
 			retry = !r && TxWriteDone ;
-			if(r&&!(cnt++&1023)) Op.KeepAlive();
 		}
 		DBGOUT("-- Streaming Done --\n");
 		return 0;
