@@ -7,6 +7,7 @@
 
 #include "IBonDriver3.h"
 #include "../Common/PTSendCtrlCmdUtil.h"
+#include "../Common/PTxCtrlCmd.h"
 #include "ParseChSet.h"
 
 #define BUFF_SIZE (188*256)
@@ -76,14 +77,19 @@ protected:
 	int m_iPT;
 	int m_iID;
 	int m_iTunerID;
+	BOOL m_isPTxCtrl;
 	BOOL m_isISDB_S;
 	BOOL m_bBon3Lnb;
 	BOOL m_bTrySpares;
 	BOOL m_bFastScan;
 	BOOL m_bXFirstPT3;
 	DWORD m_dwSetChDelay;
+	DWORD m_dwOpenTunerDuration;
+
+	BOOL m_bExecPT[4] ;
 
 	CPTSendCtrlCmd *m_pCmdSender ;
+	CPTxCtrlCmdOperator PTxCtrlOp ;
 
 	void GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive);
 
@@ -94,7 +100,8 @@ protected:
 	void BuildDefSpace(wstring strIni);
 
 	BOOL LaunchPTCtrl(int iPT);
-	BOOL TryOpenTuner(int iTunerID, int *piID);
+	BOOL TryOpenTunerByID(int iTunerID, int *piID);
+	BOOL TryOpenTuner();
 
 protected:
 	static UINT WINAPI RecvThreadPipeIOProc(LPVOID pParam);

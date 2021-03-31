@@ -1,7 +1,7 @@
 #ifndef _Prefix_Integer_H
 #define _Prefix_Integer_H
 
-namespace EARTH {
+namespace EARTH3 {
 	typedef   signed char		sint8;
 	typedef unsigned char		uint8;
 

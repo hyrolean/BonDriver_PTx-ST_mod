@@ -1,10 +1,10 @@
 #include "StdAfx.h"
-#include "DataIO.h"
+#include "DataIO3.h"
 #include <process.h>
 
 #define NOT_SYNC_BYTE		0x74
 
-CDataIO::CDataIO(BOOL bMemStreaming)
+CDataIO3::CDataIO3(BOOL bMemStreaming)
  : m_T0Buff(MAX_DATA_BUFF_COUNT, 1), m_T1Buff(MAX_DATA_BUFF_COUNT, 1),
  	m_S0Buff(MAX_DATA_BUFF_COUNT, 1), m_S1Buff(MAX_DATA_BUFF_COUNT, 1)
 {
@@ -52,7 +52,7 @@ CDataIO::CDataIO(BOOL bMemStreaming)
 	m_hS1MemStreamingThread = INVALID_HANDLE_VALUE ;
 }
 
-CDataIO::~CDataIO(void)
+CDataIO3::~CDataIO3(void)
 {
 	Stop();
 
@@ -115,7 +115,7 @@ CDataIO::~CDataIO(void)
 	}
 }
 
-bool CDataIO::Lock1(DWORD timeout)
+bool CDataIO3::Lock1(DWORD timeout)
 {
 	if( m_hEvent1 == NULL ){
 		return false ;
@@ -127,14 +127,14 @@ bool CDataIO::Lock1(DWORD timeout)
 	return true ;
 }
 
-void CDataIO::UnLock1()
+void CDataIO3::UnLock1()
 {
 	if( m_hEvent1 != NULL ){
 		SetEvent(m_hEvent1);
 	}
 }
 
-bool CDataIO::Lock2(DWORD timeout)
+bool CDataIO3::Lock2(DWORD timeout)
 {
 	if( m_hEvent2 == NULL ){
 		return false ;
@@ -146,14 +146,14 @@ bool CDataIO::Lock2(DWORD timeout)
 	return true ;
 }
 
-void CDataIO::UnLock2()
+void CDataIO3::UnLock2()
 {
 	if( m_hEvent2 != NULL ){
 		SetEvent(m_hEvent2);
 	}
 }
 
-bool CDataIO::Lock3(DWORD timeout)
+bool CDataIO3::Lock3(DWORD timeout)
 {
 	if( m_hEvent3 == NULL ){
 		return false ;
@@ -165,14 +165,14 @@ bool CDataIO::Lock3(DWORD timeout)
 	return true ;
 }
 
-void CDataIO::UnLock3()
+void CDataIO3::UnLock3()
 {
 	if( m_hEvent3 != NULL ){
 		SetEvent(m_hEvent3);
 	}
 }
 
-bool CDataIO::Lock4(DWORD timeout)
+bool CDataIO3::Lock4(DWORD timeout)
 {
 	if( m_hEvent4 == NULL ){
 		return false ;
@@ -184,14 +184,14 @@ bool CDataIO::Lock4(DWORD timeout)
 	return true ;
 }
 
-void CDataIO::UnLock4()
+void CDataIO3::UnLock4()
 {
 	if( m_hEvent4 != NULL ){
 		SetEvent(m_hEvent4);
 	}
 }
 
-bool CDataIO::BuffLock1(DWORD timeout)
+bool CDataIO3::BuffLock1(DWORD timeout)
 {
 	if( m_hBuffEvent1 == NULL ){
 		return false ;
@@ -203,14 +203,14 @@ bool CDataIO::BuffLock1(DWORD timeout)
 	return true ;
 }
 
-void CDataIO::BuffUnLock1()
+void CDataIO3::BuffUnLock1()
 {
 	if( m_hBuffEvent1 != NULL ){
 		SetEvent(m_hBuffEvent1);
 	}
 }
 
-bool CDataIO::BuffLock2(DWORD timeout)
+bool CDataIO3::BuffLock2(DWORD timeout)
 {
 	if( m_hBuffEvent2 == NULL ){
 		return false ;
@@ -222,14 +222,14 @@ bool CDataIO::BuffLock2(DWORD timeout)
 	return true ;
 }
 
-void CDataIO::BuffUnLock2()
+void CDataIO3::BuffUnLock2()
 {
 	if( m_hBuffEvent2 != NULL ){
 		SetEvent(m_hBuffEvent2);
 	}
 }
 
-bool CDataIO::BuffLock3(DWORD timeout)
+bool CDataIO3::BuffLock3(DWORD timeout)
 {
 	if( m_hBuffEvent3 == NULL ){
 		return false ;
@@ -241,14 +241,14 @@ bool CDataIO::BuffLock3(DWORD timeout)
 	return true ;
 }
 
-void CDataIO::BuffUnLock3()
+void CDataIO3::BuffUnLock3()
 {
 	if( m_hBuffEvent3 != NULL ){
 		SetEvent(m_hBuffEvent3);
 	}
 }
 
-bool CDataIO::BuffLock4(DWORD timeout)
+bool CDataIO3::BuffLock4(DWORD timeout)
 {
 	if( m_hBuffEvent4 == NULL ){
 		return false ;
@@ -260,7 +260,7 @@ bool CDataIO::BuffLock4(DWORD timeout)
 	return true ;
 }
 
-void CDataIO::BuffUnLock4()
+void CDataIO3::BuffUnLock4()
 {
 	if( m_hBuffEvent4 != NULL ){
 		SetEvent(m_hBuffEvent4);
@@ -268,7 +268,7 @@ void CDataIO::BuffUnLock4()
 }
 
 
-void CDataIO::ClearBuff(int iID)
+void CDataIO3::ClearBuff(int iID)
 {
 	int iDevID = iID>>16;
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
@@ -289,7 +289,7 @@ void CDataIO::ClearBuff(int iID)
 		clear( iTuner==0 ? 2 : 3 );
 }
 
-void CDataIO::Run(int iID)
+void CDataIO3::Run(int iID)
 {
 	int iDevID = iID>>16;
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
@@ -344,7 +344,7 @@ void CDataIO::Run(int iID)
 	}
 }
 
-void CDataIO::Stop()
+void CDataIO3::Stop()
 {
 	if( m_hThread1 != INVALID_HANDLE_VALUE ||
 		m_hThread2 != INVALID_HANDLE_VALUE ||
@@ -375,7 +375,7 @@ void CDataIO::Stop()
 	StopMemStreaming();
 }
 
-void CDataIO::StartPipeServer(int iID)
+void CDataIO3::StartPipeServer(int iID)
 {
 	int iDevID = iID>>16;
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
@@ -383,8 +383,8 @@ void CDataIO::StartPipeServer(int iID)
 
 	wstring strPipe = L"";
 	wstring strEvent = L"";
-	Format(strPipe, L"%s%d", CMD_PT1_DATA_PIPE, iID );
-	Format(strEvent, L"%s%d", CMD_PT1_DATA_EVENT_WAIT_CONNECT, iID );
+	Format(strPipe, L"%s%d", CMD_PT_DATA_PIPE, iID );
+	Format(strEvent, L"%s%d", CMD_PT_DATA_EVENT_WAIT_CONNECT, iID );
 
 	// MemStreaming
 	wstring strStreamerName;
@@ -399,7 +399,7 @@ void CDataIO::StartPipeServer(int iID)
 		Lock(dwID);
 		auto &buff = SetBuff(dwID);
 		if( buff == NULL ){
-			buff = new EARTH::EX::Buffer(m_pcDevice);
+			buff = new EARTH3::EX::Buffer(m_pcDevice);
 			buff->Alloc(DATA_UNIT_SIZE, VIRTUAL_COUNT);
 			WriteIndex(dwID) = 0;
 
@@ -436,7 +436,7 @@ void CDataIO::StartPipeServer(int iID)
 		start( iTuner == 0 ? 2 : 3 );
 }
 
-void CDataIO::StopPipeServer(int iID)
+void CDataIO3::StopPipeServer(int iID)
 {
 	int iDevID = iID>>16;
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
@@ -463,7 +463,7 @@ void CDataIO::StopPipeServer(int iID)
 		stop( iTuner == 0 ? 2 : 3 );
 }
 
-BOOL CDataIO::EnableTuner(int iID, BOOL bEnable)
+BOOL CDataIO3::EnableTuner(int iID, BOOL bEnable)
 {
 	int iDevID = iID>>16;
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
@@ -526,7 +526,7 @@ BOOL CDataIO::EnableTuner(int iID, BOOL bEnable)
 	return TRUE;
 }
 
-void CDataIO::ChkTransferInfo()
+void CDataIO3::ChkTransferInfo()
 {
 	BOOL err = FALSE;
 	PT::Device::TransferInfo transferInfo;
@@ -646,7 +646,7 @@ void CDataIO::ChkTransferInfo()
 	}
 }
 
-bool CDataIO::CheckReady(DWORD dwID)
+bool CDataIO3::CheckReady(DWORD dwID)
 {
 	auto buffer = SetBuff(dwID) ;
 	auto index = WriteIndex(dwID) ;
@@ -670,7 +670,7 @@ bool CDataIO::CheckReady(DWORD dwID)
 	return false;
 }
 
-bool CDataIO::ReadAddBuff(DWORD dwID)
+bool CDataIO3::ReadAddBuff(DWORD dwID)
 {
 	auto buffer = SetBuff(dwID) ;
 	auto index = WriteIndex(dwID) ;
@@ -718,10 +718,10 @@ bool CDataIO::ReadAddBuff(DWORD dwID)
 }
 
 
-UINT WINAPI CDataIO::RecvThreadProc(LPVOID pParam)
+UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 {
 	RECVTHREAD_PARAM *p = (RECVTHREAD_PARAM*) pParam;
-	CDataIO* pSys = p->pSys ;
+	CDataIO3* pSys = p->pSys ;
 	DWORD dwID = p->dwID ;
 	delete p;
 
@@ -749,9 +749,9 @@ UINT WINAPI CDataIO::RecvThreadProc(LPVOID pParam)
 	return 0;
 }
 
-int CALLBACK CDataIO::OutsideCmdCallbackT0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
+int CALLBACK CDataIO3::OutsideCmdCallbackT0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
-	CDataIO* pSys = (CDataIO*)pParam;
+	CDataIO3* pSys = (CDataIO3*)pParam;
 	switch( pCmdParam->dwParam ){
 		case CMD_SEND_DATA:
 			pSys->CmdSendData(0, pCmdParam, pResParam, pbResDataAbandon);
@@ -763,9 +763,9 @@ int CALLBACK CDataIO::OutsideCmdCallbackT0(void* pParam, CMD_STREAM* pCmdParam, 
 	return 0;
 }
 
-int CALLBACK CDataIO::OutsideCmdCallbackT1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
+int CALLBACK CDataIO3::OutsideCmdCallbackT1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
-	CDataIO* pSys = (CDataIO*)pParam;
+	CDataIO3* pSys = (CDataIO3*)pParam;
 	switch( pCmdParam->dwParam ){
 		case CMD_SEND_DATA:
 			pSys->CmdSendData(1, pCmdParam, pResParam, pbResDataAbandon);
@@ -777,9 +777,9 @@ int CALLBACK CDataIO::OutsideCmdCallbackT1(void* pParam, CMD_STREAM* pCmdParam, 
 	return 0;
 }
 
-int CALLBACK CDataIO::OutsideCmdCallbackS0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
+int CALLBACK CDataIO3::OutsideCmdCallbackS0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
-	CDataIO* pSys = (CDataIO*)pParam;
+	CDataIO3* pSys = (CDataIO3*)pParam;
 	switch( pCmdParam->dwParam ){
 		case CMD_SEND_DATA:
 			pSys->CmdSendData(2, pCmdParam, pResParam, pbResDataAbandon);
@@ -791,9 +791,9 @@ int CALLBACK CDataIO::OutsideCmdCallbackS0(void* pParam, CMD_STREAM* pCmdParam, 
 	return 0;
 }
 
-int CALLBACK CDataIO::OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
+int CALLBACK CDataIO3::OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
-	CDataIO* pSys = (CDataIO*)pParam;
+	CDataIO3* pSys = (CDataIO3*)pParam;
 	switch( pCmdParam->dwParam ){
 		case CMD_SEND_DATA:
 			pSys->CmdSendData(3, pCmdParam, pResParam, pbResDataAbandon);
@@ -805,7 +805,7 @@ int CALLBACK CDataIO::OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, 
 	return 0;
 }
 
-void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
+void CDataIO3::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
 {
 	if(!m_fDataCarry[dwID]) {
 		pResParam->dwParam = CMD_ERR_BUSY;
@@ -836,7 +836,7 @@ void CDataIO::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResPar
 	}
 }
 
-DWORD CDataIO::GetOverFlowCount(int iID)
+DWORD CDataIO3::GetOverFlowCount(int iID)
 {
 	int iDevID = iID>>16;
 	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
@@ -859,51 +859,55 @@ DWORD CDataIO::GetOverFlowCount(int iID)
 	return dwRet;
 }
 
-// MemStreaming
-UINT CDataIO::MemStreamingThreadProcMain(DWORD dwID)
+UINT CDataIO3::MemStreamingThreadProcMain(DWORD dwID)
 {
-	const DWORD CmdWait = 100 ;
+	const DWORD CmdWait = 100;
+	const size_t sln = wstring(SHAREDMEM_TRANSPORT_STREAM_SUFFIX).length();
 
 	while (!m_bMemStreamingTerm) {
 
 		auto tx = [&](PTBUFFER &buf, CSharedTransportStreamer *st) -> bool {
-			bool res = false ;
-			if(Lock(dwID,CmdWait)) {
-				if(st!=NULL) {
-					while((res = !buf.empty())!=false) {
-						auto p = buf.pull() ;
-						auto data = p->data() ;
-						auto size = p->size() ;
-						UnLock(dwID);
-						if(!st->Tx(data,(DWORD)size,CmdWait)) {
-							buf.pull_undo();  return false;
+			bool res = false;
+			if (BuffLock(dwID, CmdWait)) {
+				if (st != NULL) {
+					wstring mutexName = st->Name().substr(0, st->Name().length() - sln);
+					if (HANDLE hMutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, mutexName.c_str())) {
+						CloseHandle(hMutex);
+						while ((res = !buf.empty()) != false) {
+							auto p = buf.pull();
+							auto data = p->data();
+							auto size = p->size();
+							BuffUnLock(dwID);
+							if (!st->Tx(data, (DWORD)size, CmdWait)) {
+								buf.pull_undo();  return false;
+							}
+							if (m_bMemStreamingTerm || !BuffLock(dwID, CmdWait))
+								return res;
 						}
-						if(m_bMemStreamingTerm||!Lock(dwID,CmdWait))
-							return res;
 					}
 				}
-				UnLock(dwID);
+				BuffUnLock(dwID);
 			}
 			return res;
 		};
 
-		if(m_fDataCarry[dwID]) {
-			if(!tx(Buff(dwID), MemStreamer(dwID)))
-				m_fDataCarry[dwID] = false ;
+		if (m_fDataCarry[dwID]) {
+			if (!tx(Buff(dwID), MemStreamer(dwID)))
+				m_fDataCarry[dwID] = false;
 		}
 
-		if(!m_fDataCarry[dwID])
-			Sleep(MemStreamer(dwID)?10:CmdWait);
+		if (!m_fDataCarry[dwID])
+			Sleep(MemStreamer(dwID) ? 10 : CmdWait);
 	}
 
 	return 0;
 }
 
 // MemStreaming
-UINT WINAPI CDataIO::MemStreamingThreadProc(LPVOID pParam)
+UINT WINAPI CDataIO3::MemStreamingThreadProc(LPVOID pParam)
 {
 	auto p = static_cast<MEMSTREAMINGTHREAD_PARAM*>(pParam);
-	CDataIO* pSys = p->pSys;
+	CDataIO3* pSys = p->pSys;
 	DWORD dwID = p->dwID ;
 	delete p;
 
@@ -914,7 +918,7 @@ UINT WINAPI CDataIO::MemStreamingThreadProc(LPVOID pParam)
 }
 
 // MemStreaming
-void CDataIO::StartMemStreaming(DWORD dwID)
+void CDataIO3::StartMemStreaming(DWORD dwID)
 {
 	if( MemStreamingThread(0) == INVALID_HANDLE_VALUE &&
 		MemStreamingThread(1) == INVALID_HANDLE_VALUE &&
@@ -934,7 +938,7 @@ void CDataIO::StartMemStreaming(DWORD dwID)
 }
 
 // MemStreaming
-void CDataIO::StopMemStreaming()
+void CDataIO3::StopMemStreaming()
 {
 	if( MemStreamingThread(0) != INVALID_HANDLE_VALUE ||
 		MemStreamingThread(1) != INVALID_HANDLE_VALUE ||
@@ -959,7 +963,7 @@ void CDataIO::StopMemStreaming()
 	}
 }
 
-void CDataIO::Flush(PTBUFFER &buf, BOOL dispose)
+void CDataIO3::Flush(PTBUFFER &buf, BOOL dispose)
 {
 	if(dispose) {
 		buf.dispose();

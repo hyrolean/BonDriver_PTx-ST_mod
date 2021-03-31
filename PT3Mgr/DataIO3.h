@@ -9,13 +9,13 @@
 
 #define DATA_TIMEOUT (10*1000)
 
-using namespace EARTH;
+using namespace EARTH3;
 
-class CDataIO
+class CDataIO3
 {
 public:
-	CDataIO(BOOL bMemStreaming=FALSE);
-	~CDataIO(void);
+	CDataIO3(BOOL bMemStreaming=FALSE);
+	~CDataIO3(void);
 
 	void SetDevice(PT::Device* pcDevice){ m_pcDevice = pcDevice; };
 	void SetVirtualCount(UINT uiVirtualCount){ VIRTUAL_COUNT = uiVirtualCount*8; };
@@ -64,11 +64,11 @@ protected:
 		}
 	}
 
-	EARTH::EX::Buffer* m_T0SetBuff;
-	EARTH::EX::Buffer* m_T1SetBuff;
-	EARTH::EX::Buffer* m_S0SetBuff;
-	EARTH::EX::Buffer* m_S1SetBuff;
-	EARTH::EX::Buffer* &SetBuff(DWORD dwID) {
+	EARTH3::EX::Buffer* m_T0SetBuff;
+	EARTH3::EX::Buffer* m_T1SetBuff;
+	EARTH3::EX::Buffer* m_S0SetBuff;
+	EARTH3::EX::Buffer* m_S1SetBuff;
+	EARTH3::EX::Buffer* &SetBuff(DWORD dwID) {
 		switch(dwID) {
 		case 1: return m_T1SetBuff;
 		case 2: return m_S0SetBuff;
@@ -126,9 +126,9 @@ protected:
 
 protected:
 	struct RECVTHREAD_PARAM {
-		CDataIO *pSys;
+		CDataIO3 *pSys;
 		DWORD dwID;
-		RECVTHREAD_PARAM(CDataIO *pSys_, DWORD dwID_)
+		RECVTHREAD_PARAM(CDataIO3 *pSys_, DWORD dwID_)
 		 : pSys(pSys_), dwID(dwID_) {}
 	};
 	static UINT WINAPI RecvThreadProc(LPVOID pParam);
@@ -235,9 +235,9 @@ protected:
 	}
 	UINT MemStreamingThreadProcMain(DWORD dwID);
 	struct MEMSTREAMINGTHREAD_PARAM {
-		CDataIO *pSys;
+		CDataIO3 *pSys;
 		DWORD dwID;
-		MEMSTREAMINGTHREAD_PARAM(CDataIO *pSys_, DWORD dwID_)
+		MEMSTREAMINGTHREAD_PARAM(CDataIO3 *pSys_, DWORD dwID_)
 		 : pSys(pSys_), dwID(dwID_) {}
 	};
 	static UINT WINAPI MemStreamingThreadProc(LPVOID pParam);

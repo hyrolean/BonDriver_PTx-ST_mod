@@ -41,6 +41,7 @@ build.bat
 .vs/
 ipch/
 Debug/
+LibOut/
 Release/
 Intermediate/
 *.user

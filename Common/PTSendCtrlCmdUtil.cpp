@@ -95,8 +95,8 @@ static DWORD SendDefCmd(LPCWSTR lpwszEventName, LPCWSTR lpwszPipeName, DWORD dwC
 CPTSendCtrlCmd::CPTSendCtrlCmd(int iPT)
 	: m_iPT(iPT)
 {
-	Format(m_strCmdEvent, CMD_PT1_CTRL_EVENT_WAIT_CONNECT_FORMAT, m_iPT);
-	Format(m_strCmdPipe,  CMD_PT1_CTRL_PIPE_FORMAT, m_iPT);
+	Format(m_strCmdEvent, CMD_PT_CTRL_EVENT_WAIT_CONNECT_FORMAT, m_iPT);
+	Format(m_strCmdPipe,  CMD_PT_CTRL_PIPE_FORMAT, m_iPT);
 }
 
 DWORD CPTSendCtrlCmd::CloseExe(DWORD dwConnectTimeOut)
@@ -237,8 +237,8 @@ DWORD CPTSendCtrlCmd::SendData(int iID, BYTE** pbData, DWORD* pdwSize, DWORD dwC
 	stSend.dwParam = CMD_SEND_DATA;
 
 	wstring strDataEvent, strDataPipe;
-	Format(strDataEvent, CMD_PT1_DATA_EVENT_WAIT_CONNECT_FORMAT ,m_iPT ,iID);
-	Format(strDataPipe, CMD_PT1_DATA_PIPE_FORMAT ,m_iPT ,iID);
+	Format(strDataEvent, CMD_PT_DATA_EVENT_WAIT_CONNECT_FORMAT ,m_iPT ,iID);
+	Format(strDataPipe, CMD_PT_DATA_PIPE_FORMAT ,m_iPT ,iID);
 
 	DWORD dwRet = SendDefCmd(strDataEvent.c_str(), strDataPipe.c_str(), dwConnectTimeOut, &stSend, &stRes);
 	if( dwRet == CMD_SUCCESS ){
@@ -258,8 +258,8 @@ DWORD CPTSendCtrlCmd::SendBufferObject(int iID, PTBUFFER_OBJECT *pPtBuffObj, DWO
 	stSend.dwParam = CMD_SEND_DATA;
 
 	wstring strDataEvent, strDataPipe;
-	Format(strDataEvent, CMD_PT1_DATA_EVENT_WAIT_CONNECT_FORMAT ,m_iPT ,iID);
-	Format(strDataPipe, CMD_PT1_DATA_PIPE_FORMAT ,m_iPT ,iID);
+	Format(strDataEvent, CMD_PT_DATA_EVENT_WAIT_CONNECT_FORMAT ,m_iPT ,iID);
+	Format(strDataPipe, CMD_PT_DATA_PIPE_FORMAT ,m_iPT ,iID);
 
 	DWORD dwRet = SendDefCmd(strDataEvent.c_str(), strDataPipe.c_str(), dwConnectTimeOut, &stSend, &stRes, pPtBuffObj);
 	if(dwRet==CMD_SUCCESS) {

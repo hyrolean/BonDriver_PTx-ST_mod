@@ -10,7 +10,7 @@
 
 #include "Prefix.h"
 
-namespace EARTH {
+namespace EARTH3 {
 namespace PT {
 	class Device;
 	class Device_;
@@ -83,7 +83,7 @@ namespace PT {
 		// [説明] delete は使えません。この関数を呼び出してください。
 		// [返値] STATUS_DEVICE_MUST_BE_CLOSED_ERROR → デバイスがオープン状態なのでインスタンスを解放できない
 		virtual status Delete() = 0;
-		
+
 		// ------------------
 		// オープン・クローズ
 		// ------------------
@@ -204,7 +204,7 @@ namespace PT {
 		// | 10 | BS21 | 1433.08 | | 22 | ND22 | 2013.00 | | 34 | ND21 | 1993.00 |
 		// | 11 | BS23 | 1471.44 | | 23 | ND24 | 2053.00 | | 35 | ND23 | 2033.00 |
 		// +----+------+---------+ +----+------+---------+ +----+------+---------+
-		// 
+		//
 		// (ISDB-T)
 		// +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+
 		// | ch. | Ch. | f (MHz) | | ch. | Ch. | f (MHz) | | ch. | Ch. | f (MHz) | | ch. | Ch. | f (MHz) | | ch. | Ch. | f (MHz) |
@@ -233,7 +233,7 @@ namespace PT {
 		// |  21 |  12 | 219+1/7 | |  44 | C45 | 357+1/7 | |  67 |  17 | 497+1/7 | |  90 |  40 | 635+1/7 | +-----+-----+---------+
 		// |  22 | C23 | 225+1/7 | |  45 | C46 | 363+1/7 | |  68 |  18 | 503+1/7 | |  91 |  41 | 641+1/7 |
 		// +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+
-		// 
+		//
 		// C24～C27 は、ケーブルテレビ局により下記の周波数で送信されている場合があります。
 		// +-----+---------+
 		// | Ch. | f (MHz) |
@@ -385,7 +385,7 @@ namespace PT {
 
 		// ISDB-S 階層情報
 		struct LayerS {
-			uint32 Mode [LAYER_COUNT_S];	// 伝送モード (3ビット) 
+			uint32 Mode [LAYER_COUNT_S];	// 伝送モード (3ビット)
 			uint32 Count[LAYER_COUNT_S];	// ダミースロットを含めた割当スロット数 (6ビット)
 		};
 
@@ -507,17 +507,17 @@ namespace PT {
 		// [説明] DMA 転送は全く CPU を介在することなく動作します。
 		//        GetTransferEnabled() で true  が得られるときに SetTransferEnabled(true ) としたり、
 		//        GetTransferEnabled() で false が得られるときに SetTransferEnabled(false) とするとエラーになります。
-		//        
+		//
 		//        GetTransferEnabled() で取得できる値は、単に SetTransferEnabled() で最後に設定された値と同じです。
 		//        転送カウンタが 0 になるなど、ハードウェア側で DMA 転送が自動的に停止する要因がいくつかありますが、
 		//        その場合でも GetTransferEnabled() で得られる値は変わりません。
 		virtual status SetTransferPageDescriptorAddress(ISDB isdb, uint32 tunerIndex, uint64 pageDescriptorAddress) = 0;
 		virtual status SetTransferEnabled              (ISDB isdb, uint32 tunerIndex, bool  enabled)       = 0;
 		virtual status GetTransferEnabled              (ISDB isdb, uint32 tunerIndex, bool *enabled) const = 0;
-		
+
 		// resetError は TS エラーパケットのリセットです。将来的には別関数に移動します。
 		virtual status SetTransferTestMode(ISDB isdb, uint32 tunerIndex, bool testMode = false, uint16 initial = 0, bool not = false/*, bool resetError = false*/) = 0;
-		
+
 		struct TransferInfo {
 			bool	Busy;
 			uint32	Status;						// 4ビット
@@ -555,7 +555,7 @@ namespace PT {
 		//        3. PCI デバイスが DMA 転送用メモリ領域にデータを書き込む
 		//        4. CPU がキャッシュ上に存在するデータを DMA 転送用メモリ領域に書き込む (不整合発生)
 		//        ※不整合が発生しないように 2 の後にこの関数を呼んでください。
-		//        
+		//
 		//        (ケース2)
 		//        1. PCI デバイスが DMA 転送用メモリ領域にデータを書き込む
 		//        2. CPU が転送用メモリからデータを読み込む
@@ -575,7 +575,7 @@ namespace PT {
 		//        5. DMA 転送用メモリ領域からデータを読み込む (不整合発生)
 		//        ※不整合が発生しないように 5 の前にこの関数を呼んでください。
 		virtual status SyncBufferIo(void *handle) = 0;
-		
+
 	protected:
 		virtual ~Device() {}
 	};

@@ -1,10 +1,17 @@
 #include "StdAfx.h"
+#include <memory>
 #include "PTCtrlMain.h"
 
-CPTCtrlMain::CPTCtrlMain(std::wstring strGlobalLockMutex)
+CPTCtrlMain::CPTCtrlMain(
+	wstring strGlobalLockMutex,
+	wstring strPipeEvent,
+	wstring strPipeName, BOOL bResetStartEnableOnClose )
 {
+	m_bResetStartEnableOnClose = bResetStartEnableOnClose ;
 	m_pManager = NULL;
 	m_strGlobalLockMutex = strGlobalLockMutex;
+	m_strPipeEvent = strPipeEvent;
+	m_strPipeName = strPipeName;
 	m_hStopEvent = _CreateEvent(TRUE, FALSE,NULL);
 	m_bService = FALSE;
 }
@@ -18,24 +25,56 @@ CPTCtrlMain::~CPTCtrlMain(void)
 //	m_cPipeserver.StopServer();
 }
 
-void CPTCtrlMain::StartMain(BOOL bService, IPTManager *pManager)
+BOOL CPTCtrlMain::Init(BOOL bService, IPTManager *pManager)
 {
-	if(!pManager) return;
-	m_pManager = pManager;
+	if(!pManager) return FALSE;
+
+	UnInit();
+
+	m_pManager = pManager ;
 
 	BOOL bInit = TRUE;
 	if( m_pManager->LoadSDK() == FALSE ){
 		OutputDebugString(L"PTx SDKのロードに失敗");
 		bInit = FALSE;
 	}
+
+	DBGOUT("PTx SDKのロード%s\n",bInit?"成功":"失敗") ;
+
 	if( bInit ){
 		m_pManager->Init();
 	}
 	m_bService = bService;
 
+	return bInit ;
+}
+
+void CPTCtrlMain::UnInit()
+{
+	if(m_pManager) {
+		m_pManager->UnInit();
+		m_pManager=NULL;
+	}
+}
+
+CPipeServer *CPTCtrlMain::MakePipeServer()
+{
+	CPipeServer *pcPipeServer = new CPipeServer;
+	pcPipeServer->StartServer(
+		m_strPipeEvent.c_str()/*CMD_PT_CTRL_EVENT_WAIT_CONNECT*/,
+		m_strPipeName.c_str()/*CMD_PT_CTRL_PIPE*/, OutsideCmdCallback, this);
+	return pcPipeServer ;
+}
+
+void CPTCtrlMain::StartMain(BOOL bService, IPTManager *pManager)
+{
+	if(!Init(bService, pManager)) {
+		m_pManager=NULL;
+		return ;
+	}
+
 	//Pipeサーバースタート
-	CPipeServer cPipeserver;
-	cPipeserver.StartServer(CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_CTRL_PIPE, OutsideCmdCallback, this);
+	shared_ptr<CPipeServer> pipeServer(MakePipeServer());
 
 	while(1){
 		if( WaitForSingleObject(m_hStopEvent, 15*1000) != WAIT_TIMEOUT ){
@@ -46,14 +85,10 @@ void CPTCtrlMain::StartMain(BOOL bService, IPTManager *pManager)
 				break;
 			}
 		}
-		if( bInit == FALSE ){
-			break;
-		}
 	}
 
-	cPipeserver.StopServer();
-	m_pManager->UnInit();
-	m_pManager=NULL;
+	pipeServer->StopServer();
+	UnInit();
 }
 
 void CPTCtrlMain::StopMain()
@@ -176,7 +211,8 @@ void CPTCtrlMain::CmdCloseTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 		HANDLE h = _CreateMutex(TRUE, m_strGlobalLockMutex.c_str());
 		if (m_pManager->IsFindOpen() == FALSE) {
 			// 今から終了するので問題が無くなるタイミングまで別プロセスの開始を抑制
-			ResetEvent(g_hStartEnableEvent);
+			if(m_bResetStartEnableOnClose)
+				ResetEvent(g_hStartEnableEvent);
 			StopMain();
 		}
 		ReleaseMutex(h);

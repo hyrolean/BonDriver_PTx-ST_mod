@@ -8,21 +8,34 @@
 class CPTCtrlMain
 {
 public:
-	CPTCtrlMain(std::wstring strGlobalLockMutex);
+	CPTCtrlMain(
+		wstring strGlobalLockMutex,
+		wstring strPipeEvent,
+		wstring strPipeName, BOOL bResetStartEnableOnClose=TRUE );
+
 	~CPTCtrlMain(void);
+
+	BOOL Init(BOOL bService, IPTManager *pManager);
+	void UnInit();
+
+	CPipeServer *MakePipeServer();
 
 	void StartMain(BOOL bService, IPTManager *pManager);
 	void StopMain();
 
 	BOOL IsFindOpen();
 
+	HANDLE GetStopEvent() { return m_hStopEvent; }
+
 protected:
 	HANDLE m_hStopEvent;
 	IPTManager *m_pManager;
 
 	BOOL m_bService;
+	BOOL m_bResetStartEnableOnClose;
 
 	wstring m_strGlobalLockMutex ;
+	wstring m_strPipeEvent, m_strPipeName ;
 
 protected:
 	static int CALLBACK OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon);

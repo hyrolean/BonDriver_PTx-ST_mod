@@ -362,8 +362,8 @@ void CDataIO::EnableTuner(int iID, BOOL bEnable)
 
 	wstring strPipe = L"";
 	wstring strEvent = L"";
-	Format(strPipe, L"%s%d", CMD_PT1_DATA_PIPE, iID );
-	Format(strEvent, L"%s%d", CMD_PT1_DATA_EVENT_WAIT_CONNECT, iID );
+	Format(strPipe, L"%s%d", CMD_PT_DATA_PIPE, iID );
+	Format(strEvent, L"%s%d", CMD_PT_DATA_EVENT_WAIT_CONNECT, iID );
 
 	// MemStreaming
 	wstring strStreamerName;
@@ -732,6 +732,7 @@ DWORD CDataIO::GetOverFlowCount(int iID)
 UINT CDataIO::MemStreamingThreadProcMain(DWORD dwID)
 {
 	const DWORD CmdWait = 100 ;
+	const size_t sln = wstring(SHAREDMEM_TRANSPORT_STREAM_SUFFIX).length();
 
 	while (!m_bMemStreamingTerm) {
 
@@ -739,16 +740,20 @@ UINT CDataIO::MemStreamingThreadProcMain(DWORD dwID)
 			bool res = false ;
 			if(Lock(dwID,CmdWait)) {
 				if(st!=NULL) {
-					while((res = !buf.empty())!=false) {
-						auto p = buf.pull() ;
-						auto data = p->data() ;
-						auto size = p->size() ;
-						UnLock(dwID);
-						if(!st->Tx(data,(DWORD)size,CmdWait)) {
-							buf.pull_undo();  return false;
+					wstring mutexName = st->Name().substr(0, st->Name().length() - sln);
+					if(HANDLE hMutex = OpenMutex(MUTEX_ALL_ACCESS,FALSE,mutexName.c_str())) {
+						CloseHandle(hMutex);
+						while((res = !buf.empty())!=false) {
+							auto p = buf.pull() ;
+							auto data = p->data() ;
+							auto size = p->size() ;
+							UnLock(dwID);
+							if(!st->Tx(data,(DWORD)size,CmdWait)) {
+								buf.pull_undo();  return false;
+							}
+							if(m_bMemStreamingTerm||!Lock(dwID,CmdWait))
+								return res;
 						}
-						if(m_bMemStreamingTerm||!Lock(dwID,CmdWait))
-							return res;
 					}
 				}
 				UnLock(dwID);

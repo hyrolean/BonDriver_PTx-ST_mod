@@ -13,8 +13,8 @@ class CPTSendCtrlCmd
 public:
 	/*
 	CPTSendCtrlCmdUtil(
-		int iPT, wstring strCmdEvent=CMD_PT1_CTRL_EVENT_WAIT_CONNECT,
-		wstring strCmdPipe=CMD_PT1_CTRL_PIPE)
+		int iPT, wstring strCmdEvent=CMD_PT_CTRL_EVENT_WAIT_CONNECT,
+		wstring strCmdPipe=CMD_PT_CTRL_PIPE)
 		: m_iPT(iPT), m_strCmdEvent(strCmdEvent), m_strCmdPipe(strCmdPipe) {}
                                                                            */
 	CPTSendCtrlCmd(int iPT);

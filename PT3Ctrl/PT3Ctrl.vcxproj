@@ -93,11 +93,13 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;PT_VER=3;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)LibOut\$(Configuration)\$(Platform)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>PT3Mgr.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -106,11 +108,13 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;PT_VER=3;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)LibOut\$(Configuration)\$(Platform)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>PT3Mgr.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -127,6 +131,8 @@
       <GenerateDebugInformation>No</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(SolutionDir)LibOut\$(Configuration)\$(Platform)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>PT3Mgr.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -143,6 +149,8 @@
       <GenerateDebugInformation>No</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(SolutionDir)LibOut\$(Configuration)\$(Platform)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>PT3Mgr.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -160,16 +168,7 @@
     <ClInclude Include="..\Common\SharedMem.h" />
     <ClInclude Include="..\Common\StringUtil.h" />
     <ClInclude Include="..\Common\Util.h" />
-    <ClInclude Include="DataIO.h" />
-    <ClInclude Include="inc\EARTH_PT3.h" />
-    <ClInclude Include="inc\EX_Buffer.h" />
-    <ClInclude Include="inc\EX_Utility.h" />
-    <ClInclude Include="inc\OS_Library.h" />
-    <ClInclude Include="inc\OS_Memory.h" />
-    <ClInclude Include="inc\Prefix.h" />
-    <ClInclude Include="inc\Prefix_Integer.h" />
     <ClInclude Include="PT3Ctrl.h" />
-    <ClInclude Include="PT3Manager.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
@@ -184,9 +183,7 @@
     <ClCompile Include="..\Common\SharedMem.cpp" />
     <ClCompile Include="..\Common\StringUtil.cpp" />
     <ClCompile Include="..\Common\Util.cpp" />
-    <ClCompile Include="DataIO.cpp" />
     <ClCompile Include="PT3Ctrl.cpp" />
-    <ClCompile Include="PT3Manager.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

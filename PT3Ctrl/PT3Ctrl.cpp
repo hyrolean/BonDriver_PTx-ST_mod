@@ -2,17 +2,21 @@
 //
 
 #include "stdafx.h"
+#include <memory>
 #include "PT3Ctrl.h"
-#include "PT3Manager.h"
+#include "../Common/PTManager.h"
 #include "../Common/PTCtrlMain.h"
 #include "../Common/ServiceUtil.h"
 
-CPTCtrlMain g_cMain(PT3_GLOBAL_LOCK_MUTEX);
+CPTCtrlMain g_cMain(PT3_GLOBAL_LOCK_MUTEX, CMD_PT3_CTRL_EVENT_WAIT_CONNECT, CMD_PT3_CTRL_PIPE);
+
 HANDLE g_hMutex;
 SERVICE_STATUS_HANDLE g_hStatusHandle;
 
-#define PT1_CTRL_MUTEX L"PT3_CTRL_EXE_MUTEX"
+#define PT_CTRL_MUTEX L"PT3_CTRL_EXE_MUTEX"
 #define SERVICE_NAME L"PT3Ctrl Service"
+
+extern "C" IPTManager* CreatePT3Manager(void);
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
@@ -58,7 +62,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			return -3;
 		}
 
-		g_hMutex = _CreateMutex(TRUE, PT1_CTRL_MUTEX);
+		g_hMutex = _CreateMutex(TRUE, PT_CTRL_MUTEX);
 		if (g_hMutex == NULL) {
 			::CloseHandle(g_hStartEnableEvent);
 			return -4;
@@ -81,7 +85,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	}else{
 		//サービスとしてインストール済み
 		if( IsStopService(SERVICE_NAME) == FALSE ){
-			g_hMutex = _CreateMutex(TRUE, PT1_CTRL_MUTEX);
+			g_hMutex = _CreateMutex(TRUE, PT_CTRL_MUTEX);
 			int err = GetLastError();
 			if( g_hMutex != NULL && err != ERROR_ALREADY_EXISTS ) {
 				//起動
@@ -165,8 +169,8 @@ BOOL SendStatusScm(int iState, int iExitcode, int iProgress)
 
 void StartMain(BOOL bService)
 {
-	CPT3Manager pt3_manager;
-	g_cMain.StartMain(bService, &pt3_manager);
+	std::shared_ptr<IPTManager> pt3_manager(CreatePT3Manager());
+	g_cMain.StartMain(bService, pt3_manager.get());
 }
 
 void StopMain()

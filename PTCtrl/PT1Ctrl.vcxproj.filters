@@ -5,18 +5,12 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="ソース ファイル\inc">
-      <UniqueIdentifier>{58953a71-cce4-4d20-9564-99a06c6b07c8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ソース ファイル\Common">
       <UniqueIdentifier>{58b153c5-9cc0-40f2-9d0d-1ee0cfe7ecd6}</UniqueIdentifier>
     </Filter>
     <Filter Include="ヘッダー ファイル">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
-    </Filter>
-    <Filter Include="ヘッダー ファイル\inc">
-      <UniqueIdentifier>{04de4310-d32a-48e1-8c3b-baa05fea9a16}</UniqueIdentifier>
     </Filter>
     <Filter Include="ヘッダー ファイル\Common">
       <UniqueIdentifier>{a285f7a0-7bea-4747-aaf6-78d9f4845d0f}</UniqueIdentifier>
@@ -27,16 +21,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DataIO.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="MicroPacketUtil.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="PT1Ctrl.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="PT1Manager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
@@ -68,16 +53,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="DataIO.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="MicroPacketUtil.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="PT1Ctrl.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="PT1Manager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Resource.h">
@@ -85,18 +61,6 @@
     </ClInclude>
     <ClInclude Include="stdafx.h">
       <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\EARTH_PT.h">
-      <Filter>ヘッダー ファイル\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\OS_Library.h">
-      <Filter>ヘッダー ファイル\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\Prefix.h">
-      <Filter>ヘッダー ファイル\inc</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\Prefix_Integer.h">
-      <Filter>ヘッダー ファイル\inc</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\PipeServer.h">
       <Filter>ヘッダー ファイル\Common</Filter>

@@ -13,37 +13,57 @@
 #define INI_DATA_BUFF_COUNT	25	// 初期バッファ充填数
 #define MAX_DATA_BUFF_COUNT	500	// 上限バッファ充填数
 
+//パイプ名
+#define CMD_PT1_CTRL_PIPE _T("\\\\.\\pipe\\PT1CtrlPipe")
+#define CMD_PT1_DATA_PIPE _T("\\\\.\\pipe\\PT1DataPipe_")
+#define CMD_PT3_CTRL_PIPE _T("\\\\.\\pipe\\PT3CtrlPipe")
+#define CMD_PT3_DATA_PIPE _T("\\\\.\\pipe\\PT3DataPipe_")
+#define CMD_PT2_CTRL_PIPE _T("\\\\.\\pipe\\PT2CtrlPipe")
+#define CMD_PT2_DATA_PIPE _T("\\\\.\\pipe\\PT2DataPipe_")
+
+//接続待機用イベント
+#define CMD_PT1_CTRL_EVENT_WAIT_CONNECT _T("Global\\PT1CtrlConnect")
+#define CMD_PT1_DATA_EVENT_WAIT_CONNECT _T("Global\\PT1DataConnect_")
+#define CMD_PT3_CTRL_EVENT_WAIT_CONNECT _T("Global\\PT3CtrlConnect")
+#define CMD_PT3_DATA_EVENT_WAIT_CONNECT _T("Global\\PT3DataConnect_")
+#define CMD_PT2_CTRL_EVENT_WAIT_CONNECT _T("Global\\PT2CtrlConnect")
+#define CMD_PT2_DATA_EVENT_WAIT_CONNECT _T("Global\\PT2DataConnect_")
+
 #ifdef PT_VER
 
-	#if PT_VER==1		// PT1/PT2 (PTCtrl.exe)
+	#if PT_VER==0		// PT1/PT2/PT3 (PTxCtrl.exe)
+
+		/* nothing */
+
+	#elif PT_VER==1		// PT1/PT2 (PTCtrl.exe)
 
 		//パイプ名
-		#define CMD_PT1_CTRL_PIPE _T("\\\\.\\pipe\\PT1CtrlPipe")
-		#define CMD_PT1_DATA_PIPE _T("\\\\.\\pipe\\PT1DataPipe_")
+		#define CMD_PT_CTRL_PIPE CMD_PT1_CTRL_PIPE
+		#define CMD_PT_DATA_PIPE CMD_PT1_DATA_PIPE
 
 		//接続待機用イベント
-		#define CMD_PT1_CTRL_EVENT_WAIT_CONNECT _T("Global\\PT1CtrlConnect")
-		#define CMD_PT1_DATA_EVENT_WAIT_CONNECT _T("Global\\PT1DataConnect_")
+		#define CMD_PT_CTRL_EVENT_WAIT_CONNECT CMD_PT1_CTRL_EVENT_WAIT_CONNECT
+		#define CMD_PT_DATA_EVENT_WAIT_CONNECT CMD_PT1_DATA_EVENT_WAIT_CONNECT
 
 	#elif PT_VER==3		// PT3 (PT3Ctrl.exe)
 
 		//パイプ名
-		#define CMD_PT1_CTRL_PIPE _T("\\\\.\\pipe\\PT3CtrlPipe")
-		#define CMD_PT1_DATA_PIPE _T("\\\\.\\pipe\\PT3DataPipe_")
+		#define CMD_PT_CTRL_PIPE CMD_PT3_CTRL_PIPE
+		#define CMD_PT_DATA_PIPE CMD_PT3_DATA_PIPE
 
 		//接続待機用イベント
-		#define CMD_PT1_CTRL_EVENT_WAIT_CONNECT _T("Global\\PT3CtrlConnect")
-		#define CMD_PT1_DATA_EVENT_WAIT_CONNECT _T("Global\\PT3DataConnect_")
+		#define CMD_PT_CTRL_EVENT_WAIT_CONNECT CMD_PT3_CTRL_EVENT_WAIT_CONNECT
+		#define CMD_PT_DATA_EVENT_WAIT_CONNECT CMD_PT3_DATA_EVENT_WAIT_CONNECT
 
 	#elif PT_VER==2		// pt2wdm (PTwCtrl.exe)
 
 		//パイプ名
-		#define CMD_PT1_CTRL_PIPE _T("\\\\.\\pipe\\PT2CtrlPipe")
-		#define CMD_PT1_DATA_PIPE _T("\\\\.\\pipe\\PT2DataPipe_")
+		#define CMD_PT_CTRL_PIPE CMD_PT2_CTRL_PIPE
+		#define CMD_PT_DATA_PIPE CMD_PT2_DATA_PIPE
 
 		//接続待機用イベント
-		#define CMD_PT1_CTRL_EVENT_WAIT_CONNECT _T("Global\\PT2CtrlConnect")
-		#define CMD_PT1_DATA_EVENT_WAIT_CONNECT _T("Global\\PT2DataConnect_")
+		#define CMD_PT_CTRL_EVENT_WAIT_CONNECT CMD_PT2_CTRL_EVENT_WAIT_CONNECT
+		#define CMD_PT_DATA_EVENT_WAIT_CONNECT CMD_PT2_DATA_EVENT_WAIT_CONNECT
 
 	#else
 
@@ -54,12 +74,12 @@
 #endif
 
 	//パイプ名 (書式指定出力文字列形式)
-	#define CMD_PT1_CTRL_PIPE_FORMAT _T("\\\\.\\pipe\\PT%dCtrlPipe")
-	#define CMD_PT1_DATA_PIPE_FORMAT _T("\\\\.\\pipe\\PT%dDataPipe_%d")
+	#define CMD_PT_CTRL_PIPE_FORMAT _T("\\\\.\\pipe\\PT%dCtrlPipe")
+	#define CMD_PT_DATA_PIPE_FORMAT _T("\\\\.\\pipe\\PT%dDataPipe_%d")
 
 	//接続待機用イベント (書式指定出力文字列形式)
-	#define CMD_PT1_CTRL_EVENT_WAIT_CONNECT_FORMAT _T("Global\\PT%dCtrlConnect")
-	#define CMD_PT1_DATA_EVENT_WAIT_CONNECT_FORMAT _T("Global\\PT%dDataConnect_%d")
+	#define CMD_PT_CTRL_EVENT_WAIT_CONNECT_FORMAT _T("Global\\PT%dCtrlConnect")
+	#define CMD_PT_DATA_EVENT_WAIT_CONNECT_FORMAT _T("Global\\PT%dDataConnect_%d")
 
 	//共有メモリ名 (書式指定出力文字列形式)
 	#define SHAREDMEM_TRANSPORT_FORMAT _T("PT%dTransportMem_%d")
@@ -69,6 +89,9 @@
 	//共有メモリのパケットサイズとパケット数
 	#define SHAREDMEM_TRANSPORT_PACKET_SIZE	DATA_BUFF_SIZE
 	#define SHAREDMEM_TRANSPORT_PACKET_NUM	(DATA_UNIT_SIZE/DATA_BUFF_SIZE)
+
+	//PTxCtrlコマンドオペレータ
+	#define CMD_PTX_CTRL_OP _T("PT0CtrlOperator")
 
 
 //モジュール内コマンド実行イベント

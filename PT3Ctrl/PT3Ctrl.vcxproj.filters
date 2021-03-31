@@ -13,9 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="inc">
-      <UniqueIdentifier>{900a135d-3719-4b8b-98e7-4f7934d29057}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Common">
       <UniqueIdentifier>{5081ce6d-0e16-43fb-bcc4-09c8806e4a68}</UniqueIdentifier>
     </Filter>
@@ -38,24 +35,6 @@
     <ClInclude Include="PT3Ctrl.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="PT3Manager.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="DataIO.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\EARTH_PT3.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\OS_Library.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\Prefix.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\Prefix_Integer.h">
-      <Filter>inc</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\PipeServer.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -76,15 +55,6 @@
     </ClInclude>
     <ClInclude Include="..\Common\Util.h">
       <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\EX_Buffer.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\EX_Utility.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\OS_Memory.h">
-      <Filter>inc</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\PTCtrlMain.h">
       <Filter>Common</Filter>
@@ -107,12 +77,6 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="PT3Ctrl.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="PT3Manager.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="DataIO.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\PipeServer.cpp">

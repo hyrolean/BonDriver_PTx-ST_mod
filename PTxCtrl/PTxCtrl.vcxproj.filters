@@ -13,12 +13,14 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="inc">
-      <UniqueIdentifier>{69b20510-dbae-4ff7-a9b3-9477f0a2be33}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Common">
-      <UniqueIdentifier>{6a9fc26e-1ac0-4660-981a-035fc0ca17af}</UniqueIdentifier>
+      <UniqueIdentifier>{5081ce6d-0e16-43fb-bcc4-09c8806e4a68}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="PTxCtrl.ico">
+      <Filter>リソース ファイル</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -27,23 +29,11 @@
     <ClInclude Include="targetver.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="BonTuner.h">
+    <ClInclude Include="Resource.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="IBonDriver.h">
+    <ClInclude Include="PTxCtrl.h">
       <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="IBonDriver2.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="IBonDriver3.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="ParseChSet.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\Util.h">
-      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\PipeServer.h">
       <Filter>Common</Filter>
@@ -57,16 +47,28 @@
     <ClInclude Include="..\Common\PTSendCtrlCmdUtil.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\ServiceUtil.h">
+      <Filter>Common</Filter>
+    </ClInclude>
     <ClInclude Include="..\Common\StringUtil.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>ヘッダー ファイル</Filter>
+    <ClInclude Include="..\Common\Util.h">
+      <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\SharedMem.h">
+    <ClInclude Include="..\Common\PTCtrlMain.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\PTManager.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\PTxManager.cxx">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\PoolBuffer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\SharedMem.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\PTxCtrlCmd.h">
@@ -77,20 +79,8 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="BonDriver_PTx.cpp">
+    <ClCompile Include="PTxCtrl.cpp">
       <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="dllmain.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="BonTuner.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="ParseChSet.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\Util.cpp">
-      <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\PipeServer.cpp">
       <Filter>Common</Filter>
@@ -101,7 +91,16 @@
     <ClCompile Include="..\Common\PTSendCtrlCmdUtil.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\Common\ServiceUtil.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
     <ClCompile Include="..\Common\StringUtil.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Util.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\PTCtrlMain.cpp">
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\SharedMem.cpp">
@@ -112,7 +111,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="BonDriver_PTx.rc">
+    <ResourceCompile Include="PTxCtrl.rc">
       <Filter>リソース ファイル</Filter>
     </ResourceCompile>
   </ItemGroup>

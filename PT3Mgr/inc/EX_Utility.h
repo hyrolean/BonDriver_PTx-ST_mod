@@ -4,7 +4,7 @@
 #include "Prefix.h"
 #include "EARTH_PT3.h"
 
-namespace EARTH {
+namespace EARTH3 {
 namespace EX {
 	class U {
 	public:

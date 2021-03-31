@@ -7,7 +7,7 @@ enum PTSTREAMING : DWORD {
 
 class IPTManager
 {
-protected:
+public:
 
 	virtual ~IPTManager(void) { FreeSDK(); }
 

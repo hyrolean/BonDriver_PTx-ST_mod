@@ -195,8 +195,8 @@ protected:
 			if(Ps) {
 				wstring strPipe = L"";
 				wstring strEvent = L"";
-				Format(strPipe, L"%s%d", CMD_PT1_DATA_PIPE, iID );
-				Format(strEvent, L"%s%d", CMD_PT1_DATA_EVENT_WAIT_CONNECT, iID );
+				Format(strPipe, L"%s%d", CMD_PT_DATA_PIPE, iID );
+				Format(strEvent, L"%s%d", CMD_PT_DATA_EVENT_WAIT_CONNECT, iID );
 				SAFE_DELETE_ARRAY(PsBuff);
 				PsBuff = new BYTE[Op.StreamerPacketSize()] ;
 				if(Ps->StartServer(strEvent.c_str(), strPipe.c_str(), PipeCmdCallback,

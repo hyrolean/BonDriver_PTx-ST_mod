@@ -7,7 +7,7 @@
 #include "OS_Memory.h"
 #include <vector>
 
-namespace EARTH {
+namespace EARTH3 {
 namespace EX {
 	class Buffer {
 	public:
@@ -29,7 +29,7 @@ namespace EX {
 		status Alloc(uint32 blockSize, uint32 blockCount, bool loop = true)
 		{
 			status	status;
-			
+
 			status = AllocMemory(blockSize, blockCount);
 			if (status) return status;
 
@@ -138,7 +138,7 @@ namespace EX {
 			info->blockSize  = blockSize;
 			info->blockCount = blockCount;
 			if (ptr == NULL) return PT::STATUS_OUT_OF_MEMORY_ERROR;
-			
+
 			Physical	block;
 			block.handle      = NULL;
 			block.bufferInfo  = NULL;

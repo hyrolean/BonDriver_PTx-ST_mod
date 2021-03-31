@@ -49,6 +49,7 @@ extern "C" __declspec(dllexport) IBonDriver * CreateBonDriver()
 HINSTANCE CBonTuner::m_hModule = NULL;
 
 	//PTxCtrl実行ファイルのミューテックス名
+	#define PT0_CTRL_MUTEX L"PT0_CTRL_EXE_MUTEX" // PTxCtrl.exe
 	#define PT1_CTRL_MUTEX L"PT1_CTRL_EXE_MUTEX" // PTCtrl.exe
 	#define PT3_CTRL_MUTEX L"PT3_CTRL_EXE_MUTEX" // PT3Ctrl.exe
 	#define PT2_CTRL_MUTEX L"PT2_CTRL_EXE_MUTEX" // PTwCtrl.exe
@@ -60,7 +61,7 @@ HINSTANCE CBonTuner::m_hModule = NULL;
 
 
 CBonTuner::CBonTuner()
-  : m_PtBuff(MAX_DATA_BUFF_COUNT,1)
+  : m_PtBuff(MAX_DATA_BUFF_COUNT,1), PTxCtrlOp(CMD_PTX_CTRL_OP)
 {
 	m_hOnStreamEvent = NULL;
 
@@ -69,6 +70,7 @@ CBonTuner::CBonTuner()
 	m_hasStream = TRUE ;
 
 	m_iID = -1;
+	m_isPTxCtrl = FALSE ;
 	m_hStopEvent = _CreateEvent(FALSE, FALSE, NULL);
 	m_hThread = INVALID_HANDLE_VALUE;
 	m_hSharedMemTransportMutex = NULL;
@@ -168,6 +170,7 @@ CBonTuner::CBonTuner()
 	m_bBon3Lnb = GetPrivateProfileIntW(L"SET", L"Bon3Lnb", 0, strIni.c_str());
 	m_bFastScan = GetPrivateProfileIntW(L"SET", L"FastScan", 0, strIni.c_str());
 	m_dwSetChDelay = GetPrivateProfileIntW(L"SET", L"SetChDelay", 0, strIni.c_str());
+	m_dwOpenTunerDuration = GetPrivateProfileIntW(L"SET", L"OpenTunerDuration", 3000, strIni.c_str());
 
 	wstring strChSet;
 
@@ -341,6 +344,10 @@ BOOL CBonTuner::LaunchPTCtrl(int iPT)
 	wstring mutexName ;
 
 	switch(iPT) {
+	case 0:
+		strPTCtrlExe += L"PTxCtrl.exe" ;
+		mutexName = PT0_CTRL_MUTEX ;
+		break ;
 	case 1:
 		strPTCtrlExe += L"PTCtrl.exe" ;
 		mutexName = PT1_CTRL_MUTEX ;
@@ -355,15 +362,18 @@ BOOL CBonTuner::LaunchPTCtrl(int iPT)
 		break ;
 	}
 
+	bool hasMutex = FALSE ;
 	if(HANDLE Mutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, mutexName.c_str())) {
 		// 既に起動中
+		hasMutex = TRUE ;
 		CloseHandle(Mutex) ;
-		return TRUE ;
+		if(m_bExecPT[iPT])
+			return TRUE ;
 	}
 
 	if(!PathFileExists(strPTCtrlExe.c_str())) {
 		// 実行ファイルが存在しない
-		return FALSE;
+		return hasMutex ;
 	}
 
 	strPTCtrlExe = L"\""+strPTCtrlExe+L"\"" ;
@@ -373,10 +383,12 @@ BOOL CBonTuner::LaunchPTCtrl(int iPT)
 
 	_RPT3(_CRT_WARN, "*** CBonTuner::LaunchPTCtrl() ***\nbRet[%s]", bRet ? "TRUE" : "FALSE");
 
+	if(!bRet) bRet = hasMutex ;
+	m_bExecPT[iPT] = bRet ;
 	return bRet ;
 }
 
-BOOL CBonTuner::TryOpenTuner(int iTunerID, int *piID)
+BOOL CBonTuner::TryOpenTunerByID(int iTunerID, int *piID)
 {
 	DWORD dwRet;
 	if( iTunerID >= 0 ){
@@ -385,7 +397,7 @@ BOOL CBonTuner::TryOpenTuner(int iTunerID, int *piID)
 		dwRet = m_pCmdSender->OpenTuner(m_isISDB_S, piID);
 	}
 
-	_RPT3(_CRT_WARN, "*** CBonTuner::TryOpenTuner() ***\ndwRet[%u]\n", dwRet);
+	_RPT3(_CRT_WARN, "*** CBonTuner::TryOpenTunerByID() ***\ndwRet[%u]\n", dwRet);
 
 	if( dwRet != CMD_SUCCESS ){
 		return FALSE;
@@ -394,12 +406,14 @@ BOOL CBonTuner::TryOpenTuner(int iTunerID, int *piID)
 	return TRUE;
 }
 
-const BOOL CBonTuner::OpenTuner(void)
+BOOL CBonTuner::TryOpenTuner()
 {
 	//イベント
 	m_hOnStreamEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 
-	_RPT3(_CRT_WARN, "*** CBonTuner::OpenTuner() ***\nm_hOnStreamEvent[%p]\n", m_hOnStreamEvent);
+	_RPT3(_CRT_WARN, "*** CBonTuner::TryOpenTuner() ***\nm_hOnStreamEvent[%p]\n", m_hOnStreamEvent);
+
+	for(auto &v: m_bExecPT) v = FALSE ;
 
 	if(!m_iPT) { // PTx ( PT1/2/3 - auto detect )
 
@@ -409,8 +423,15 @@ const BOOL CBonTuner::OpenTuner(void)
 		int tid = m_iTunerID ;
 		for(int i=0;i<2;i++) {
 			int iPT = m_bXFirstPT3 ? (i?1:3) : (i?3:1) ;
-			if(!LaunchPTCtrl(iPT))
-				continue;
+			BOOL ptx = FALSE ;
+			if(!LaunchPTCtrl(iPT)) {
+				DWORD bits=0 ;
+				if( !LaunchPTCtrl(0) ||
+					!PTxCtrlOp.CmdSupported(bits) ||
+					!(bits&(1<<(iPT-1))) ||
+					!PTxCtrlOp.CmdActivatePt(iPT) ) continue;
+				ptx = TRUE ;
+			}
 			switch(iPT) {
 			case 1:	m_pCmdSender = &PT1CmdSender; break;
 			case 3:	m_pCmdSender = &PT3CmdSender; break;
@@ -422,7 +443,8 @@ const BOOL CBonTuner::OpenTuner(void)
 					continue;
 				}
 				m_iID=-1 ;
-				if(TryOpenTuner(tid, &m_iID)) {
+				if(TryOpenTunerByID(tid, &m_iID)) {
+					m_isPTxCtrl = ptx ;
 					opened = TRUE; break;
 				}else if(m_bTrySpares) {
 					if(tid>=0) tid=-1, i=-1 ;
@@ -435,8 +457,8 @@ const BOOL CBonTuner::OpenTuner(void)
 	}else { // PT1/2/3 or pt2wdm ( manual )
 
 		if(!LaunchPTCtrl(m_iPT)) return FALSE;
-		if(!TryOpenTuner(m_iTunerID, &m_iID)){
-			if(m_iTunerID<0 || !m_bTrySpares || !TryOpenTuner(-1, &m_iID))
+		if(!TryOpenTunerByID(m_iTunerID, &m_iID)){
+			if(m_iTunerID<0 || !m_bTrySpares || !TryOpenTunerByID(-1, &m_iID))
 				return FALSE;
 
 		}
@@ -468,6 +490,22 @@ const BOOL CBonTuner::OpenTuner(void)
 	return TRUE;
 }
 
+const BOOL CBonTuner::OpenTuner(void)
+{
+	auto dur =[](DWORD s=0, DWORD e=GetTickCount()) -> DWORD {
+		// duration ( s -> e )
+		return s <= e ? e - s : 0xFFFFFFFFUL - s + 1 + e;
+	};
+
+	CloseTuner();
+
+	for(DWORD s=dur(),e=s;dur(s,e)<=m_dwOpenTunerDuration;e=dur()) {
+		if(TryOpenTuner()) return TRUE ;
+	}
+
+	return FALSE ;
+}
+
 void CBonTuner::CloseTuner(void)
 {
 	auto closeThread = [&]() {
@@ -492,6 +530,10 @@ void CBonTuner::CloseTuner(void)
 			m_pCmdSender->CloseTuner(m_iID);
 			m_iID = -1;
 		}
+		if(m_isPTxCtrl) {
+			PTxCtrlOp.CmdIdle();
+			m_isPTxCtrl = FALSE ;
+		}
 	};
 
 	// ストリーミングの種類によって閉じ方のパターンを変える
@@ -509,8 +551,10 @@ void CBonTuner::CloseTuner(void)
 	m_dwCurChannel = 0xFF;
 	m_hasStream = TRUE;
 
-	::CloseHandle(m_hOnStreamEvent);
-	m_hOnStreamEvent = NULL;
+	if(m_hOnStreamEvent!=NULL) {
+		::CloseHandle(m_hOnStreamEvent);
+		m_hOnStreamEvent = NULL;
+	}
 
 	//バッファ解放
 	::EnterCriticalSection(&m_CriticalSection);

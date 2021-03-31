@@ -166,7 +166,8 @@ class pool_buffer_object {
 			T *new_data = new T[new_size];
 			if(new_data!=nullptr) {
 				if(data_) {
-					std::copy(&data_[0],&data_[size_],new_data);
+					for (size_t i = 0;i < size_; i++)
+						new_data[i] = data_[i];
 					delete [] data_ ;
 				}
 				data_ = new_data ;

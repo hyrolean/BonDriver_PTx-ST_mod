@@ -5,7 +5,7 @@
 #include "EARTH_PT3.h"
 #include <windows.h>
 
-namespace EARTH {
+namespace EARTH3 {
 namespace OS {
 	class Library {
 	public:

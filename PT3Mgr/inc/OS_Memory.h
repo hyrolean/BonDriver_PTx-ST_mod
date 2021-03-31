@@ -4,7 +4,7 @@
 #include "Prefix.h"
 #include <Windows.h>
 
-namespace EARTH {
+namespace EARTH3 {
 namespace OS {
 	class Memory {
 	public:

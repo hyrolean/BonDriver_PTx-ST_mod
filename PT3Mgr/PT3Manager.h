@@ -4,9 +4,9 @@
 #include "inc/OS_Library.h"
 #include "../Common/Util.h"
 #include "../Common/PTManager.h"
-#include "DataIO.h"
+#include "DataIO3.h"
 
-using namespace EARTH;
+using namespace EARTH3;
 
 class CPT3Manager : public IPTManager
 {
@@ -46,7 +46,7 @@ protected:
 		BOOL bUseS1;
 		BOOL bLnbS0;
 		BOOL bLnbS1;
-		CDataIO cDataIO;
+		CDataIO3 cDataIO;
 		_DEV_STATUS(BOOL bMemStreaming=FALSE) : cDataIO(bMemStreaming) {
 			bOpen = FALSE;
 			pcDevice = NULL;
