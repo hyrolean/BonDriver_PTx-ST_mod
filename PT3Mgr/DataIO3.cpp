@@ -22,10 +22,10 @@ CDataIO3::CDataIO3(BOOL bMemStreaming)
 	m_S0SetBuff = NULL;
 	m_S1SetBuff = NULL;
 
-	m_hEvent1 = _CreateEvent(FALSE, TRUE, NULL );
-	m_hEvent2 = _CreateEvent(FALSE, TRUE, NULL );
-	m_hEvent3 = _CreateEvent(FALSE, TRUE, NULL );
-	m_hEvent4 = _CreateEvent(FALSE, TRUE, NULL );
+	m_hSetBuffEvent1 = _CreateEvent(FALSE, TRUE, NULL );
+	m_hSetBuffEvent2 = _CreateEvent(FALSE, TRUE, NULL );
+	m_hSetBuffEvent3 = _CreateEvent(FALSE, TRUE, NULL );
+	m_hSetBuffEvent4 = _CreateEvent(FALSE, TRUE, NULL );
 
 	m_hBuffEvent1 = _CreateEvent(FALSE, TRUE, NULL );
 	m_hBuffEvent2 = _CreateEvent(FALSE, TRUE, NULL );
@@ -72,25 +72,25 @@ CDataIO3::~CDataIO3(void)
 	Flush(m_S0Buff, TRUE);
 	Flush(m_S1Buff, TRUE);
 
-	if( m_hEvent1 != NULL ){
-		UnLock1();
-		CloseHandle(m_hEvent1);
-		m_hEvent1 = NULL;
+	if( m_hSetBuffEvent1 != NULL ){
+		SetBuffUnLock1();
+		CloseHandle(m_hSetBuffEvent1);
+		m_hSetBuffEvent1 = NULL;
 	}
-	if( m_hEvent2 != NULL ){
-		UnLock2();
-		CloseHandle(m_hEvent2);
-		m_hEvent2 = NULL;
+	if( m_hSetBuffEvent2 != NULL ){
+		SetBuffUnLock2();
+		CloseHandle(m_hSetBuffEvent2);
+		m_hSetBuffEvent2 = NULL;
 	}
-	if( m_hEvent3 != NULL ){
-		UnLock3();
-		CloseHandle(m_hEvent3);
-		m_hEvent3 = NULL;
+	if( m_hSetBuffEvent3 != NULL ){
+		SetBuffUnLock3();
+		CloseHandle(m_hSetBuffEvent3);
+		m_hSetBuffEvent3 = NULL;
 	}
-	if( m_hEvent4 != NULL ){
-		UnLock4();
-		CloseHandle(m_hEvent4);
-		m_hEvent4 = NULL;
+	if( m_hSetBuffEvent4 != NULL ){
+		SetBuffUnLock4();
+		CloseHandle(m_hSetBuffEvent4);
+		m_hSetBuffEvent4 = NULL;
 	}
 
 	if( m_hBuffEvent1 != NULL ){
@@ -115,79 +115,79 @@ CDataIO3::~CDataIO3(void)
 	}
 }
 
-bool CDataIO3::Lock1(DWORD timeout)
+bool CDataIO3::SetBuffLock1(DWORD timeout)
 {
-	if( m_hEvent1 == NULL ){
+	if( m_hSetBuffEvent1 == NULL ){
 		return false ;
 	}
-	if( WaitForSingleObject(m_hEvent1, timeout) == WAIT_TIMEOUT ){
+	if( WaitForSingleObject(m_hSetBuffEvent1, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out1");
 		return false ;
 	}
 	return true ;
 }
 
-void CDataIO3::UnLock1()
+void CDataIO3::SetBuffUnLock1()
 {
-	if( m_hEvent1 != NULL ){
-		SetEvent(m_hEvent1);
+	if( m_hSetBuffEvent1 != NULL ){
+		SetEvent(m_hSetBuffEvent1);
 	}
 }
 
-bool CDataIO3::Lock2(DWORD timeout)
+bool CDataIO3::SetBuffLock2(DWORD timeout)
 {
-	if( m_hEvent2 == NULL ){
+	if( m_hSetBuffEvent2 == NULL ){
 		return false ;
 	}
-	if( WaitForSingleObject(m_hEvent2, timeout) == WAIT_TIMEOUT ){
+	if( WaitForSingleObject(m_hSetBuffEvent2, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out2");
 		return false ;
 	}
 	return true ;
 }
 
-void CDataIO3::UnLock2()
+void CDataIO3::SetBuffUnLock2()
 {
-	if( m_hEvent2 != NULL ){
-		SetEvent(m_hEvent2);
+	if( m_hSetBuffEvent2 != NULL ){
+		SetEvent(m_hSetBuffEvent2);
 	}
 }
 
-bool CDataIO3::Lock3(DWORD timeout)
+bool CDataIO3::SetBuffLock3(DWORD timeout)
 {
-	if( m_hEvent3 == NULL ){
+	if( m_hSetBuffEvent3 == NULL ){
 		return false ;
 	}
-	if( WaitForSingleObject(m_hEvent3, timeout) == WAIT_TIMEOUT ){
+	if( WaitForSingleObject(m_hSetBuffEvent3, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out3");
 		return false ;
 	}
 	return true ;
 }
 
-void CDataIO3::UnLock3()
+void CDataIO3::SetBuffUnLock3()
 {
-	if( m_hEvent3 != NULL ){
-		SetEvent(m_hEvent3);
+	if( m_hSetBuffEvent3 != NULL ){
+		SetEvent(m_hSetBuffEvent3);
 	}
 }
 
-bool CDataIO3::Lock4(DWORD timeout)
+bool CDataIO3::SetBuffLock4(DWORD timeout)
 {
-	if( m_hEvent4 == NULL ){
+	if( m_hSetBuffEvent4 == NULL ){
 		return false ;
 	}
-	if( WaitForSingleObject(m_hEvent4, timeout) == WAIT_TIMEOUT ){
+	if( WaitForSingleObject(m_hSetBuffEvent4, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out4");
 		return false ;
 	}
 	return true ;
 }
 
-void CDataIO3::UnLock4()
+void CDataIO3::SetBuffUnLock4()
 {
-	if( m_hEvent4 != NULL ){
-		SetEvent(m_hEvent4);
+	if( m_hSetBuffEvent4 != NULL ){
+		SetEvent(m_hSetBuffEvent4);
 	}
 }
 
@@ -275,12 +275,12 @@ void CDataIO3::ClearBuff(int iID)
 	uint32 iTuner = iID&0x000000FF;
 
 	auto clear = [&](DWORD dwID) {
-		Lock(dwID);
+		SetBuffLock(dwID);
 		BuffLock(dwID);
 		OverFlowCount(dwID) = 0;
 		Flush(Buff(dwID));
 		BuffUnLock(dwID);
-		UnLock(dwID);
+		SetBuffUnLock(dwID);
 	};
 
 	if( enISDB == PT::Device::ISDB_T )
@@ -396,7 +396,7 @@ void CDataIO3::StartPipeServer(int iID)
 	}
 
 	auto start = [&](DWORD dwID) {
-		Lock(dwID);
+		SetBuffLock(dwID);
 		auto &buff = SetBuff(dwID);
 		if( buff == NULL ){
 			buff = new EARTH3::EX::Buffer(m_pcDevice);
@@ -423,7 +423,7 @@ void CDataIO3::StartPipeServer(int iID)
 					SHAREDMEM_TRANSPORT_PACKET_NUM);
 			BuffUnLock(dwID);
 		}
-		UnLock(dwID);
+		SetBuffUnLock(dwID);
 		if(!m_bMemStreaming)
 			Pipe(dwID).StartServer(strEvent.c_str(), strPipe.c_str(),
 				OutsideCmdCallback(dwID), this, THREAD_PRIORITY_ABOVE_NORMAL);
@@ -444,7 +444,7 @@ void CDataIO3::StopPipeServer(int iID)
 
 	auto stop = [&](DWORD dwID) {
 		if(!m_bMemStreaming) Pipe(dwID).StopServer();
-		Lock(dwID);
+		SetBuffLock(dwID);
 		BuffLock(dwID);
 		m_fDataCarry[dwID] = false;
 		auto &st = MemStreamer(dwID);
@@ -454,7 +454,7 @@ void CDataIO3::StopPipeServer(int iID)
 		SAFE_DELETE(buff);
 		Flush(Buff(dwID));
 		BuffUnLock(dwID);
-		UnLock(dwID);
+		SetBuffUnLock(dwID);
 	};
 
 	if( enISDB == PT::Device::ISDB_T )
@@ -474,7 +474,7 @@ BOOL CDataIO3::EnableTuner(int iID, BOOL bEnable)
 	if( bEnable ){
 
 		auto enable = [&](DWORD dwID) {
-			Lock(dwID);
+			SetBuffLock(dwID);
 			BuffLock(dwID);
 			if( SetBuff(dwID) != NULL ){
 				OverFlowCount(dwID) = 0;
@@ -482,7 +482,7 @@ BOOL CDataIO3::EnableTuner(int iID, BOOL bEnable)
 			}
 			Flush(Buff(dwID), TRUE);
 			BuffUnLock(dwID);
-			UnLock(dwID);
+			SetBuffUnLock(dwID);
 		};
 
 		if( enISDB == PT::Device::ISDB_T )
@@ -508,13 +508,13 @@ BOOL CDataIO3::EnableTuner(int iID, BOOL bEnable)
 		}
 
 		auto disable = [&](DWORD dwID) {
-			Lock(dwID);
+			SetBuffLock(dwID);
 			BuffLock(dwID);
 			m_fDataCarry[dwID] = false;
 			OverFlowCount(dwID) = 0;
 			Flush(Buff(dwID));
 			BuffUnLock(dwID);
-			UnLock(dwID);
+			SetBuffUnLock(dwID);
 		};
 
 		if( enISDB == PT::Device::ISDB_T )
@@ -730,7 +730,7 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 
 	while(!pSys->m_bThTerm) {
 		DWORD sleepy=10 ;
-		pSys->Lock(dwID);
+		pSys->SetBuffLock(dwID);
 		if( pSys->SetBuff(dwID) != NULL ){
 			if( pSys->CheckReady(dwID) ){
 				if( pSys->ReadAddBuff(dwID) ){
@@ -742,7 +742,7 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 				}
 			}
 		}else sleepy=100 ;
-		pSys->UnLock(dwID);
+		pSys->SetBuffUnLock(dwID);
 		if(sleepy) Sleep(sleepy);
 	}
 

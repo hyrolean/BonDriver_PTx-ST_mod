@@ -107,10 +107,10 @@ protected:
 		}
 	}
 
-	HANDLE m_hEvent1;
-	HANDLE m_hEvent2;
-	HANDLE m_hEvent3;
-	HANDLE m_hEvent4;
+	HANDLE m_hBuffEvent1;
+	HANDLE m_hBuffEvent2;
+	HANDLE m_hBuffEvent3;
+	HANDLE m_hBuffEvent4;
 
 	BYTE* m_bDMABuff;
 
@@ -119,28 +119,28 @@ protected:
 protected:
 	static UINT WINAPI RecvThreadProc(LPVOID pParam);
 
-	bool Lock1(DWORD timeout=DATA_TIMEOUT);
-	void UnLock1();
-	bool Lock2(DWORD timeout=DATA_TIMEOUT);
-	void UnLock2();
-	bool Lock3(DWORD timeout=DATA_TIMEOUT);
-	void UnLock3();
-	bool Lock4(DWORD timeout=DATA_TIMEOUT);
-	void UnLock4();
-	bool Lock(DWORD dwID, DWORD timeout=DATA_TIMEOUT) {
+	bool BuffLock1(DWORD timeout=DATA_TIMEOUT);
+	void BuffUnLock1();
+	bool BuffLock2(DWORD timeout=DATA_TIMEOUT);
+	void BuffUnLock2();
+	bool BuffLock3(DWORD timeout=DATA_TIMEOUT);
+	void BuffUnLock3();
+	bool BuffLock4(DWORD timeout=DATA_TIMEOUT);
+	void BuffUnLock4();
+	bool BuffLock(DWORD dwID, DWORD timeout=DATA_TIMEOUT) {
 		switch(dwID) {
-		case 1: return Lock2(timeout);
-		case 2: return Lock3(timeout);
-		case 3: return Lock4(timeout);
-		default: return Lock1(timeout);
+		case 1: return BuffLock2(timeout);
+		case 2: return BuffLock3(timeout);
+		case 3: return BuffLock4(timeout);
+		default: return BuffLock1(timeout);
 		}
 	}
-	void UnLock(DWORD dwID) {
+	void BuffUnLock(DWORD dwID) {
 		switch(dwID) {
-		case 1: UnLock2(); break;
-		case 2: UnLock3(); break;
-		case 3: UnLock4(); break;
-		default: UnLock1(); break;
+		case 1: BuffUnLock2(); break;
+		case 2: BuffUnLock3(); break;
+		case 3: BuffUnLock4(); break;
+		default: BuffUnLock1(); break;
 		}
 	}
 

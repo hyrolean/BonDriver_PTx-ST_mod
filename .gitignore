@@ -34,8 +34,7 @@
 # Dummy files
 *.~*
 *.ec?
-CLEANUP*.BAT
-build.bat
+*.BAT
 
 # VC++ files
 .vs/
