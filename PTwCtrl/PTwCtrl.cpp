@@ -13,7 +13,7 @@ HANDLE g_hMutex;
 SERVICE_STATUS_HANDLE g_hStatusHandle;
 
 #define PT_CTRL_MUTEX L"PT2_CTRL_EXE_MUTEX"
-#define SERVICE_NAME L"PT2Ctrl Service"
+#define SERVICE_NAME L"PTwCtrl Service"
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,

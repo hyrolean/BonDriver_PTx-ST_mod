@@ -61,16 +61,16 @@ HINSTANCE CBonTuner::m_hModule = NULL;
 
 
 CBonTuner::CBonTuner()
-  : m_PtBuff(MAX_DATA_BUFF_COUNT,1), PTxCtrlOp(CMD_PTX_CTRL_OP)
+  : m_PtBuff(MAX_DATA_BUFF_COUNT,1)
 {
 	m_hOnStreamEvent = NULL;
+	m_pPTxCtrlOp = NULL;
 
 	m_dwCurSpace = 0xFF;
 	m_dwCurChannel = 0xFF;
 	m_hasStream = TRUE ;
 
 	m_iID = -1;
-	m_isPTxCtrl = FALSE ;
 	m_hStopEvent = _CreateEvent(FALSE, FALSE, NULL);
 	m_hThread = INVALID_HANDLE_VALUE;
 	m_hSharedMemTransportMutex = NULL;
@@ -170,7 +170,7 @@ CBonTuner::CBonTuner()
 	m_bBon3Lnb = GetPrivateProfileIntW(L"SET", L"Bon3Lnb", 0, strIni.c_str());
 	m_bFastScan = GetPrivateProfileIntW(L"SET", L"FastScan", 0, strIni.c_str());
 	m_dwSetChDelay = GetPrivateProfileIntW(L"SET", L"SetChDelay", 0, strIni.c_str());
-	m_dwOpenTunerDuration = GetPrivateProfileIntW(L"SET", L"OpenTunerDuration", 3000, strIni.c_str());
+	m_dwRetryDur = GetPrivateProfileIntW(L"SET", L"RetryDur", 3000, strIni.c_str());
 
 	wstring strChSet;
 
@@ -415,22 +415,35 @@ BOOL CBonTuner::TryOpenTuner()
 
 	for(auto &v: m_bExecPT) v = FALSE ;
 
+	auto launchPTxCtrl = [&](int iPT) -> bool {
+		DWORD bits=0 ;
+		if(!LaunchPTCtrl(0))
+			return false;
+		if(m_pPTxCtrlOp==NULL)
+			m_pPTxCtrlOp = new CPTxCtrlCmdOperator(CMD_PTX_CTRL_OP);
+		if( !m_pPTxCtrlOp->CmdSupported(bits) ||
+			!(bits&(1<<(iPT-1))) ||
+			!m_pPTxCtrlOp->CmdActivatePt(iPT) ) {
+				return false;
+		}
+		return true;
+	};
+
+	bool opened = false ;
+
 	if(!m_iPT) { // PTx ( PT1/2/3 - auto detect )
 
 		//PTx自動検出機能の追加
 		//(added by 2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-		BOOL opened = FALSE ;
 		int tid = m_iTunerID ;
 		for(int i=0;i<2;i++) {
 			int iPT = m_bXFirstPT3 ? (i?1:3) : (i?3:1) ;
 			BOOL ptx = FALSE ;
 			if(!LaunchPTCtrl(iPT)) {
-				DWORD bits=0 ;
-				if( !LaunchPTCtrl(0) ||
-					!PTxCtrlOp.CmdSupported(bits) ||
-					!(bits&(1<<(iPT-1))) ||
-					!PTxCtrlOp.CmdActivatePt(iPT) ) continue;
-				ptx = TRUE ;
+				if(!launchPTxCtrl(iPT))
+					continue;
+			}else {
+				SAFE_DELETE(m_pPTxCtrlOp);
 			}
 			switch(iPT) {
 			case 1:	m_pCmdSender = &PT1CmdSender; break;
@@ -444,25 +457,32 @@ BOOL CBonTuner::TryOpenTuner()
 				}
 				m_iID=-1 ;
 				if(TryOpenTunerByID(tid, &m_iID)) {
-					m_isPTxCtrl = ptx ;
-					opened = TRUE; break;
+					opened = true; break;
 				}else if(m_bTrySpares) {
 					if(tid>=0) tid=-1, i=-1 ;
 				}
 				if(tid>=0) break;
 			}
 		}
-		if(!opened) return FALSE ;
 
-	}else { // PT1/2/3 or pt2wdm ( manual )
+	}else do { // PT1/2/3 or pt2wdm ( manual )
 
-		if(!LaunchPTCtrl(m_iPT)) return FALSE;
+		if(!LaunchPTCtrl(m_iPT)) {
+			if(!launchPTxCtrl(m_iPT))
+				break;
+		}
 		if(!TryOpenTunerByID(m_iTunerID, &m_iID)){
 			if(m_iTunerID<0 || !m_bTrySpares || !TryOpenTunerByID(-1, &m_iID))
-				return FALSE;
-
+				break;
 		}
 
+		opened = true ;
+
+	}while(0);
+
+	if(!opened) {
+		SAFE_DELETE(m_pPTxCtrlOp);
+		return FALSE ;
 	}
 
 	PTSTREAMING streaming_method=PTSTREAMING_PIPEIO;
@@ -473,7 +493,7 @@ BOOL CBonTuner::TryOpenTuner()
 		break;
 	case PTSTREAMING_SHAREDMEM:
 		m_hThread = (HANDLE)_beginthreadex(NULL, 0, RecvThreadSharedMemProc, (LPVOID)this, CREATE_SUSPENDED, NULL);
-		{
+		if(m_hThread!=INVALID_HANDLE_VALUE) {
 			wstring memName;
 			Format(memName,SHAREDMEM_TRANSPORT_FORMAT,m_pCmdSender->GetPTKind(),m_iID) ;
 			m_hSharedMemTransportMutex = _CreateMutex(TRUE, memName.c_str());
@@ -499,7 +519,7 @@ const BOOL CBonTuner::OpenTuner(void)
 
 	CloseTuner();
 
-	for(DWORD s=dur(),e=s;dur(s,e)<=m_dwOpenTunerDuration;e=dur()) {
+	for(DWORD s=dur(),e=s;dur(s,e)<=m_dwRetryDur;e=dur()) {
 		if(TryOpenTuner()) return TRUE ;
 	}
 
@@ -530,10 +550,9 @@ void CBonTuner::CloseTuner(void)
 			m_pCmdSender->CloseTuner(m_iID);
 			m_iID = -1;
 		}
-		if(m_isPTxCtrl) {
-			PTxCtrlOp.CmdIdle();
-			m_isPTxCtrl = FALSE ;
-		}
+		if(m_pPTxCtrlOp!=NULL)
+			m_pPTxCtrlOp->CmdIdle();
+		SAFE_DELETE(m_pPTxCtrlOp);
 	};
 
 	// ストリーミングの種類によって閉じ方のパターンを変える

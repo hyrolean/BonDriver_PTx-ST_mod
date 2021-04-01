@@ -15,15 +15,15 @@ HANDLE g_hMutex;
 SERVICE_STATUS_HANDLE g_hStatusHandle;
 
 #define PT_CTRL_MUTEX L"PT0_CTRL_EXE_MUTEX"
-#define SERVICE_NAME L"PT0Ctrl Service"
+#define SERVICE_NAME L"PTxCtrl Service"
 
 extern "C" IPTManager* CreatePT1Manager(void);
 extern "C" IPTManager* CreatePT3Manager(void);
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
-                     HINSTANCE hPrevInstance,
-                     LPTSTR    lpCmdLine,
-                     int       nCmdShow)
+					 HINSTANCE hPrevInstance,
+					 LPTSTR    lpCmdLine,
+					 int       nCmdShow)
 {
 	if( _tcslen(lpCmdLine) > 0 ){
 		if( lpCmdLine[0] == '-' || lpCmdLine[0] == '/' ){
@@ -169,32 +169,21 @@ BOOL SendStatusScm(int iState, int iExitcode, int iProgress)
 	return SetServiceStatus(g_hStatusHandle, &ss);
 }
 
-CPTxCtrlCmdServiceOperator *g_cCmdServer = NULL ;
-
-	template<class T>
-	struct safe_pobj {
-		T** ppobj ;
-		safe_pobj(T **ppobj_) : ppobj(ppobj_) {}
-		~safe_pobj() { SAFE_DELETE((*ppobj)); }
-		T* operator ->() { return *ppobj; }
-	};
-
 void StartMain(BOOL bService)
 {
-	g_cCmdServer = new CPTxCtrlCmdServiceOperator(CMD_PTX_CTRL_OP,bService);
-	safe_pobj<CPTxCtrlCmdServiceOperator>(&g_cCmdServer)->Main();
+	unique_ptr<CPTxCtrlCmdServiceOperator>
+		(new CPTxCtrlCmdServiceOperator(CMD_PTX_CTRL_OP,bService))->Main();
 }
 
 void StopMain()
 {
-	if(g_cCmdServer!=NULL)
-		g_cCmdServer->Stop();
+	CPTxCtrlCmdServiceOperator::Stop();
 }
 
 
   // CPTxCtrlCmdServiceOperator
 
-CPTxCtrlCmdServiceOperator::CPTxCtrlCmdServiceOperator(std::wstring name, BOOL bService)
+CPTxCtrlCmdServiceOperator::CPTxCtrlCmdServiceOperator(wstring name, BOOL bService)
  : CPTxCtrlCmdOperator(name,true)
 {
 	PtService = bService ;
@@ -204,7 +193,7 @@ CPTxCtrlCmdServiceOperator::CPTxCtrlCmdServiceOperator(std::wstring name, BOOL b
 	Pt1Manager = CreatePT1Manager();
 	Pt3Manager = CreatePT3Manager();
 
-    if(g_cMain1.Init(PtService, Pt1Manager)) {
+	if(g_cMain1.Init(PtService, Pt1Manager)) {
 		PtPipeServer1 = g_cMain1.MakePipeServer() ;
 		PtSupported |= 1 ;
 		DBGOUT("PTxCtrl: PT1 Supported.\n");
@@ -212,7 +201,7 @@ CPTxCtrlCmdServiceOperator::CPTxCtrlCmdServiceOperator(std::wstring name, BOOL b
 		DBGOUT("PTxCtrl: PT1 Not Supported.\n");
 	}
 
-    if(g_cMain3.Init(PtService, Pt3Manager)) {
+	if(g_cMain3.Init(PtService, Pt3Manager)) {
 		PtPipeServer3 = g_cMain3.MakePipeServer() ;
 		PtSupported |= 1<<2 ;
 		DBGOUT("PTxCtrl: PT3 Supported.\n");
@@ -221,8 +210,6 @@ CPTxCtrlCmdServiceOperator::CPTxCtrlCmdServiceOperator(std::wstring name, BOOL b
 	}
 
 	PtActivated = PtSupported ;
-
-	PtTerminated = FALSE ;
 }
 
 CPTxCtrlCmdServiceOperator::~CPTxCtrlCmdServiceOperator()
@@ -272,8 +259,6 @@ BOOL CPTxCtrlCmdServiceOperator::ResActivatePt(DWORD PtVer)
 
 void CPTxCtrlCmdServiceOperator::Main()
 {
-	PtTerminated = FALSE ;
-
 	//------ BEGIN OF LOOP ------
 
 	DBGOUT("PTxCtrl: service started.\n");
@@ -283,7 +268,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 		BOOL bRstStEnable=FALSE ;
 
 		if(PtActivated&(1<<2)) { // PT3
-        	if(WaitForSingleObject(g_cMain3.GetStopEvent(),0)==WAIT_OBJECT_0) {
+			if(WaitForSingleObject(g_cMain3.GetStopEvent(),0)==WAIT_OBJECT_0) {
 				ResetEvent(g_hStartEnableEvent); bRstStEnable=TRUE ;
 				SAFE_DELETE(PtPipeServer3);
 				g_cMain3.UnInit();
@@ -294,7 +279,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 		}
 
 		if(PtActivated&1) { // PT1/PT2
-        	if(WaitForSingleObject(g_cMain1.GetStopEvent(),0)==WAIT_OBJECT_0) {
+			if(WaitForSingleObject(g_cMain1.GetStopEvent(),0)==WAIT_OBJECT_0) {
 				if(!bRstStEnable) {
 					ResetEvent(g_hStartEnableEvent);
 					bRstStEnable=TRUE ;
@@ -344,6 +329,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 	PtActivated = 0 ;
 }
 
+BOOL CPTxCtrlCmdServiceOperator::PtTerminated=FALSE;
 void CPTxCtrlCmdServiceOperator::Stop()
 {
 	g_cMain1.StopMain();

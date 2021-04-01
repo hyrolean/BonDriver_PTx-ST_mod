@@ -77,19 +77,18 @@ protected:
 	int m_iPT;
 	int m_iID;
 	int m_iTunerID;
-	BOOL m_isPTxCtrl;
 	BOOL m_isISDB_S;
 	BOOL m_bBon3Lnb;
 	BOOL m_bTrySpares;
 	BOOL m_bFastScan;
 	BOOL m_bXFirstPT3;
 	DWORD m_dwSetChDelay;
-	DWORD m_dwOpenTunerDuration;
+	DWORD m_dwRetryDur;
 
 	BOOL m_bExecPT[4] ;
 
 	CPTSendCtrlCmd *m_pCmdSender ;
-	CPTxCtrlCmdOperator PTxCtrlOp ;
+	CPTxCtrlCmdOperator *m_pPTxCtrlOp ;
 
 	void GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive);
 
