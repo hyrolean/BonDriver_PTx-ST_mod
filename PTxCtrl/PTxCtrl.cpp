@@ -8,7 +8,7 @@
 #include "PTxCtrl.h"
 
 // サービス実行中にクライアントが居なくなったらSDKを閉じてメモリを開放するかどうか
-const BOOL g_cbMinimumService = FALSE ;
+BOOL g_bXCompactService = FALSE ;
 
 CPTCtrlMain g_cMain3(PT0_GLOBAL_LOCK_MUTEX, CMD_PT3_CTRL_EVENT_WAIT_CONNECT, CMD_PT3_CTRL_PIPE, FALSE);
 CPTCtrlMain g_cMain1(PT0_GLOBAL_LOCK_MUTEX, CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_CTRL_PIPE, FALSE);
@@ -27,6 +27,24 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 					 LPTSTR    lpCmdLine,
 					 int       nCmdShow)
 {
+	WCHAR strExePath[512] = L"";
+	GetModuleFileName(hInstance, strExePath, 512);
+
+	wstring strIni;
+	{
+		WCHAR szPath[_MAX_PATH];	// パス
+		WCHAR szDrive[_MAX_DRIVE];
+		WCHAR szDir[_MAX_DIR];
+		WCHAR szFname[_MAX_FNAME];
+		WCHAR szExt[_MAX_EXT];
+		_tsplitpath_s( strExePath, szDrive, _MAX_DRIVE, szDir, _MAX_DIR, szFname, _MAX_FNAME, szExt, _MAX_EXT );
+		_tmakepath_s(  szPath, _MAX_PATH, szDrive, szDir, NULL, NULL );
+		strIni = szPath;
+	}
+
+	strIni += L"\\BonDriver_PTx-ST.ini";
+	g_bXCompactService = GetPrivateProfileInt(L"SET", L"xCompactService", 0, strIni.c_str());
+
 	if( _tcslen(lpCmdLine) > 0 ){
 		if( lpCmdLine[0] == '-' || lpCmdLine[0] == '/' ){
 			if( _tcsicmp( _T("install"), lpCmdLine+1 ) == 0 ){
@@ -60,8 +78,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		if (g_hStartEnableEvent == NULL) {
 			return -2;
 		}
-		// 別プロセスが終了処理中の場合は終了を待つ(最大1秒)
-		if (::WaitForSingleObject(g_hStartEnableEvent, 1000) == WAIT_TIMEOUT) {
+		// 別プロセスが終了処理中の場合は終了を待つ(最大1.5秒)
+		if (::WaitForSingleObject(g_hStartEnableEvent, 1500) == WAIT_TIMEOUT) {
 			::CloseHandle(g_hStartEnableEvent);
 			return -3;
 		}
@@ -197,17 +215,17 @@ CPTxCtrlCmdServiceOperator::CPTxCtrlCmdServiceOperator(wstring name, BOOL bServi
 	if(g_cMain1.Init(PtService, Pt1Manager)) {
 		PtPipeServer1 = g_cMain1.MakePipeServer() ;
 		PtSupported |= 1 ;
-		DBGOUT("PTxCtrl: PT1 is Supported.\n");
+		DBGOUT("PTxCtrl: PT1 is Supported and was Activated.\n");
 	}else {
-		DBGOUT("PTxCtrl: PT1 is Not Supported.\n");
+		DBGOUT("PTxCtrl: PT1 is NOT Supported.\n");
 	}
 
 	if(g_cMain3.Init(PtService, Pt3Manager)) {
 		PtPipeServer3 = g_cMain3.MakePipeServer() ;
 		PtSupported |= 1<<2 ;
-		DBGOUT("PTxCtrl: PT3 is Supported.\n");
+		DBGOUT("PTxCtrl: PT3 is Supported and was Activated.\n");
 	}else {
-		DBGOUT("PTxCtrl: PT3 is Not Supported.\n");
+		DBGOUT("PTxCtrl: PT3 is NOT Supported.\n");
 	}
 
 	LastActivated = GetTickCount() ;
@@ -242,7 +260,7 @@ BOOL CPTxCtrlCmdServiceOperator::ResActivatePt(DWORD PtVer)
 	}
 
 	if(PtVer==3) {
-	    if(g_cMain3.Init(PtService, Pt3Manager)) {
+		if(g_cMain3.Init(PtService, Pt3Manager)) {
 			PtPipeServer3 = g_cMain3.MakePipeServer() ;
 			PtActivated |= 1<<2 ;
 			DBGOUT("PTxCtrl: PT3 was Re-Activated.\n");
@@ -250,7 +268,7 @@ BOOL CPTxCtrlCmdServiceOperator::ResActivatePt(DWORD PtVer)
 			return TRUE ;
 		}
 	}else if(PtVer==1) {
-	    if(g_cMain1.Init(PtService, Pt1Manager)) {
+		if(g_cMain1.Init(PtService, Pt1Manager)) {
 			PtPipeServer1 = g_cMain1.MakePipeServer() ;
 			PtActivated |= 1 ;
 			DBGOUT("PTxCtrl: PT1 was Re-Activated.\n");
@@ -273,22 +291,35 @@ void CPTxCtrlCmdServiceOperator::Main()
 
 	DBGOUT("PTxCtrl: The service is started.\n");
 
+	DWORD LastDeactivated = GetTickCount();
+	BOOL bRstStEnable=FALSE ;
+
 	while(!PtTerminated) {
 
-		BOOL bRstStEnable=FALSE ;
+		DWORD dwServiceWait=15000;
+		DWORD dwDurLastAct = dur(LastActivated) ;
 
-		if(dur(LastActivated)>5000) {
+		if(dwDurLastAct<5000) {
 
 			// 新規クライアントアクティブ化問合わせから5秒間は破棄処理禁止
+			dwServiceWait=5000-dwDurLastAct;
+
+		}else {
+
+			// 破棄処理
 
 			if(PtActivated&(1<<2)) { // PT3
 				if(WaitForSingleObject(g_cMain3.GetStopEvent(),0)==WAIT_OBJECT_0) {
-					ResetEvent(g_hStartEnableEvent); bRstStEnable=TRUE ;
-					if(g_cbMinimumService||!PtService) {
+					if(!bRstStEnable) {
+						ResetEvent(g_hStartEnableEvent);
+						bRstStEnable=TRUE ;
+					}
+					if(g_bXCompactService||!PtService) {
 						SAFE_DELETE(PtPipeServer3);
 						g_cMain3.UnInit();
 						PtActivated &= ~(1<<2) ;
-						DBGOUT("PTxCtrl: PT3 was Stopped.\n");
+						DBGOUT("PTxCtrl: PT3 was De-Activated.\n");
+						if(!PtActivated) LastDeactivated = GetTickCount();
 					}
 					ResetEvent(g_cMain3.GetStopEvent());
 				}
@@ -300,11 +331,12 @@ void CPTxCtrlCmdServiceOperator::Main()
 						ResetEvent(g_hStartEnableEvent);
 						bRstStEnable=TRUE ;
 					}
-					if(g_cbMinimumService||!PtService) {
+					if(g_bXCompactService||!PtService) {
 						SAFE_DELETE(PtPipeServer1);
 						g_cMain1.UnInit();
 						PtActivated &= ~1 ;
-						DBGOUT("PTxCtrl: PT1 was Stopped.\n");
+						DBGOUT("PTxCtrl: PT1 was De-Activated.\n");
+						if(!PtActivated) LastDeactivated = GetTickCount();
 					}
 					ResetEvent(g_cMain1.GetStopEvent());
 				}
@@ -312,10 +344,24 @@ void CPTxCtrlCmdServiceOperator::Main()
 
 		}
 
-		if(!PtActivated && !PtService) { PtTerminated=TRUE; continue; }
-		else if(bRstStEnable) SetEvent(g_hStartEnableEvent);
+		if(!PtActivated && !PtService) {
+			// すべてのクライアントが居なくなった状態
+			DWORD dwDurLastDeact = dur(LastDeactivated) ;
+			// T->Sなどの切替の際のPTxCtrl.exeの再起動を一定時間抑制する処理
+			if(dwDurLastDeact<500) {
+				// 500ミリ秒だけ新規クライアントに接続のチャンスを与える
+				dwServiceWait=500-dwDurLastDeact;
+			}else {
+				// 500ミリ秒経過しても新規クライアントが現れなかったら終了する
+				PtTerminated=TRUE; continue;
+			}
+		}
+		else if(bRstStEnable) {
+			SetEvent(g_hStartEnableEvent);
+			bRstStEnable=FALSE;
+		}
 
-		if(WaitForCmd(15*1000)==WAIT_OBJECT_0) {
+		if(WaitForCmd(dwServiceWait)==WAIT_OBJECT_0) {
 			if(!ServiceReaction()) {
 				DBGOUT("PTxCtrl: The service reaction was failed.\n");
 			}

@@ -56,9 +56,8 @@ HINSTANCE CBonTuner::m_hModule = NULL;
 
 	//PTxCtrlへのコマンド送信用オブジェクト
 	CPTSendCtrlCmd
-        PT1CmdSender(1), PT3CmdSender(3), // PT1/2/3
-        PTwCmdSender(2); // pt2wdm
-
+		PT1CmdSender(1), PT3CmdSender(3), // PT1/2/3
+		PTwCmdSender(2); // pt2wdm
 
 CBonTuner::CBonTuner()
   : m_PtBuff(MAX_DATA_BUFF_COUNT,1)
@@ -69,6 +68,8 @@ CBonTuner::CBonTuner()
 	m_dwCurSpace = 0xFF;
 	m_dwCurChannel = 0xFF;
 	m_hasStream = TRUE ;
+
+	m_dwStartBuffBorder = 0 ;
 
 	m_iID = -1;
 	m_hStopEvent = _CreateEvent(FALSE, FALSE, NULL);
@@ -148,7 +149,7 @@ CBonTuner::CBonTuner()
 
 		parse_fname(L"PTw");
 
-    }else if(m_iPT==3) { // PT3 Tuner
+	}else if(m_iPT==3) { // PT3 Tuner
 
 		wstring strPT3ini = m_strDirPath + L"BonDriver_PT3-ST.ini";
 		if(PathFileExists(strPT3ini.c_str())) strIni = strPT3ini;
@@ -171,6 +172,7 @@ CBonTuner::CBonTuner()
 	m_bFastScan = GetPrivateProfileIntW(L"SET", L"FastScan", 0, strIni.c_str());
 	m_dwSetChDelay = GetPrivateProfileIntW(L"SET", L"SetChDelay", 0, strIni.c_str());
 	m_dwRetryDur = GetPrivateProfileIntW(L"SET", L"RetryDur", 3000, strIni.c_str());
+	m_dwStartBuff = GetPrivateProfileIntW(L"SET", L"StartBuff", 8, strIni.c_str());
 
 	wstring strChSet;
 
@@ -194,7 +196,7 @@ CBonTuner::CBonTuner()
 				strChSet += L"BonDriver_PTw-S.ChSet.txt";
 			else
 				strChSet += L"BonDriver_PTw-T.ChSet.txt";
-        }
+		}
 		if(!m_iPT||!m_chSet.ParseText(strChSet.c_str())) {
 			strChSet = szPath;
 			if (m_isISDB_S)
@@ -629,8 +631,9 @@ const DWORD CBonTuner::GetReadyCount(void)
 	DWORD dwCount = 0;
 	::EnterCriticalSection(&m_CriticalSection);
 	if(m_hasStream) dwCount = (DWORD)m_PtBuff.size();
+	dwCount = dwCount>m_dwStartBuffBorder ? dwCount-m_dwStartBuffBorder : 0 ;
 	::LeaveCriticalSection(&m_CriticalSection);
-	return dwCount;
+	return dwCount ;
 }
 
 const BOOL CBonTuner::GetTsStream(BYTE *pDst, DWORD *pdwSize, DWORD *pdwRemain)
@@ -650,13 +653,18 @@ const BOOL CBonTuner::GetTsStream(BYTE **ppDst, DWORD *pdwSize, DWORD *pdwRemain
 {
 	BOOL bRet;
 	::EnterCriticalSection(&m_CriticalSection);
-	if( m_hasStream && !m_PtBuff.empty() ){
+	if( m_hasStream && m_PtBuff.size() > m_dwStartBuffBorder ){
 		PTBUFFER_OBJECT *buf = m_PtBuff.pull() ;
 		*pdwSize = (DWORD)buf->size();
 		*ppDst = buf->data() ;
-		*pdwRemain = (DWORD)m_PtBuff.size();
+		if(m_PtBuff.size()>m_dwStartBuffBorder)
+			*pdwRemain = (DWORD)m_PtBuff.size()-m_dwStartBuffBorder;
+		else
+			*pdwRemain = 0;
+		if(m_dwStartBuffBorder) m_dwStartBuffBorder-- ;
 		bRet = TRUE;
 	}else{
+		*ppDst = NULL;
 		*pdwSize = 0;
 		*pdwRemain = 0;
 		bRet = FALSE;
@@ -786,9 +794,11 @@ UINT WINAPI CBonTuner::RecvThreadPipeIOProc(LPVOID pParam)
 			if(pSys->m_hasStream) {
 				::EnterCriticalSection(&pSys->m_CriticalSection);
 				bool done = pSys->m_PtBuff.push();
+				DWORD sz = (DWORD)pSys->m_PtBuff.size();
 				::LeaveCriticalSection(&pSys->m_CriticalSection);
 				if(done) {
-					::SetEvent(pSys->m_hOnStreamEvent);
+					if(sz>pSys->m_dwStartBuffBorder)
+						::SetEvent(pSys->m_hOnStreamEvent);
 					pPtBuffObj=nullptr;
 				}
 			}
@@ -849,9 +859,11 @@ UINT WINAPI CBonTuner::RecvThreadSharedMemProc(LPVOID pParam)
 				pPtBuffObj->resize(dwSize);
 				::EnterCriticalSection(&pSys->m_CriticalSection);
 				bool done = pSys->m_PtBuff.push();
+				DWORD sz = (DWORD)pSys->m_PtBuff.size();
 				::LeaveCriticalSection(&pSys->m_CriticalSection);
 				if(done) {
-					::SetEvent(pSys->m_hOnStreamEvent);
+					if(sz>pSys->m_dwStartBuffBorder)
+						::SetEvent(pSys->m_hOnStreamEvent);
 					pPtBuffObj=nullptr;
 				}
 			}
@@ -860,7 +872,7 @@ UINT WINAPI CBonTuner::RecvThreadSharedMemProc(LPVOID pParam)
 			else
 				rem--;
 		}else break;
-    }
+	}
 
 	return 0;
 }
@@ -933,5 +945,6 @@ void CBonTuner::FlushPtBuff(BOOL dispose)
 		}
 	}
 	buf.clear();
+	m_dwStartBuffBorder = m_dwStartBuff ;
 }
 

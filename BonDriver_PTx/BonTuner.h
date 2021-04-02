@@ -84,11 +84,14 @@ protected:
 	BOOL m_bXFirstPT3;
 	DWORD m_dwSetChDelay;
 	DWORD m_dwRetryDur;
+	DWORD m_dwStartBuff;
 
 	BOOL m_bExecPT[4] ;
 
-	CPTSendCtrlCmd *m_pCmdSender ;
-	CPTxCtrlCmdOperator *m_pPTxCtrlOp ;
+	CPTSendCtrlCmd *m_pCmdSender;
+	CPTxCtrlCmdOperator *m_pPTxCtrlOp;
+
+	DWORD m_dwStartBuffBorder;
 
 	void GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive);
 

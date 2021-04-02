@@ -194,7 +194,7 @@ void CPTCtrlMain::CmdOpenTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 	int iID = m_pManager->OpenTuner(bSate);
 	if( iID != -1 ){
 		if(WaitForSingleObject(m_hStopEvent,0)==WAIT_OBJECT_0)
-			ResetEvent(m_hStopEvent);
+			ResetEvent(m_hStopEvent); // I—¹ˆ—‚ÌŽæÁ
 		pResParam->dwParam = CMD_SUCCESS;
 	}else{
 		pResParam->dwParam = CMD_ERR;
@@ -262,7 +262,7 @@ void CPTCtrlMain::CmdOpenTuner2(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 	int iID = m_pManager->OpenTuner2(bSate, iTunerID);
 	if( iID != -1 ){
 		if(WaitForSingleObject(m_hStopEvent,0)==WAIT_OBJECT_0)
-			ResetEvent(m_hStopEvent);
+			ResetEvent(m_hStopEvent); // I—¹ˆ—‚ÌŽæÁ
 		pResParam->dwParam = CMD_SUCCESS;
 	}else{
 		pResParam->dwParam = CMD_ERR;
