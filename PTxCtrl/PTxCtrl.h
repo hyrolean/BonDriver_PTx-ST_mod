@@ -20,6 +20,7 @@ class CPTxCtrlCmdServiceOperator : public CPTxCtrlCmdOperator
 	BOOL PtService;
 	DWORD PtSupported;
 	DWORD PtActivated;
+	DWORD LastActivated;
 	static BOOL PtTerminated;
 public:
 	CPTxCtrlCmdServiceOperator(std::wstring name, BOOL bService);

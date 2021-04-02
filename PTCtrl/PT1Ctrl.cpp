@@ -172,7 +172,7 @@ BOOL SendStatusScm(int iState, int iExitcode, int iProgress)
 
 void StartMain(BOOL bService)
 {
-	std::shared_ptr<IPTManager> pt1_manager(CreatePT1Manager());
+	std::unique_ptr<IPTManager> pt1_manager(CreatePT1Manager());
 	g_cMain.StartMain(bService, pt1_manager.get());
 }
 

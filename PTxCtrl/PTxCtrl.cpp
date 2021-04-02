@@ -2,11 +2,13 @@
 //
 
 #include "stdafx.h"
-#include <memory>
 #include "../Common/PTManager.h"
 #include "../Common/PTCtrlMain.h"
 #include "../Common/ServiceUtil.h"
 #include "PTxCtrl.h"
+
+// サービス実行中にクライアントが居なくなったらSDKを閉じてメモリを開放するかどうか
+const BOOL g_cbMinimumService = FALSE ;
 
 CPTCtrlMain g_cMain3(PT0_GLOBAL_LOCK_MUTEX, CMD_PT3_CTRL_EVENT_WAIT_CONNECT, CMD_PT3_CTRL_PIPE, FALSE);
 CPTCtrlMain g_cMain1(PT0_GLOBAL_LOCK_MUTEX, CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_CTRL_PIPE, FALSE);
@@ -139,7 +141,7 @@ DWORD WINAPI service_ctrl(DWORD dwControl, DWORD dwEventType, LPVOID lpEventData
 			OutputDebugString(_T("SERVICE_CONTROL_POWEREVENT"));
 			if ( dwEventType == PBT_APMQUERYSUSPEND ){
 				OutputDebugString(_T("PBT_APMQUERYSUSPEND"));
-				if( g_cMain1.IsFindOpen() || g_cMain3.IsFindOpen()){
+				if( g_cMain1.IsFindOpen() || g_cMain3.IsFindOpen() ){
 					OutputDebugString(_T("BROADCAST_QUERY_DENY"));
 					return BROADCAST_QUERY_DENY;
 					}
@@ -171,8 +173,7 @@ BOOL SendStatusScm(int iState, int iExitcode, int iProgress)
 
 void StartMain(BOOL bService)
 {
-	unique_ptr<CPTxCtrlCmdServiceOperator>
-		(new CPTxCtrlCmdServiceOperator(CMD_PTX_CTRL_OP,bService))->Main();
+	CPTxCtrlCmdServiceOperator(CMD_PTX_CTRL_OP,bService).Main();
 }
 
 void StopMain()
@@ -196,19 +197,20 @@ CPTxCtrlCmdServiceOperator::CPTxCtrlCmdServiceOperator(wstring name, BOOL bServi
 	if(g_cMain1.Init(PtService, Pt1Manager)) {
 		PtPipeServer1 = g_cMain1.MakePipeServer() ;
 		PtSupported |= 1 ;
-		DBGOUT("PTxCtrl: PT1 Supported.\n");
+		DBGOUT("PTxCtrl: PT1 is Supported.\n");
 	}else {
-		DBGOUT("PTxCtrl: PT1 Not Supported.\n");
+		DBGOUT("PTxCtrl: PT1 is Not Supported.\n");
 	}
 
 	if(g_cMain3.Init(PtService, Pt3Manager)) {
 		PtPipeServer3 = g_cMain3.MakePipeServer() ;
 		PtSupported |= 1<<2 ;
-		DBGOUT("PTxCtrl: PT3 Supported.\n");
+		DBGOUT("PTxCtrl: PT3 is Supported.\n");
 	}else {
-		DBGOUT("PTxCtrl: PT3 Not Supported.\n");
+		DBGOUT("PTxCtrl: PT3 is Not Supported.\n");
 	}
 
+	LastActivated = GetTickCount() ;
 	PtActivated = PtSupported ;
 }
 
@@ -229,12 +231,13 @@ BOOL CPTxCtrlCmdServiceOperator::ResSupported(DWORD &PtBits)
 BOOL CPTxCtrlCmdServiceOperator::ResActivatePt(DWORD PtVer)
 {
 	if( ! (PtSupported&(1<<(PtVer-1))) ) {
-		DBGOUT("PTxCtrl: PT%d Not Supported.\n",PtVer);
+		DBGOUT("PTxCtrl: PT%d is Not Supported.\n",PtVer);
 		return FALSE;
 	}
 
 	if( PtActivated &(1<<(PtVer-1)) ) {
-		DBGOUT("PTxCtrl: PT%d Already Activated.\n",PtVer);
+		DBGOUT("PTxCtrl: PT%d is Already Activated.\n",PtVer);
+		LastActivated = GetTickCount() ;
 		return TRUE;
 	}
 
@@ -242,14 +245,16 @@ BOOL CPTxCtrlCmdServiceOperator::ResActivatePt(DWORD PtVer)
 	    if(g_cMain3.Init(PtService, Pt3Manager)) {
 			PtPipeServer3 = g_cMain3.MakePipeServer() ;
 			PtActivated |= 1<<2 ;
-			DBGOUT("PTxCtrl: PT1 Re-Activated.\n");
+			DBGOUT("PTxCtrl: PT1 was Re-Activated.\n");
+			LastActivated = GetTickCount() ;
 			return TRUE ;
 		}
 	}else if(PtVer==3) {
 	    if(g_cMain1.Init(PtService, Pt1Manager)) {
 			PtPipeServer1 = g_cMain1.MakePipeServer() ;
 			PtActivated |= 1 ;
-			DBGOUT("PTxCtrl: PT3 Re-Activated.\n");
+			DBGOUT("PTxCtrl: PT3 was Re-Activated.\n");
+			LastActivated = GetTickCount() ;
 			return TRUE ;
 		}
 	}
@@ -259,37 +264,52 @@ BOOL CPTxCtrlCmdServiceOperator::ResActivatePt(DWORD PtVer)
 
 void CPTxCtrlCmdServiceOperator::Main()
 {
-	//------ BEGIN OF LOOP ------
+	auto dur =[](DWORD s=0, DWORD e=GetTickCount()) -> DWORD {
+		// duration ( s -> e )
+		return s <= e ? e - s : 0xFFFFFFFFUL - s + 1 + e;
+	};
 
-	DBGOUT("PTxCtrl: service started.\n");
+	//------ BEGIN OF THE SERVICE LOOP ------
+
+	DBGOUT("PTxCtrl: The service is started.\n");
 
 	while(!PtTerminated) {
 
 		BOOL bRstStEnable=FALSE ;
 
-		if(PtActivated&(1<<2)) { // PT3
-			if(WaitForSingleObject(g_cMain3.GetStopEvent(),0)==WAIT_OBJECT_0) {
-				ResetEvent(g_hStartEnableEvent); bRstStEnable=TRUE ;
-				SAFE_DELETE(PtPipeServer3);
-				g_cMain3.UnInit();
-				PtActivated &= ~(1<<2) ;
-				ResetEvent(g_cMain3.GetStopEvent());
-				DBGOUT("PTxCtrl: PT3 Stopped.\n");
-			}
-		}
+		if(dur(LastActivated)>5000) {
 
-		if(PtActivated&1) { // PT1/PT2
-			if(WaitForSingleObject(g_cMain1.GetStopEvent(),0)==WAIT_OBJECT_0) {
-				if(!bRstStEnable) {
-					ResetEvent(g_hStartEnableEvent);
-					bRstStEnable=TRUE ;
+			// 新規クライアントアクティブ化問合わせから5秒間は破棄処理禁止
+
+			if(PtActivated&(1<<2)) { // PT3
+				if(WaitForSingleObject(g_cMain3.GetStopEvent(),0)==WAIT_OBJECT_0) {
+					ResetEvent(g_hStartEnableEvent); bRstStEnable=TRUE ;
+					if(g_cbMinimumService||!PtService) {
+						SAFE_DELETE(PtPipeServer3);
+						g_cMain3.UnInit();
+						PtActivated &= ~(1<<2) ;
+						DBGOUT("PTxCtrl: PT3 was Stopped.\n");
+					}
+					ResetEvent(g_cMain3.GetStopEvent());
 				}
-				SAFE_DELETE(PtPipeServer1);
-				g_cMain1.UnInit();
-				PtActivated &= ~1 ;
-				ResetEvent(g_cMain1.GetStopEvent());
-				DBGOUT("PTxCtrl: PT1 Stopped.\n");
 			}
+
+			if(PtActivated&1) { // PT1/PT2
+				if(WaitForSingleObject(g_cMain1.GetStopEvent(),0)==WAIT_OBJECT_0) {
+					if(!bRstStEnable) {
+						ResetEvent(g_hStartEnableEvent);
+						bRstStEnable=TRUE ;
+					}
+					if(g_cbMinimumService||!PtService) {
+						SAFE_DELETE(PtPipeServer1);
+						g_cMain1.UnInit();
+						PtActivated &= ~1 ;
+						DBGOUT("PTxCtrl: PT1 was Stopped.\n");
+					}
+					ResetEvent(g_cMain1.GetStopEvent());
+				}
+			}
+
 		}
 
 		if(!PtActivated && !PtService) { PtTerminated=TRUE; continue; }
@@ -297,7 +317,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 
 		if(WaitForCmd(15*1000)==WAIT_OBJECT_0) {
 			if(!ServiceReaction()) {
-				DBGOUT("PTxCtrl: service reaction failed.\n");
+				DBGOUT("PTxCtrl: The service reaction was failed.\n");
 			}
 		}else{
 			//アプリ層死んだ時用のチェック
@@ -315,9 +335,9 @@ void CPTxCtrlCmdServiceOperator::Main()
 
 	}
 
-	DBGOUT("PTxCtrl: service finished.\n");
+	DBGOUT("PTxCtrl: The service was finished.\n");
 
-	//------ END OF LOOP ------
+	//------ END OF THE SERVICE LOOP ------
 
 	SAFE_DELETE(PtPipeServer3);
 	SAFE_DELETE(PtPipeServer1);

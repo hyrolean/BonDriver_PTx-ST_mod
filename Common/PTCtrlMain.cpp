@@ -193,6 +193,8 @@ void CPTCtrlMain::CmdOpenTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 	CopyDefData((DWORD*)&bSate, pCmdParam->bData);
 	int iID = m_pManager->OpenTuner(bSate);
 	if( iID != -1 ){
+		if(WaitForSingleObject(m_hStopEvent,0)==WAIT_OBJECT_0)
+			ResetEvent(m_hStopEvent);
 		pResParam->dwParam = CMD_SUCCESS;
 	}else{
 		pResParam->dwParam = CMD_ERR;
@@ -259,6 +261,8 @@ void CPTCtrlMain::CmdOpenTuner2(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 	CopyDefData2((DWORD*)&bSate, (DWORD*)&iTunerID, pCmdParam->bData);
 	int iID = m_pManager->OpenTuner2(bSate, iTunerID);
 	if( iID != -1 ){
+		if(WaitForSingleObject(m_hStopEvent,0)==WAIT_OBJECT_0)
+			ResetEvent(m_hStopEvent);
 		pResParam->dwParam = CMD_SUCCESS;
 	}else{
 		pResParam->dwParam = CMD_ERR;
