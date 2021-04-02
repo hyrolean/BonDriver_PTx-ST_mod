@@ -6,6 +6,7 @@
 
   PTコントロール実行ファイルを PTxCtrl.exe 一本に統合しました。
   PT1/PT2とPT3との同時運用には、いままでPTCtrl.exeとPT3Ctrl.exe両方の実行ファイルが必要でしたが、PTxCtrl.exe一本のみで運用することが可能となりました。
+  EDCBを利用する場合、最低以下の4ファイルをEDCBのBonDriverディレクトリに配置するだけでセットアップ完了となります。
   ```
   [EPGDataCap_BonのBonDriverフォルダ内の一例]
   BonDriver_PTx-S.dll ← BS/CS110 複合チューナー S側ID自動判別 (BonDriver_PTx.dllをリネームしたもの)
@@ -19,7 +20,7 @@
   BonDriverを統合し、IBonDriver3(Bonドライバインタフェース3)にも対応しました。
   今回、BonDriverを統合したことにより、たとえば、PT2とPT3をミックスして使っているような違うチューナーの種類をBonDriverで分別することによって発生していた煩わしいコストを削減できます。
 
-  IBonDriver3に対応したことにより、たとえば、EDCBを利用する場合、最悪以下の5ファイルをEDCBのBonDriverディレクトリに配置し、チャンネルスキャンした後に、EpgTimerの設定画面|基本設定|チューナー|の各々の**チューナー数**の項目を運用しているPT1/2/3の種類に関わらず、運用しているPTx全個体数(PT1/2/3を嵌めているPCIカード数)の2倍に調整すればインストール完了です。
+  IBonDriver3に対応したことにより、たとえば、EDCBを利用する場合、最低以下の5ファイルをEDCBのBonDriverディレクトリに配置し、チャンネルスキャンした後に、EpgTimerの設定画面|基本設定|チューナー|の各々の**チューナー数**の項目を運用しているPT1/2/3の種類に関わらず、運用しているPTx全個体数(PT1/2/3を嵌めているPCIカード数)の2倍に調整すればインストール完了です。
   ```
   [EPGDataCap_BonのBonDriverフォルダ内の一例]
   BonDriver_PTx-S.dll ← BS/CS110 複合チューナー S側ID自動判別 (BonDriver_PTx.dllをリネームしたもの)
