@@ -5,7 +5,7 @@
 ### ■ PTCtrl.exe と PT3Ctrl.exe を PTxCtrl.exe に統合しました。
 
   PTコントロール実行ファイルを PTxCtrl.exe 一本に統合しました。
-  PT1/PT2とPT3との同時運用には、いままでPTCtrl.exeとPT3Ctrl.exe両方の実行ファイルが必要でしたが、実質PTxCtrl.exe一本のみで運用することが可能となりました。
+  PT1/PT2とPT3との同時運用には、いままでPTCtrl.exeとPT3Ctrl.exe両方の実行ファイルが必要でしたが、PTxCtrl.exeに両方の機能をまとめることにより、実質PTxCtrl.exe一本のみで運用することを可能としました。
   EDCBを利用する場合、最低以下の4ファイルをEDCBのBonDriverディレクトリに配置するだけでセットアップ完了となります。(PT3、PT1/PT2、両方のSDKのインストールは必要なく、最低どちらか一方のSDKをインストールしておくだけでもPTxCtrl.exeは問題なく動作します。)
   ```
   [EPGDataCap_BonのBonDriverフォルダ内の一例]
