@@ -6,7 +6,7 @@
 
   PTコントロール実行ファイルを PTxCtrl.exe 一本に統合しました。
   PT1/PT2とPT3との同時運用には、いままでPTCtrl.exeとPT3Ctrl.exe両方の実行ファイルが必要でしたが、PTxCtrl.exe一本のみで運用することが可能となりました。
-  EDCBを利用する場合、最低以下の4ファイルをEDCBのBonDriverディレクトリに配置するだけでセットアップ完了となります。
+  EDCBを利用する場合、最低以下の4ファイルをEDCBのBonDriverディレクトリに配置するだけでセットアップ完了となります。(PT3、PT1/PT2、最低でもどちらか一方のSDKをインストールしてくだけでもPTxCtrl.exeは問題なく動作します。)
   ```
   [EPGDataCap_BonのBonDriverフォルダ内の一例]
   BonDriver_PTx-S.dll ← BS/CS110 複合チューナー S側ID自動判別 (BonDriver_PTx.dllをリネームしたもの)
