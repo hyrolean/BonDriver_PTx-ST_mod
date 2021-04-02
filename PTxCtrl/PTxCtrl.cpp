@@ -241,19 +241,19 @@ BOOL CPTxCtrlCmdServiceOperator::ResActivatePt(DWORD PtVer)
 		return TRUE;
 	}
 
-	if(PtVer==1) {
+	if(PtVer==3) {
 	    if(g_cMain3.Init(PtService, Pt3Manager)) {
 			PtPipeServer3 = g_cMain3.MakePipeServer() ;
 			PtActivated |= 1<<2 ;
-			DBGOUT("PTxCtrl: PT1 was Re-Activated.\n");
+			DBGOUT("PTxCtrl: PT3 was Re-Activated.\n");
 			LastActivated = GetTickCount() ;
 			return TRUE ;
 		}
-	}else if(PtVer==3) {
+	}else if(PtVer==1) {
 	    if(g_cMain1.Init(PtService, Pt1Manager)) {
 			PtPipeServer1 = g_cMain1.MakePipeServer() ;
 			PtActivated |= 1 ;
-			DBGOUT("PTxCtrl: PT3 was Re-Activated.\n");
+			DBGOUT("PTxCtrl: PT1 was Re-Activated.\n");
 			LastActivated = GetTickCount() ;
 			return TRUE ;
 		}
