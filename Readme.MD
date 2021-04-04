@@ -15,6 +15,9 @@
   PTxCtrl.exe ← PT1/PT2/PT3 自動判別PT制御実行ファイル
   ```
 
+  - [mod4 BSAlmighty+DeltaHz+DefSpace+PTx fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod4)
+    (Described by 2021/04/05 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+
 ### ■ BonDriver_PT-STとBonDriver_PT3-STを統合しました。
 
   BonDriverを統合し、IBonDriver3(Bonドライバインタフェース3)にも対応しました。
