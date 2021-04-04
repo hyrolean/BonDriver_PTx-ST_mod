@@ -797,8 +797,9 @@ UINT WINAPI CBonTuner::RecvThreadPipeIOProc(LPVOID pParam)
 				DWORD sz = (DWORD)pSys->m_PtBuff.size();
 				::LeaveCriticalSection(&pSys->m_CriticalSection);
 				if(done) {
-					if(sz>pSys->m_dwStartBuffBorder)
+					if(sz>pSys->m_dwStartBuffBorder) {
 						::SetEvent(pSys->m_hOnStreamEvent);
+					}
 					pPtBuffObj=nullptr;
 				}
 			}
@@ -862,8 +863,9 @@ UINT WINAPI CBonTuner::RecvThreadSharedMemProc(LPVOID pParam)
 				DWORD sz = (DWORD)pSys->m_PtBuff.size();
 				::LeaveCriticalSection(&pSys->m_CriticalSection);
 				if(done) {
-					if(sz>pSys->m_dwStartBuffBorder)
+					if(sz>pSys->m_dwStartBuffBorder) {
 						::SetEvent(pSys->m_hOnStreamEvent);
+					}
 					pPtBuffObj=nullptr;
 				}
 			}
@@ -927,7 +929,7 @@ const DWORD CBonTuner::GetActiveDeviceNum(void)
 
 const BOOL CBonTuner::SetLnbPower(const BOOL bEnable)
 {
-	//チューナーをオープンした状態で呼ばないと正しいbehaviorは期待できない
+	//チューナーをオープンした状態で呼ばないと正しい動作は期待できない
 	if(!m_bBon3Lnb) return TRUE;
 	if(!m_hThread) return FALSE;
 	if(m_iID<0) return FALSE;
