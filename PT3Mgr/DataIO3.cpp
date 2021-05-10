@@ -741,10 +741,8 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 		if( pSys->SetBuff(dwID) != NULL ){
 			if(idle) {
 				deque<DWORD>().swap(avg);
-				while(avg.size()<MAX_AVG) {
+				for(sleepy=0;avg.size()<MAX_AVG;sleepy+=avg.front())
 					avg.push_front(MIN_WAIT);
-					sleepy+=avg.front();
-				}
 				idle=false ;
 			}
 			DWORD s=GetTickCount();
