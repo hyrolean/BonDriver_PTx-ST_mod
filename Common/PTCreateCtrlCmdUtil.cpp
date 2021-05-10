@@ -105,3 +105,37 @@ BOOL CopyDefData3(DWORD* pdwValue, DWORD* pdwValue2, DWORD* pdwValue3, BYTE* pBu
 
 	return TRUE;
 }
+
+BOOL CreateDefStreamN(const DWORD *pcdwValueN, DWORD dwNum, CMD_STREAM* pCmd)
+{
+	if( pcdwValueN == NULL || !dwNum || pCmd == NULL ){
+		return FALSE;
+	}
+	pCmd->dwSize = sizeof(DWORD)*dwNum;
+	pCmd->bData = new BYTE[sizeof(DWORD)*dwNum];
+
+	DWORD dwPos = 0;
+
+	for(size_t i=0;i<dwNum;i++) {
+		memcpy(pCmd->bData + dwPos, &pcdwValueN[i], sizeof(DWORD));
+		dwPos+=sizeof(DWORD);
+	}
+
+	return TRUE;
+}
+
+BOOL CopyDefDataN(DWORD* pdwValueN, DWORD dwNum, BYTE* pBuff)
+{
+	if( pdwValueN == NULL || !dwNum || pBuff == NULL ){
+		return FALSE;
+	}
+	DWORD dwPos = 0;
+
+	for(size_t i=0;i<dwNum;i++) {
+		pdwValueN[i] = *(DWORD*)(pBuff+dwPos);
+		dwPos+=sizeof(DWORD);
+	}
+
+	return TRUE;
+}
+

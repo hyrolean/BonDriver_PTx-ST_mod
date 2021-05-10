@@ -65,6 +65,13 @@ BOOL CParseChSet::ParseText(LPCWSTR filePath)
 					if( Parse1Line(parseLine, &item) ){
 						this->spaceMap.insert( pair<DWORD, SPACE_DATA>(item.dwSpace,item) );
 					}
+				}else if( parseLine.find("%") == 0 ){
+					//トランスポンダ
+					TP_DATA item;
+					if( Parse1Line(parseLine, &item) ){
+						DWORD iKey = (item.dwSpace<<16) | item.dwCh;
+						this->tpMap.insert( pair<DWORD, TP_DATA>(iKey,item) );
+					}
 				}else{
 					//チャンネル
 					CH_DATA item;
@@ -97,6 +104,76 @@ BOOL CParseChSet::Parse1Line(string parseLine, SPACE_DATA* info )
 
 	//Space
 	info->dwSpace = atoi(strBuff.c_str());
+
+	return TRUE;
+}
+
+BOOL CParseChSet::Parse1Line(string parseLine, TP_DATA* tpInfo )
+{
+	auto ParseData=[](string strBuff, DWORD lastVal) -> DWORD {
+		if(strBuff=="-") return lastVal ;
+		if(strBuff=="+") return lastVal+1 ;
+		return DWORD(atoi(strBuff.c_str()));
+	};
+
+	auto ParsePT1Ch=[](string strBuff, DWORD lastVal) -> DWORD {
+		DWORD ch=0; int offset=0;
+		if(strBuff.size()>0) {
+			if(strBuff[0]=='-'||strBuff[0]=='+') {
+				ch= lastVal;
+				offset= (ch>>16) & 0xffff;
+				if (offset >= 32768) offset -= 65536;
+				ch&= 0xffff;
+				if(strBuff[0]=='+') ch++;
+				strBuff=strBuff.substr(1,strBuff.size()-1);
+			}
+		}
+		string prefix="", suffix="" ;
+		Separate( strBuff, "+", prefix, suffix);
+		if(suffix!="") {
+			if(prefix!="") ch= atoi(prefix.c_str());
+			offset += atoi(suffix.c_str());
+		}else {
+			Separate( strBuff, "-", prefix, suffix);
+			if(suffix!="") {
+				if(prefix!="") ch= atoi(prefix.c_str());
+				offset -= atoi(suffix.c_str());
+			}else {
+				if(prefix!="") ch= atoi(strBuff.c_str()) ;
+			}
+		}
+		return ch | WORD(offset)<<16 ;
+	};
+
+	if( parseLine.empty() || tpInfo == NULL ){
+		return FALSE;
+	}
+	Replace(parseLine, "%", "");
+	string strBuff="";
+
+	Separate( parseLine, "\t", strBuff, parseLine);
+
+	//Ch名
+	AtoW(strBuff, tpInfo->wszName);
+
+	Separate( parseLine, "\t", strBuff, parseLine);
+
+	//Space
+	tpInfo->dwSpace = ParseData(strBuff, chLast.dwSpace);
+
+	Separate( parseLine, "\t", strBuff, parseLine);
+
+	//Ch
+	tpInfo->dwCh = ParseData(strBuff, chLast.dwCh);
+
+	Separate( parseLine, "\t", strBuff, parseLine);
+
+	//PTxのチャンネル
+	//ch+-offsetで周波数オフセット可に
+    //(fixed by 2020 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+	tpInfo->dwPT1Ch = ParsePT1Ch(strBuff, chLast.dwPT1Ch);
+
+	chLast = tpInfo->ToChData();
 
 	return TRUE;
 }

@@ -47,6 +47,11 @@ public:
 	BOOL SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream);
 	DWORD GetSignal(int iID);
 
+	BOOL SetFreq(int iID, unsigned long ulCh);
+	BOOL GetIdListS(int iID, PTTSIDLIST* pPtTSIDList);
+	BOOL GetIdS(int iID, DWORD *pdwTSID);
+	BOOL SetIdS(int iID, DWORD dwTSID);
+
 	BOOL IsFindOpen();
 
 	BOOL CloseChk();
@@ -233,10 +238,6 @@ public:
 	~CPTxWDMCtrlAuxiliary() { StopStreaming(); }
 
 	int MainLoop() {
-		auto dur =[](DWORD s=0, DWORD e=GetTickCount()) -> DWORD {
-			// duration ( s -> e )
-			return s <= e ? e - s : 0xFFFFFFFFUL - s + 1 + e;
-		};
 		BOOL enable_streaming = FALSE ;
 		while(!Op.Terminated()) {
 			DWORD wait_res = Op.WaitForCmd(CmdWait);
@@ -302,6 +303,11 @@ public:
 
 	BOOL SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream);
 	DWORD GetSignal(int iID);
+
+	BOOL SetFreq(int iID, unsigned long ulCh);
+	BOOL GetIdListS(int iID, PTTSIDLIST* pPtTSIDList);
+	BOOL GetIdS(int iID, DWORD *pdwTSID);
+	BOOL SetIdS(int iID, DWORD dwTSID);
 
 	BOOL IsFindOpen();
 

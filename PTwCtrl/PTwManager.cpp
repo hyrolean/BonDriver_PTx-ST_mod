@@ -345,6 +345,131 @@ BOOL CPTwManager::CloseTuner(int iID)
 	return TRUE ;
 }
 //---------------------------------------------------------------------------
+BOOL CPTwManager::SetFreq(int iID, unsigned long ulCh)
+{
+	critical_lock lock(&Critical_);
+
+	int iDevID = iID>>16;
+	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
+	int iTuner = iID&0x000000FF;
+
+	unsigned long ch = ulCh & 0xffff;
+	//オフセットは無視される(オフセット調整機能は、pt2wdm には存在しない)
+
+	if( (int)m_EnumDev.size() <= iDevID ){
+		return FALSE;
+	}
+
+	BOOL bSate = enISDB == PT::Device::ISDB_S ? TRUE : FALSE ;
+
+	auto PtDrvCh = [&]() -> decltype(ch) { // channel converter for pt2wdm
+		if(bSate) { // BS/CS110
+			return ch;
+		}else {
+			if(ch>=63) { // UHF (13-62)
+				return ch-63 + 51 ;
+			}else if(ch>=3&&ch<=12) { // CATV (C13-C22)
+				return ch-3 ;
+			}else if(ch>=22&&ch<=62) { // CATV (C23-C63)
+				return ch-12 ;
+			} // VHF チャンネルは、pt2wdm には存在しない
+		}
+		return 0xFFFF;
+	};
+
+	auto freq = PtDrvCh();
+	if(freq==0xFFFF)
+		return FALSE ;
+
+	CPTxWDMCmdOperator *client = nullptr ;
+
+	if(bSate) {
+		client = m_EnumDev[iDevID]->cpOperatorS[iTuner] ;
+	}else {
+		client = m_EnumDev[iDevID]->cpOperatorT[iTuner] ;
+	}
+
+	if(!client) return FALSE ; // already closed
+
+	if(client->CmdSetFreq(freq)) {
+		client->CmdPurgeStream();
+		return TRUE ;
+	}
+
+	return FALSE;
+}
+//---------------------------------------------------------------------------
+BOOL CPTwManager::GetIdListS(int iID, PTTSIDLIST* pPtTSIDList)
+{
+	critical_lock lock(&Critical_);
+
+	int iDevID = iID>>16;
+	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
+	int iTuner = iID&0x000000FF;
+
+	if( (int)m_EnumDev.size() <= iDevID || !pPtTSIDList || enISDB != PT::Device::ISDB_S){
+		return FALSE;
+	}
+
+	CPTxWDMCmdOperator *client = m_EnumDev[iDevID]->cpOperatorS[iTuner] ;
+
+	if(!client) return FALSE ; // already closed
+
+	TSIDLIST list = {0} ;
+	if(client->CmdGetIdListS(list)) {
+		for(int i=0;i<8;i++) pPtTSIDList->dwId[i] = list.Id[i] ;
+		return TRUE ;
+	}
+
+	return FALSE ;
+}
+//---------------------------------------------------------------------------
+BOOL CPTwManager::GetIdS(int iID, DWORD *pdwTSID)
+{
+	critical_lock lock(&Critical_);
+
+	int iDevID = iID>>16;
+	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
+	int iTuner = iID&0x000000FF;
+
+	if( (int)m_EnumDev.size() <= iDevID || !pdwTSID || enISDB != PT::Device::ISDB_S){
+		return FALSE;
+	}
+
+	CPTxWDMCmdOperator *client = m_EnumDev[iDevID]->cpOperatorS[iTuner] ;
+
+	if(!client) return FALSE ; // already closed
+
+	if(client->CmdGetIdS(*pdwTSID)) {
+		return TRUE ;
+	}
+
+	return FALSE ;
+}
+//---------------------------------------------------------------------------
+BOOL CPTwManager::SetIdS(int iID, DWORD dwTSID)
+{
+	critical_lock lock(&Critical_);
+
+	int iDevID = iID>>16;
+	PT::Device::ISDB enISDB = (PT::Device::ISDB)((iID&0x0000FF00)>>8);
+	int iTuner = iID&0x000000FF;
+
+	if( (int)m_EnumDev.size() <= iDevID || enISDB != PT::Device::ISDB_S){
+		return FALSE;
+	}
+
+	CPTxWDMCmdOperator *client = m_EnumDev[iDevID]->cpOperatorS[iTuner] ;
+
+	if(!client) return FALSE ; // already closed
+
+	if(client->CmdSetIdS(dwTSID)) {
+		return TRUE ;
+	}
+
+	return FALSE ;
+}
+//---------------------------------------------------------------------------
 BOOL CPTwManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream)
 {
 	critical_lock lock(&Critical_);

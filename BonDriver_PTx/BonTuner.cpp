@@ -276,6 +276,16 @@ void CBonTuner::BuildDefSpace(wstring strIni)
 			m_chSet.chMap.insert( pair<DWORD, CH_DATA>(iKey,item) );
 		};
 
+		auto entry_tp = [&](const wchar_t *prefix) {
+			TP_DATA item;
+			Format(item.wszName,L"%s%02d",prefix,ch);
+			item.dwSpace=spc;
+			item.dwCh=i;
+			item.dwPT1Ch=(ch-1)/2+pt1offs;
+			DWORD iKey = (item.dwSpace<<16) | item.dwCh;
+			m_chSet.tpMap.insert( pair<DWORD, TP_DATA>(iKey,item) );
+		};
+
 		if(BS) {
 			pt1offs=0;
 			if(BSStreamStride) {
@@ -287,6 +297,8 @@ void CBonTuner::BuildDefSpace(wstring strIni)
 				for(ts=0;ts<(BSStreams>0?BSStreams:1);ts++,i++)
 					entry_ch(L"BS",BSStreams>0);
 			}
+			for(i=0,ch=1;ch<=23;ch+=2,i++)
+				entry_tp(L"BS");
 			entry_spc(L"BS");
 		}
 
@@ -301,6 +313,8 @@ void CBonTuner::BuildDefSpace(wstring strIni)
 				for(ts=0;ts<(CS110Streams>0?CS110Streams:1);ts++,i++)
 					entry_ch(L"ND",CS110Streams>0);
 			}
+			for(i=0,ch=2;ch<=24;ch+=2,i++)
+				entry_tp(L"ND");
 			entry_spc(L"CS110");
 		}
 
@@ -333,6 +347,20 @@ void CBonTuner::BuildDefSpace(wstring strIni)
 		}
 
 	}
+}
+
+void CBonTuner::FlushPtBuff(BOOL dispose)
+{
+	PTBUFFER &buf = m_PtBuff ;
+	if(dispose) {
+		buf.dispose();
+		for(size_t i=0; i<INI_DATA_BUFF_COUNT; i++) {
+			buf.head()->growup(DATA_BUFF_SIZE);
+			buf.push();
+		}
+	}
+	buf.clear();
+	m_dwStartBuffBorder = m_dwStartBuff ;
 }
 
 BOOL CBonTuner::LaunchPTCtrl(int iPT)
@@ -514,11 +542,6 @@ BOOL CBonTuner::TryOpenTuner()
 
 const BOOL CBonTuner::OpenTuner(void)
 {
-	auto dur =[](DWORD s=0, DWORD e=GetTickCount()) -> DWORD {
-		// duration ( s -> e )
-		return s <= e ? e - s : 0xFFFFFFFFUL - s + 1 + e;
-	};
-
 	CloseTuner();
 
 	for(DWORD s=dur(),e=s;dur(s,e)<=m_dwRetryDur;e=dur()) {
@@ -936,17 +959,131 @@ const BOOL CBonTuner::SetLnbPower(const BOOL bEnable)
 	return m_pCmdSender->SetLnbPower(m_iID,bEnable) == CMD_SUCCESS ? TRUE : FALSE ;
 }
 
-void CBonTuner::FlushPtBuff(BOOL dispose)
+	//IBonTransponderの機能を追加
+	//(added by 2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+
+	#define TRANSPONDER_CHMASK 0x80000000
+
+LPCTSTR CBonTuner::TransponderEnumerate(const DWORD dwSpace, const DWORD dwTransponder)
 {
-	PTBUFFER &buf = m_PtBuff ;
-	if(dispose) {
-		buf.dispose();
-		for(size_t i=0; i<INI_DATA_BUFF_COUNT; i++) {
-			buf.head()->growup(DATA_BUFF_SIZE);
-			buf.push();
-		}
+	DWORD key = dwSpace<<16 | dwTransponder;
+	map<DWORD, TP_DATA>::iterator itr;
+	itr = m_chSet.tpMap.find(key);
+	if( itr == m_chSet.tpMap.end() ){
+		return NULL;
 	}
-	buf.clear();
-	m_dwStartBuffBorder = m_dwStartBuff ;
+	return itr->second.wszName.c_str();
+}
+
+const BOOL CBonTuner::TransponderSelect(const DWORD dwSpace, const DWORD dwTransponder)
+{
+	if(!m_isISDB_S) return FALSE;
+
+	DWORD key = dwSpace<<16 | dwTransponder;
+	map<DWORD, TP_DATA>::iterator itr;
+	itr = m_chSet.tpMap.find(key);
+	if( itr == m_chSet.tpMap.end() ){
+		return FALSE;
+	}
+
+	DWORD dwRet=CMD_ERR;
+	if(m_iID!=-1){
+		dwRet=m_pCmdSender->SetFreq(m_iID, itr->second.dwPT1Ch);
+	}
+
+	if( dwRet==CMD_SUCCESS ) {
+		m_dwCurSpace = dwSpace;
+		m_dwCurChannel = dwTransponder | TRANSPONDER_CHMASK ;
+		m_hasStream = FALSE; // TransponderSetCurID はまだ行っていないので
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+const BOOL CBonTuner::TransponderGetIDList(LPDWORD lpIDList, LPDWORD lpdwNumID)
+{
+	if(!m_isISDB_S) return FALSE;
+
+	DWORD dwRet=CMD_ERR;
+	PTTSIDLIST PtTSIDList;
+	const DWORD numId = sizeof(PtTSIDList) / sizeof(DWORD) ;
+
+	if(lpdwNumID==NULL) {
+		return FALSE ;
+	}else if(lpIDList==NULL) {
+		*lpdwNumID = numId ;
+		return TRUE ;
+	}
+
+	if(m_iID!=-1){
+		dwRet=m_pCmdSender->GetIdListS(m_iID, &PtTSIDList);
+	}
+
+	if(dwRet==CMD_SUCCESS) {
+		if(*lpdwNumID>numId) *lpdwNumID = numId ;
+		for(DWORD i=0;i<*lpdwNumID;i++) {
+			if(!PtTSIDList.dwId[i]||(PtTSIDList.dwId[i]&0xFFFF)==0xFFFF)
+				lpIDList[i] = 0xFFFFFFFF;
+			else
+				lpIDList[i] = PtTSIDList.dwId[i] ;
+		}
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+const BOOL CBonTuner::TransponderSetCurID(const DWORD dwID)
+{
+	if(!m_isISDB_S) return FALSE;
+
+	DWORD dwRet=CMD_ERR;
+	if(m_iID!=-1){
+		dwRet=m_pCmdSender->SetIdS(m_iID, dwID);
+	}
+
+	if(dwRet==CMD_SUCCESS) {
+		m_hasStream=TRUE;
+		return TRUE;
+	}
+
+	m_hasStream=FALSE;
+	return FALSE;
+}
+
+const BOOL CBonTuner::TransponderGetCurID(LPDWORD lpdwID)
+{
+	if(lpdwID==NULL||!m_isISDB_S) return FALSE;
+
+	DWORD dwRet=CMD_ERR;
+	if(m_iID!=-1){
+		if(!m_hasStream) {
+			*lpdwID=0xFFFFFFFF;
+			return TRUE;
+		}
+		else
+			dwRet=m_pCmdSender->GetIdS(m_iID, lpdwID);
+	}
+
+	if(dwRet==CMD_SUCCESS) {
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+	//IBonPTxの機能を追加
+	//(added by 2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+
+const DWORD CBonTuner::TransponderGetPTxCh(const DWORD dwSpace, const DWORD dwTransponder)
+{
+	DWORD key = dwSpace<<16 | dwTransponder;
+	map<DWORD, TP_DATA>::iterator itr;
+	itr = m_chSet.tpMap.find(key);
+	if( itr == m_chSet.tpMap.end() ){
+		return 0xFFFFFFFF;
+	}
+	return itr->second.dwPT1Ch;
 }
 

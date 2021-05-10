@@ -75,5 +75,9 @@ void _OutputDebugString(const TCHAR *pOutputString, ...);
 
 #endif
 
+	auto inline dur(DWORD s=0, DWORD e=GetTickCount()) -> DWORD {
+		// duration ( s -> e )
+		return s <= e ? e - s : 0xFFFFFFFFUL - s + 1 + e;
+	};
 
 #endif

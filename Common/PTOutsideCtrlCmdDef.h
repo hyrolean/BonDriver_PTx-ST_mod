@@ -110,6 +110,12 @@
 #define CMD_SEND_DATA 10
 #define CMD_GET_STREAMING_METHOD 11
 
+#define CMD_SET_FREQ 32
+#define CMD_GET_IDLIST_S 33
+#define CMD_SET_ID_S 34
+#define CMD_GET_ID_S 35
+
+
 //エラーコード
 #define CMD_SUCCESS			0 //成功
 #define CMD_ERR				1 //汎用エラー

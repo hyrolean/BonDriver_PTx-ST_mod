@@ -37,7 +37,11 @@ public:
 	DWORD SendData(int iID, BYTE** pbData, DWORD* pdwSize, DWORD dwConnectTimeOut = CONNECT_TIMEOUT );
 	DWORD SendBufferObject(int iID, PTBUFFER_OBJECT *pPtBuffObj, DWORD dwConnectTimeOut = CONNECT_TIMEOUT );
 	DWORD GetStreamingMethod(PTSTREAMING *pPTStreaming, DWORD dwConnectTimeOut = CONNECT_TIMEOUT );
-
+    // for IBonTransponder
+	DWORD SetFreq(int iID, DWORD dwCh, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
+	DWORD GetIdListS(int iID, PTTSIDLIST *pPtTSIDList, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
+	DWORD GetIdS(int iID, DWORD *pdwTSID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
+	DWORD SetIdS(int iID, DWORD dwTSID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
 };
 
 #endif

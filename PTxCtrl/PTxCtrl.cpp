@@ -282,11 +282,6 @@ BOOL CPTxCtrlCmdServiceOperator::ResActivatePt(DWORD PtVer)
 
 void CPTxCtrlCmdServiceOperator::Main()
 {
-	auto dur =[](DWORD s=0, DWORD e=GetTickCount()) -> DWORD {
-		// duration ( s -> e )
-		return s <= e ? e - s : 0xFFFFFFFFUL - s + 1 + e;
-	};
-
 	//------ BEGIN OF THE SERVICE LOOP ------
 
 	DBGOUT("PTxCtrl: The service is started.\n");

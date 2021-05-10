@@ -146,6 +146,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\Common\IBonDriver.h" />
+    <ClInclude Include="..\Common\IBonDriver2.h" />
+    <ClInclude Include="..\Common\IBonDriver3.h" />
+    <ClInclude Include="..\Common\IBonPTx.h" />
+    <ClInclude Include="..\Common\IBonTransponder.h" />
     <ClInclude Include="..\Common\PipeServer.h" />
     <ClInclude Include="..\Common\PoolBuffer.h" />
     <ClInclude Include="..\Common\PTCreateCtrlCmdUtil.h" />
@@ -156,9 +161,6 @@
     <ClInclude Include="..\Common\StringUtil.h" />
     <ClInclude Include="..\Common\Util.h" />
     <ClInclude Include="BonTuner.h" />
-    <ClInclude Include="IBonDriver.h" />
-    <ClInclude Include="IBonDriver2.h" />
-    <ClInclude Include="IBonDriver3.h" />
     <ClInclude Include="ParseChSet.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />

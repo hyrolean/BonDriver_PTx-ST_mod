@@ -5,7 +5,8 @@
 #pragma once
 
 
-#include "IBonDriver3.h"
+#include "../Common/IBonTransponder.h"
+#include "../Common/IBonPTx.h"
 #include "../Common/PTSendCtrlCmdUtil.h"
 #include "../Common/PTxCtrlCmd.h"
 #include "ParseChSet.h"
@@ -15,7 +16,7 @@
 void InitializeBonTuners(HMODULE hModule);
 void FinalizeBonTuners();
 
-class CBonTuner : public IBonDriver3
+class CBonTuner : public IBonDriver3Transponder, public IBonPTx
 {
 public:
 	CBonTuner();
@@ -53,6 +54,16 @@ public:
 	const DWORD GetTotalDeviceNum(void);
 	const DWORD GetActiveDeviceNum(void);
 	const BOOL SetLnbPower(const BOOL bEnable);
+
+// IBonTransponder
+	LPCTSTR TransponderEnumerate(const DWORD dwSpace, const DWORD dwTransponder);
+	const BOOL TransponderSelect(const DWORD dwSpace, const DWORD dwTransponder);
+	const BOOL TransponderGetIDList(LPDWORD lpIDList, LPDWORD lpdwNumID);
+	const BOOL TransponderSetCurID(const DWORD dwID);
+	const BOOL TransponderGetCurID(LPDWORD lpdwID);
+
+// IBonPTx
+	const DWORD TransponderGetPTxCh(const DWORD dwSpace, const DWORD dwTransponder);
 
 	void Release(void);
 

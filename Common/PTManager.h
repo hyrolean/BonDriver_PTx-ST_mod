@@ -5,6 +5,8 @@ enum PTSTREAMING : DWORD {
 	PTSTREAMING_SHAREDMEM=1
 };
 
+struct PTTSIDLIST { DWORD dwId[8]; };
+
 class IPTManager
 {
 public:
@@ -30,6 +32,11 @@ public:
 
 	virtual BOOL SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream) = 0 ;
 	virtual DWORD GetSignal(int iID) = 0 ;
+
+	virtual BOOL SetFreq(int iID, unsigned long ulCh) = 0 ;
+	virtual BOOL GetIdListS(int iID, PTTSIDLIST* pPtTSIDList) = 0 ;
+	virtual BOOL GetIdS(int iID, DWORD *pdwTSID) = 0 ;
+	virtual BOOL SetIdS(int iID, DWORD dwTSID) = 0 ;
 
 	virtual BOOL IsFindOpen() = 0 ;
 

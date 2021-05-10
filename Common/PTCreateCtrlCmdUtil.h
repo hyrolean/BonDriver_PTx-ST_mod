@@ -12,4 +12,7 @@ BOOL CopyDefData2(DWORD* pdwValue, DWORD* pdwValue2, BYTE* pBuff);
 BOOL CreateDefStream3(DWORD dwValue, DWORD dwValue2, DWORD dwValue3, CMD_STREAM* pCmd);
 BOOL CopyDefData3(DWORD* pdwValue, DWORD* pdwValue2, DWORD* pdwValue3, BYTE* pBuff);
 
+BOOL CreateDefStreamN(const DWORD *pcdwValueN, DWORD dwNum, CMD_STREAM* pCmd);
+BOOL CopyDefDataN(DWORD* pdwValueN, DWORD dwNum, BYTE* pBuff);
+
 #endif

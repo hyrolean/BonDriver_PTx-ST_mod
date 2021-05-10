@@ -133,10 +133,6 @@ BOOL CSharedCmdOperator::Recv(LPVOID cmd, DWORD timeout)
 DWORD CSharedCmdOperator::WaitForCmd(DWORD timeout)
 {
 	if(!IsValid()) return WAIT_FAILED ;
-	auto dur =[](DWORD s=0, DWORD e=GetTickCount()) -> DWORD {
-		// duration ( s -> e )
-		return s <= e ? e - s : 0xFFFFFFFFUL - s + 1 + e;
-	};
 	DWORD res = WAIT_FAILED;
 	DWORD e = dur();
 	HANDLE hListen = NULL ;

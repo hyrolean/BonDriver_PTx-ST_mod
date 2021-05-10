@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BonDriver_PTx", "BonDriver_PTx\BonDriver_PTx.vcxproj", "{BF775E2E-70BF-4DAA-ADB7-62D075369AC9}"
 EndProject
@@ -26,6 +26,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PTxCtrl", "PTxCtrl\PTxCtrl.
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PTwCtrl", "PTwCtrl\PTwCtrl.vcxproj", "{8C72EB9A-2DC3-48BA-8809-C1D4B7DDD805}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PTxScanS", "PTxScanS\PTxScanS.vcxproj", "{05E2C054-5352-4A1B-A9DC-894C9086B652}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -91,6 +93,14 @@ Global
 		{8C72EB9A-2DC3-48BA-8809-C1D4B7DDD805}.Release|Win32.Build.0 = Release|Win32
 		{8C72EB9A-2DC3-48BA-8809-C1D4B7DDD805}.Release|x64.ActiveCfg = Release|x64
 		{8C72EB9A-2DC3-48BA-8809-C1D4B7DDD805}.Release|x64.Build.0 = Release|x64
+		{05E2C054-5352-4A1B-A9DC-894C9086B652}.Debug|Win32.ActiveCfg = Debug|Win32
+		{05E2C054-5352-4A1B-A9DC-894C9086B652}.Debug|Win32.Build.0 = Debug|Win32
+		{05E2C054-5352-4A1B-A9DC-894C9086B652}.Debug|x64.ActiveCfg = Debug|x64
+		{05E2C054-5352-4A1B-A9DC-894C9086B652}.Debug|x64.Build.0 = Debug|x64
+		{05E2C054-5352-4A1B-A9DC-894C9086B652}.Release|Win32.ActiveCfg = Release|Win32
+		{05E2C054-5352-4A1B-A9DC-894C9086B652}.Release|Win32.Build.0 = Release|Win32
+		{05E2C054-5352-4A1B-A9DC-894C9086B652}.Release|x64.ActiveCfg = Release|x64
+		{05E2C054-5352-4A1B-A9DC-894C9086B652}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

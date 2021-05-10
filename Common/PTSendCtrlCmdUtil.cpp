@@ -286,3 +286,61 @@ DWORD CPTSendCtrlCmd::GetStreamingMethod(PTSTREAMING *pPTStreaming, DWORD dwConn
 	return dwRet;
 }
 
+DWORD CPTSendCtrlCmd::SetFreq(int iID, DWORD dwCh, DWORD dwConnectTimeOut)
+{
+	CMD_STREAM stSend;
+	CMD_STREAM stRes;
+
+	stSend.dwParam = CMD_SET_FREQ;
+	CreateDefStream2(iID, dwCh, &stSend);
+
+	DWORD dwRet = SendDefCmd(m_strCmdEvent.c_str(), m_strCmdPipe.c_str(), dwConnectTimeOut, &stSend, &stRes);
+
+	return dwRet;
+}
+
+DWORD CPTSendCtrlCmd::GetIdListS(int iID, PTTSIDLIST *pPtTSIDList, DWORD dwConnectTimeOut)
+{
+	CMD_STREAM stSend;
+	CMD_STREAM stRes;
+
+	stSend.dwParam = CMD_GET_IDLIST_S;
+	CreateDefStream(iID, &stSend);
+
+	DWORD dwRet = SendDefCmd(m_strCmdEvent.c_str(), m_strCmdPipe.c_str(), dwConnectTimeOut, &stSend, &stRes);
+	if( dwRet == CMD_SUCCESS ){
+		CopyDefDataN(&(pPtTSIDList->dwId[0]), 8, stRes.bData);
+	}
+
+	return dwRet;
+}
+
+DWORD CPTSendCtrlCmd::GetIdS(int iID, DWORD *pdwTSID, DWORD dwConnectTimeOut)
+{
+	CMD_STREAM stSend;
+	CMD_STREAM stRes;
+
+	stSend.dwParam = CMD_GET_ID_S;
+	CreateDefStream(iID, &stSend);
+
+	DWORD dwRet = SendDefCmd(m_strCmdEvent.c_str(), m_strCmdPipe.c_str(), dwConnectTimeOut, &stSend, &stRes);
+	if( dwRet == CMD_SUCCESS ){
+		CopyDefData(pdwTSID, stRes.bData);
+	}
+
+	return dwRet;
+}
+
+DWORD CPTSendCtrlCmd::SetIdS(int iID, DWORD dwTSID, DWORD dwConnectTimeOut)
+{
+	CMD_STREAM stSend;
+	CMD_STREAM stRes;
+
+	stSend.dwParam = CMD_SET_ID_S;
+	CreateDefStream2(iID, dwTSID, &stSend);
+
+	DWORD dwRet = SendDefCmd(m_strCmdEvent.c_str(), m_strCmdPipe.c_str(), dwConnectTimeOut, &stSend, &stRes);
+
+	return dwRet;
+}
+

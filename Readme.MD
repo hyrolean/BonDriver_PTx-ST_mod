@@ -2,6 +2,19 @@
 
 ## オリジナルのBonDriver_PT3(人柱版4)との使用する上での相違点
 
+### ■ サテライト側の.ChSet.txtファイルを自動生成するプログラム PTxScanS.exe を追加。
+
+  各々のBonDriverが存在するディレクトリにPTxScanS.exeを配置して実行し、指示に従うだけで容易にサテライト側の.ChSet.txtファイルを自動生成することを可能とする機能を追加しました。
+  ```
+  [PTxScanS.exe配置例]
+  BonDriver_PTx-S0.dll ← BS/CS110 複合チューナーの最初のチューナーのS1端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
+  BonDriver_PTx-S1.dll ← BS/CS110 複合チューナーの最初のチューナーのS2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
+  BonDriver_PTx-ST.ini
+  PTxCtrl.exe ← PT1/PT2/PT3 自動判別PT制御実行ファイル
+  PTxScanS.exe ← BonDriver_PTx-S?.dll と同一ディレクトリに配置して実行すると、.ChSet.txtファイルを自動生成する
+  ```
+  ※ちなみに、スキャン結果を出力したファイルの名前をBonDriver_PTx-S.ChSet.txtに名前変更すると、すべてのサテライト用BonDriverで利用できるチャンネル設定ファイルとして扱うことが可能です。
+
 ### ■ PTCtrl.exe と PT3Ctrl.exe を PTxCtrl.exe に統合しました。
 
   PT制御実行ファイルを PTxCtrl.exe 一本に統合しました。

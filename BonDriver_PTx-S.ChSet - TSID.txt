@@ -1,4 +1,4 @@
-; -*- This file was generated automatically by PTScanS -*-
+; -*- This file was generated automatically by PTxScanS -*-
 ;	@ Wed Apr 14 13:26:27 2021
 ;BS/CS用
 ;チューナー空間(タブ区切り：$名称	BonDriverとしてのチューナ空間

@@ -60,4 +60,12 @@ protected:
 	void CmdOpenTuner2(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
 	//CMD_GET_STREAMING_METHOD GetStreamingMethod
 	void CmdGetStreamingMethod(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
+	//CMD_SET_FREQ SetFreq
+	void CmdSetFreq(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
+	//CMD_GET_IDLIST_S GetIdListS
+	void CmdGetIdListS(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
+	//CMD_GET_ID_S GetIdS
+	void CmdGetIdS(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
+	//CMD_SET_ID_S SetIdS
+	void CmdSetIdS(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
 };

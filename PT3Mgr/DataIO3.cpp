@@ -728,22 +728,53 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 	HANDLE hCurThread = GetCurrentThread();
 	SetThreadPriority(hCurThread, THREAD_PRIORITY_HIGHEST);
 
+	const DWORD IDLE_WAIT = 250 ;
+	const DWORD MAX_WAIT = 100 ;
+	const DWORD MIN_WAIT = 0 ;
+	const size_t MAX_AVG = 10 ;
+	deque<DWORD> avg ;
+	DWORD sleepy=0 ;
+	bool idle = true ;
+
 	while(!pSys->m_bThTerm) {
-		DWORD sleepy=10 ;
 		pSys->SetBuffLock(dwID);
 		if( pSys->SetBuff(dwID) != NULL ){
+			if(idle) {
+				deque<DWORD>().swap(avg);
+				while(avg.size()<MAX_AVG) {
+					avg.push_front(MIN_WAIT);
+					sleepy+=avg.front();
+				}
+				idle=false ;
+			}
+			DWORD s=GetTickCount();
 			if( pSys->CheckReady(dwID) ){
+				DWORD e=GetTickCount();
+				if(e-s<MAX_WAIT) {
+					avg.push_front(e-s);
+					sleepy+=avg.front();
+				}
 				if( pSys->ReadAddBuff(dwID) ){
 					pSys->WriteIndex(dwID)++;
 					if (pSys->VIRTUAL_COUNT <= pSys->WriteIndex(dwID)) {
 						pSys->WriteIndex(dwID) = 0;
 					}
-					sleepy=0;
+					avg.push_front(MIN_WAIT) ;
+					sleepy+=MIN_WAIT;
 				}
 			}
-		}else sleepy=100 ;
+		}else {
+			avg.push_front(IDLE_WAIT) ;
+			sleepy+=avg.front() ;
+			idle = true ;
+		}
 		pSys->SetBuffUnLock(dwID);
-		if(sleepy) Sleep(sleepy);
+		while(avg.size()>MAX_AVG) {
+			sleepy-=avg.back();
+			avg.pop_back();
+		}
+		if(DWORD wait = avg.size()>0 ? DWORD(sleepy/avg.size()) : 0)
+			Sleep(wait);
 	}
 
 	return 0;

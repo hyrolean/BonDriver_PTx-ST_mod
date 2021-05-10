@@ -30,15 +30,6 @@
     <ClInclude Include="BonTuner.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="IBonDriver.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="IBonDriver2.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="IBonDriver3.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="ParseChSet.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -70,6 +61,21 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\PTxCtrlCmd.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\IBonDriver.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\IBonDriver2.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\IBonDriver3.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\IBonTransponder.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\IBonPTx.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>

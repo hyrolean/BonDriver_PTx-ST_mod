@@ -28,6 +28,11 @@ public:
 	BOOL SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream);
 	DWORD GetSignal(int iID);
 
+	BOOL SetFreq(int iID, unsigned long ulCh);
+	BOOL GetIdListS(int iID, PTTSIDLIST* pPtTSIDList);
+	BOOL GetIdS(int iID, DWORD *pdwTSID);
+	BOOL SetIdS(int iID, DWORD dwTSID);
+
 	BOOL IsFindOpen();
 
 	BOOL CloseChk();

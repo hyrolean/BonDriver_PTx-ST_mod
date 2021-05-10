@@ -133,6 +133,18 @@ int CALLBACK CPTCtrlMain::OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdParam
 		case CMD_GET_STREAMING_METHOD:
 			pSys->CmdGetStreamingMethod(pCmdParam, pResParam);
 			break;
+		case CMD_SET_FREQ:
+			pSys->CmdSetFreq(pCmdParam, pResParam);
+			break;
+		case CMD_GET_IDLIST_S:
+			pSys->CmdGetIdListS(pCmdParam, pResParam);
+			break;
+		case CMD_SET_ID_S:
+			pSys->CmdSetIdS(pCmdParam, pResParam);
+			break;
+		case CMD_GET_ID_S:
+			pSys->CmdGetIdS(pCmdParam, pResParam);
+			break;
 		default:
 			pResParam->dwParam = CMD_NON_SUPPORT;
 			break;
@@ -277,6 +289,64 @@ void CPTCtrlMain::CmdGetStreamingMethod(CMD_STREAM* pCmdParam, CMD_STREAM* pResP
 
 	pResParam->dwParam = CMD_SUCCESS;
 	CreateDefStream(method, pResParam);
+}
+
+//CMD_SET_FREQ SetFreq
+void CPTCtrlMain::CmdSetFreq(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+{
+	int iID;
+	DWORD dwCh;
+	CopyDefData2((DWORD*)&iID, (DWORD*)&dwCh, pCmdParam->bData);
+	BOOL bRes = m_pManager->SetFreq(iID, dwCh);
+	if( bRes ){
+		pResParam->dwParam = CMD_SUCCESS;
+	}else{
+		pResParam->dwParam = CMD_ERR;
+	}
+}
+
+//CMD_GET_IDLIST_S GetIdListS
+void CPTCtrlMain::CmdGetIdListS(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+{
+	int iID;
+	CopyDefData((DWORD*)&iID, pCmdParam->bData);
+	PTTSIDLIST list = {0} ;
+	BOOL bRes = m_pManager->GetIdListS(iID, &list);
+	if( bRes ){
+		pResParam->dwParam = CMD_SUCCESS;
+	}else{
+		pResParam->dwParam = CMD_ERR;
+	}
+	CreateDefStreamN(&list.dwId[0], 8, pResParam);
+}
+
+//CMD_GET_ID_S GetIdS
+void CPTCtrlMain::CmdGetIdS(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+{
+	int iID;
+	CopyDefData((DWORD*)&iID, pCmdParam->bData);
+	DWORD dwId=0;
+	BOOL bRes = m_pManager->GetIdS(iID, &dwId);
+	if( bRes ){
+		pResParam->dwParam = CMD_SUCCESS;
+	}else{
+		pResParam->dwParam = CMD_ERR;
+	}
+	CreateDefStream(dwId, pResParam);
+}
+
+//CMD_SET_ID_S SetIdS
+void CPTCtrlMain::CmdSetIdS(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+{
+	int iID;
+	DWORD dwId;
+	CopyDefData2((DWORD*)&iID, (DWORD*)&dwId, pCmdParam->bData);
+	BOOL bRes = m_pManager->SetIdS(iID, dwId);
+	if( bRes ){
+		pResParam->dwParam = CMD_SUCCESS;
+	}else{
+		pResParam->dwParam = CMD_ERR;
+	}
 }
 
 BOOL CPTCtrlMain::IsFindOpen()
