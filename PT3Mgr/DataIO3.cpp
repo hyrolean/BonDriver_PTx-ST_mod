@@ -729,14 +729,15 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 	HANDLE hCurThread = GetCurrentThread();
 	SetThreadPriority(hCurThread, THREAD_PRIORITY_HIGHEST);
 
-	const DWORD IDLE_WAIT = 300 ;
-	const DWORD MAX_WAIT = 150 ;
+	const DWORD IDLE_WAIT = 250 ;
+	const DWORD MAX_WAIT = 200 ;
 	const DWORD MIN_WAIT = 0 ;
 	const size_t MAX_AVG = 10 ;
 	fixed_queue<DWORD> avg(MAX_AVG+2) ;
 	DWORD sleepy=0 ;
 	bool idle = true ;
 
+	DWORD s=GetTickCount();
 	while(!pSys->m_bThTerm) {
 		pSys->SetBuffLock(dwID);
 		if( pSys->SetBuff(dwID) != NULL ){
@@ -746,7 +747,6 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 					avg.push_front(MIN_WAIT);
 				idle=false ;
 			}
-			DWORD s=GetTickCount();
 			if( pSys->CheckReady(dwID) ){
 				DWORD e=GetTickCount();
 				avg.push_front(std::min<DWORD>(e-s,MAX_WAIT));
@@ -757,8 +757,12 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 						pSys->WriteIndex(dwID) = 0;
 					}
 					avg.push_front(MIN_WAIT) ;
-					sleepy+=MIN_WAIT;
+					sleepy+=avg.front();
 				}
+			}else {
+				DWORD e=GetTickCount();
+				avg.push_front(std::min<DWORD>(e-s,MAX_WAIT));
+				sleepy+=avg.front();
 			}
 		}else {
 			avg.push_front(IDLE_WAIT) ;
@@ -770,6 +774,7 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 			sleepy-=avg.back();
 			avg.pop_back();
 		}
+		s=GetTickCount();
 		if(DWORD wait = avg.size()>0 ? DWORD(sleepy/avg.size()) : 0)
 			Sleep(wait);
 	}
