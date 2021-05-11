@@ -15,7 +15,7 @@
   ```
   ※ちなみに、スキャン結果を出力したファイルの名前をBonDriver_PTx-S.ChSet.txtに名前変更すると、すべてのサテライト用BonDriverで利用できるチャンネル設定ファイルとして扱うことが可能です。
 
-  - [mod5β(fix) BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod5_beta_fix)
+  - [mod5β(fix2) BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod5_beta_fix2)
     (Described by 2021/05/10 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 
 ### ■ PTCtrl.exe と PT3Ctrl.exe を PTxCtrl.exe に統合しました。
