@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "DataIO3.h"
 #include <process.h>
+#include <algorithm>
 
 #define NOT_SYNC_BYTE		0x74
 
@@ -728,11 +729,11 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 	HANDLE hCurThread = GetCurrentThread();
 	SetThreadPriority(hCurThread, THREAD_PRIORITY_HIGHEST);
 
-	const DWORD IDLE_WAIT = 250 ;
-	const DWORD MAX_WAIT = 100 ;
+	const DWORD IDLE_WAIT = 300 ;
+	const DWORD MAX_WAIT = 150 ;
 	const DWORD MIN_WAIT = 0 ;
 	const size_t MAX_AVG = 10 ;
-	deque<DWORD> avg ;
+	fixed_queue<DWORD> avg(MAX_AVG+2) ;
 	DWORD sleepy=0 ;
 	bool idle = true ;
 
@@ -740,7 +741,7 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 		pSys->SetBuffLock(dwID);
 		if( pSys->SetBuff(dwID) != NULL ){
 			if(idle) {
-				deque<DWORD>().swap(avg);
+				avg.clear();
 				for(sleepy=0;avg.size()<MAX_AVG;sleepy+=avg.front())
 					avg.push_front(MIN_WAIT);
 				idle=false ;
@@ -748,10 +749,8 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 			DWORD s=GetTickCount();
 			if( pSys->CheckReady(dwID) ){
 				DWORD e=GetTickCount();
-				if(e-s<MAX_WAIT) {
-					avg.push_front(e-s);
-					sleepy+=avg.front();
-				}
+				avg.push_front(std::min<DWORD>(e-s,MAX_WAIT));
+				sleepy+=avg.front();
 				if( pSys->ReadAddBuff(dwID) ){
 					pSys->WriteIndex(dwID)++;
 					if (pSys->VIRTUAL_COUNT <= pSys->WriteIndex(dwID)) {

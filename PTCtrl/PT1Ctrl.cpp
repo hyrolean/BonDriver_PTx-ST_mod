@@ -112,19 +112,20 @@ void WINAPI service_main(DWORD dwArgc, LPTSTR *lpszArgv)
 {
 	g_hStatusHandle = RegisterServiceCtrlHandlerEx( SERVICE_NAME, (LPHANDLER_FUNCTION_EX)service_ctrl, NULL);
 
-	if (g_hStatusHandle == NULL){
-		goto cleanup;
-	}
+    do {
 
-	SendStatusScm(SERVICE_START_PENDING, 0, 1);
+		if (g_hStatusHandle == NULL){
+			break;
+		}
 
-	SendStatusScm(SERVICE_RUNNING, 0, 0);
-	StartMain(TRUE);
+		SendStatusScm(SERVICE_START_PENDING, 0, 1);
 
-cleanup:
+		SendStatusScm(SERVICE_RUNNING, 0, 0);
+		StartMain(TRUE);
+
+	} while(0);
+
 	SendStatusScm(SERVICE_STOPPED, 0, 0);
-
-   return;
 }
 
 DWORD WINAPI service_ctrl(DWORD dwControl, DWORD dwEventType, LPVOID lpEventData, LPVOID lpContext)
