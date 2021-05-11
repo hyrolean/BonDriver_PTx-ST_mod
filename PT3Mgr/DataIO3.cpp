@@ -759,22 +759,19 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 					avg.push_front(MIN_WAIT) ;
 					sleepy+=avg.front();
 				}
-			}else {
-				DWORD e=GetTickCount();
-				avg.push_front(std::min<DWORD>(e-s,MAX_WAIT));
-				sleepy+=avg.front();
+				s=GetTickCount();
 			}
 		}else {
 			avg.push_front(IDLE_WAIT) ;
 			sleepy+=avg.front() ;
 			idle = true ;
+			s=GetTickCount();
 		}
 		pSys->SetBuffUnLock(dwID);
 		while(avg.size()>MAX_AVG) {
 			sleepy-=avg.back();
 			avg.pop_back();
 		}
-		s=GetTickCount();
 		if(DWORD wait = avg.size()>0 ? DWORD(sleepy/avg.size()) : 0)
 			Sleep(wait);
 	}
