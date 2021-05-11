@@ -746,6 +746,7 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 				for(sleepy=0;avg.size()<MAX_AVG;sleepy+=avg.front())
 					avg.push_front(MIN_WAIT);
 				idle=false ;
+				s=GetTickCount();
 			}
 			if( pSys->CheckReady(dwID) ){
 				DWORD e=GetTickCount();
@@ -765,7 +766,6 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 			avg.push_front(IDLE_WAIT) ;
 			sleepy+=avg.front() ;
 			idle = true ;
-			s=GetTickCount();
 		}
 		pSys->SetBuffUnLock(dwID);
 		while(avg.size()>MAX_AVG) {
