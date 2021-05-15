@@ -1043,6 +1043,11 @@ const BOOL CBonTuner::TransponderSetCurID(const DWORD dwID)
 		dwRet=m_pCmdSender->SetIdS(m_iID, dwID);
 	}
 
+	if (m_dwSetChDelay)
+		Sleep(m_dwSetChDelay);
+
+	PurgeTsStream();
+
 	if(dwRet==CMD_SUCCESS) {
 		m_hasStream=TRUE;
 		return TRUE;

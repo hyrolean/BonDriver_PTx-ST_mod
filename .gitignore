@@ -46,6 +46,7 @@ Intermediate/
 *.user
 *.sdf
 *.VC.db
+*.aps
 
 # pt2wdm files
 PTwCtrl/inc/*.h

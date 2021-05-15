@@ -236,6 +236,9 @@ bool CheckID(DWORD id)
 	const DWORD wait = 500, max_wait=5000;
 	char status[80] = "\0" ;
 
+	Sleep(wait);
+	BonTuner->PurgeTsStream(); // ‰‰ñŽóM•ª‚ðŽE‚µ‚Ä‚¨‚­
+
 	for(;;) { // signal and bps testing
 		DWORD e = dur();
 		if(dur(s,e)>=max_wait) break;
