@@ -6,7 +6,8 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <time.h>
+#include <deque>
+#include <ctime>
 #include "../Common/IBonTransponder.h"
 #include "../Common/IBonPTx.h"
 
@@ -31,10 +32,40 @@ using TRANSPONDERS = vector<TRANSPONDER> ;
 string AppPath = "" ;
 string BonFile = "" ;
 
+char vp_transponder = 0 ;
+char vp_chset = 0 ;
+char vp_tsid_stream = 'n' ;
+char vp_deep_tuning = 'n' ;
+
 HMODULE BonModule = NULL;
 IBonDriver2 *BonTuner = NULL;
 IBonTransponder *BonTransponder = NULL;
 IBonPTx *BonPTx = NULL;
+
+void help()
+{
+  puts(R"^(Usage:
+  PTxScnanS [-param|+param] [--verbose-param] [BonDriver.dll]
+
+    param, verbose-param:
+      +c, --chset
+        Enable writing the scanning results to the .ChSet.txt file.
+      -c, --no-chset
+        Disable writing the scanning results to the .ChSet.txt file.
+      +t, --transponder
+        Enable writing the transponder information to the scanning results.
+      -t, --no-transponder
+        Disable writing the transponder information to the scanning results.
+      +s, --tsid-stream
+        Write TSID columns as stream number columns to the scanning results.
+      +d, --deep-tuning
+        Test the integrity of the TSID referred from the TMCC-Info one by one.
+      -?|+?, --help
+        Show this help message and exit.
+
+    BonDriver.dll:
+      Load indicated .dll automatically if specified at the last argument.)^");
+}
 
 string wcs2mbcs(wstring src, UINT code_page=CP_ACP)
 {
@@ -70,6 +101,15 @@ string DoSelectS()
 	EnumCandidates(candidates,"BonDriver_PT-S*.dll");
 	EnumCandidates(candidates,"BonDriver_PT3-S*.dll");
 	EnumCandidates(candidates,"BonDriver_PTw-S*.dll");
+	if(candidates.empty()) {
+		help();
+		puts("\nPress <Ctrl+C> to exit.");
+		for(int i=0;i<78;i++) {
+		   putchar('.');
+		   Sleep(1000);
+		}
+		return "";
+	}
 	int choice=-1;
 	for(size_t i=0;i<candidates.size();i+=10) {
 		size_t n=min(candidates.size(),i+10) ;
@@ -82,7 +122,7 @@ string DoSelectS()
 			else
 				printf("サテライトスキャンする候補を選択[0～%d][q=中断]> ",int(n-i-1));
 			char c = tolower(getchar());
-			while(c<0x20) c = tolower(getchar());
+			while(c<=0x20) c = tolower(getchar());
 			putchar('\n');
 			if(n<candidates.size()&&c=='n') break ;
 			else if(c=='q') {
@@ -176,6 +216,73 @@ bool MakeIDList(tsid_vector &idList)
 	return true ;
 }
 
+bool CheckID(DWORD id)
+{
+	if(!BonTransponder->TransponderSetCurID(id)) return false;
+	DWORD curID = 0 ;
+	if(!BonTransponder->TransponderGetCurID(&curID)) return false;
+	if(curID!=id) return false;
+
+	auto dur = [](DWORD s=0, DWORD e=GetTickCount()) -> DWORD {
+		// duration ( s -> e )
+		return s <= e ? e - s : 0xFFFFFFFFUL - s + 1 + e;
+	};
+
+	DWORD s = dur(), u = s ;
+	using rate_t = pair<float,DWORD> ;
+	deque<rate_t> avg;
+	rate_t sum = pair<float,DWORD>(0.f,0), cur = pair<float,DWORD>(-1.f,0) ;
+
+	const DWORD wait = 500, max_wait=5000;
+	char status[80] = "\0" ;
+
+	for(;;) { // signal and bps testing
+		DWORD e = dur();
+		if(dur(s,e)>=max_wait) break;
+		DWORD w = dur(u,e);
+		if(w>=wait) {
+			cur.second = cur.second * 1000 / w ;
+			avg.push_front(cur);
+			sum.first += cur.first ; sum.second += cur.second ;
+			cur = pair<float,DWORD>(-1.f,0) ;
+			if(avg.size()>10) {
+				sum.first -= avg.back().first ;
+				sum.second -= avg.back().second ;
+				avg.pop_back();
+			}
+			float sig = sum.first / float(avg.size()) ;
+			float mbps = (sum.second * 8.f) / (1024.f * 1024.f * float(avg.size())) ;
+			for(size_t i=0;status[i];i++) putchar('\b');
+			for(size_t i=0;status[i];i++) putchar(' ');
+			for(size_t i=0;status[i];i++) putchar('\b');
+			sprintf_s(status,"%.2f dB / %.2f Mbps", sig, mbps);
+			printf("%s",status);
+			u=e ;
+		}
+		int n=BonTuner->GetReadyCount();
+		if(!n) {
+			BonTuner->WaitTsStream(wait);
+			n=BonTuner->GetReadyCount();
+		}
+		while(n>0) {
+			BYTE *buf=NULL; DWORD sz=0, rem=0;
+			if(BonTuner->GetTsStream(&buf, &sz, &rem)) {
+				cur.second += sz ;
+			}
+			if(!--n) {
+				float sig = BonTuner->GetSignalLevel();
+				if(sig>cur.first) cur.first = sig ;
+			}
+		}
+	}
+
+	for(size_t i=0;status[i];i++) putchar('\b');
+	for(size_t i=0;status[i];i++) putchar(' ');
+	for(size_t i=0;status[i];i++) putchar('\b');
+
+	return sum.first  > 0.f  && sum.second > 0 ;
+}
+
 bool OutChSet(string out_file, const str_vector &spaces, const vector<TRANSPONDERS> &transponders_list, bool out_transponders)
 {
 	string filename = AppPath + out_file ;
@@ -215,16 +322,20 @@ bool OutChSet(string out_file, const str_vector &spaces, const vector<TRANSPONDE
 		"BonDriverとしてのチャンネル\t"
 		"PTxとしてのチャンネル\t"
 		"TSID(10進数で衛星波以外は0))\n",st);
+	if(vp_tsid_stream=='y')
+		fputs(";(※ただし、TSIDの記述が7以下の場合は、"
+			"ストリーム番号を意味する[mod])\n",st);
 	for(size_t spc=0;spc<transponders_list.size();spc++) {
 		const TRANSPONDERS &trapons = transponders_list[spc];
 		for(size_t tp=0,n=0;tp<trapons.size();tp++) {
 			const TRANSPONDER &trpn = trapons[tp] ;
 			DWORD ptxch = BonPTx->TransponderGetPTxCh((DWORD)spc,(DWORD)tp);
-			for(size_t ts=0;ts<trpn.TSIDs.size();ts++) {
-				DWORD id = trpn.TSIDs[ts] ;
+			for(auto id : trpn.TSIDs) {
 				fprintf(st,"%s/TS%d\t%d\t%d\t%d\t%d\n",
-					trpn.Name.c_str(),
-					(int)id&7,(int)spc,(int)n,(int)ptxch,(int)id);
+						trpn.Name.c_str(),
+						(int)id&7,(int)spc,(int)n,(int)ptxch,
+						(int)(vp_tsid_stream=='y'?id&7:id)
+					);
 				n++;
 			}
 		}
@@ -303,12 +414,15 @@ bool DoScanS()
 				if(SelectTransponder(spc,tp)) {
 					tsid_vector idList;
 					if(MakeIDList(idList)) {
-						putchar('\t');
-						for(size_t i=0;i<idList.size();i++) {
-							printf(" TS%d:%04x",(int)idList[i]&7,(int)idList[i]);
+						if(idList.empty())
+							puts("\t<空>");
+						else {
+							putchar('\t');
+							for(auto id : idList)
+								printf("TS%d:%04x ",(int)id&7,(int)id);
+							putchar('\n');
 						}
 						trapons[tp].TSIDs = idList ;
-						putchar('\n');
 					}else {
 						puts("\t<TSID抽出不可>");
 					}
@@ -318,6 +432,36 @@ bool DoScanS()
 			}
 		}
 		puts("トランスポンダスキャンを完了しました。");
+		if(vp_deep_tuning!='y') break;
+		puts("TSID整合性の検証を開始します。");
+		for(DWORD spc=0;spc<(DWORD)transponders_list.size();spc++) {
+			printf(" スペース(%d): %s\n",spc,spaces[spc].c_str());
+			TRANSPONDERS &trapons = transponders_list[spc];
+			for(DWORD tp=0;tp<trapons.size();tp++) {
+				printf("  トランスポンダ(%d): %s\n",tp,trapons[tp].Name.c_str());
+				if(SelectTransponder(spc,tp)) {
+					Sleep(MAXDUR_TMCC);
+					tsid_vector &idList = trapons[tp].TSIDs, passedIDList ;
+					if(idList.empty())
+						puts("\t<空>");
+					else {
+						for(auto id : idList) {
+							printf("\tTS%d:%04x ⇒ ",(int)id&7,(int)id);
+							if(CheckID(id)) {
+								passedIDList.push_back(id) ;
+								puts("○");
+							}else
+								puts("×");
+							BonTuner->PurgeTsStream();
+						}
+						idList.swap(passedIDList);
+					}
+				}else {
+					puts("\t<選択不可>");
+				}
+			}
+		}
+		puts("TSID整合性の検証を完了しました。");
 	}while(0);
 	if(opened) {
 		puts("チューナーをクローズしています...");
@@ -335,20 +479,23 @@ bool DoScanS()
 			out_file = szFname ;
 			out_file += ".ChSet.txt" ;
 		}
-		printf("\nファイル \"%s\" にスキャン結果を出力しますか？[y/N]> ",out_file.c_str());
-		char c=tolower(getchar());
-		while(c<0x20) c = tolower(getchar());
+		char c = vp_chset ;
+		if(!c) {
+			printf("\nファイル \"%s\" にスキャン結果を出力しますか？[y/N]> ",out_file.c_str());
+			while((c=tolower(getchar()))<=0x20) ;
+		}
 		if(c=='y') {
-			printf("トランスポンダ情報も出力しますか？[y/N]> ");
-			char c=tolower(getchar());
-			while(c<0x20) c = tolower(getchar());
+			c = vp_transponder ;
+			if(!c) {
+				printf("トランスポンダ情報も出力しますか？[y/N]> ");
+				while((c=tolower(getchar()))<=0x20) ;
+			}
 			printf("スキャン結果をファイル \"%s\" に出力しています...\n",out_file.c_str());
 			if(!OutChSet(out_file, spaces, transponders_list, c=='y')) {
 				puts("スキャン結果の出力に失敗。") ;
 				res=false ;
-			}else {
+			}else
 				printf("スキャン結果をファイル \"%s\" に出力しました。\n",out_file.c_str());
-			}
 			Sleep(1000);
 		}
 	}
@@ -377,10 +524,61 @@ int _tmain(int argc, _TCHAR* argv[])
 	MAXDUR_FREQ = GetPrivateProfileIntA("SET", "MAXDUR_FREQ", MAXDUR_FREQ, iniFile.c_str() ); //周波数調整に費やす最大時間(msec)
 	MAXDUR_TMCC = GetPrivateProfileIntA("SET", "MAXDUR_TMCC", MAXDUR_TMCC, iniFile.c_str() ); //TMCC取得に費やす最大時間(msec)
 
-	BonFile = DoSelectS() ;
-	if(BonFile.empty()) return 1 ;
-	if(!LoadBon()) { FreeBon(); return 2 ;}
-	if(!DoScanS()) { FreeBon(); return 3 ;}
+	int err=1;
+	for(int i=1;i<argc;i++) { // param analyzer
+		wstring param = argv[i] ;
+		if(param.empty()) continue;
+		if(param.size()>=3&&param.substr(0,2)==L"--") { // -- verbose param
+			wstring vparam = param.substr(2,param.size()-2);
+			if(vparam==L"help") { // --help
+				help();
+				return err;
+			}
+			else if(vparam==L"transponder")    vp_transponder = 'y' ;
+			else if(vparam==L"no-transponder") vp_transponder = 'n' ;
+			else if(vparam==L"chset")          vp_chset       = 'y' ;
+			else if(vparam==L"no-chset")       vp_chset       = 'n' ;
+			else if(vparam==L"tsid-stream")    vp_tsid_stream = 'y' ;
+			else if(vparam==L"deep-tuning")    vp_deep_tuning = 'y' ;
+			else {
+				printf("不明なパラメタ: %s\n\n",wcs2mbcs(param).c_str());
+				help();
+				return err;
+			}
+		}else if(param.size()>=2&&(param[0]==L'-'||param[0]==L'+')) { // -/+ param
+			string cparam = wcs2mbcs(param.substr(1,param.size()-1));
+			char boolean = param[0]==L'-' ? 'n' : 'y' ;
+			for(auto c : cparam) {
+				switch(tolower(c)) {
+					case 't': vp_transponder = boolean ; break;
+					case 'c': vp_chset       = boolean ; break;
+					case 's': vp_tsid_stream = boolean ; break;
+					case 'd': vp_deep_tuning = boolean ; break;
+					case '?': help() ; return err;
+					default:
+						printf("不明なパラメタ: %s\n\n",wcs2mbcs(param).c_str());
+						help();
+						return err;
+				}
+			}
+		}else {
+			if(BonFile.empty())
+				BonFile = wcs2mbcs(param) ;
+			else {
+				printf("BonDriverの重複参照は許されません。(NG:%s)\n\n",wcs2mbcs(param).c_str());
+				help();
+				return err;
+			}
+		}
+	}
+
+	if(BonFile.empty()) BonFile = DoSelectS() ;
+	err++;
+	if(BonFile.empty()) return err ;
+	err++;
+	if(!LoadBon()) { FreeBon(); return err ;}
+	err++;
+	if(!DoScanS()) { FreeBon(); return err ;}
 	FreeBon();
 	return 0;
 }

@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "DataIO.h"
 #include <process.h>
+#include <algorithm>
 
 CDataIO::CDataIO(BOOL bMemStreaming)
   : m_T0Buff(MAX_DATA_BUFF_COUNT,1), m_T1Buff(MAX_DATA_BUFF_COUNT,1),
@@ -423,7 +424,17 @@ UINT WINAPI CDataIO::RecvThreadProc(LPVOID pParam)
 	pSys->mImageIndex = 0;
 	pSys->mBlockIndex = 0;
 
-	while (true) {
+	const DWORD MAX_WAIT = 200 ;
+	const DWORD MIN_WAIT = 0 ;
+	const size_t MAX_AVG = 10 ;
+	fixed_queue<DWORD> avg(MAX_AVG+1) ;
+	DWORD sleepy=0 ;
+
+	for(;avg.size()<MAX_AVG;sleepy+=avg.front())
+		avg.push_front(MIN_WAIT);
+
+	DWORD s=GetTickCount(), t=MIN_WAIT;
+	while (!pSys->mQuit) {
 		DWORD dwRes = WaitForSingleObject(pSys->m_hStopEvent, 0);
 		if( dwRes == WAIT_OBJECT_0 ){
 			//STOP
@@ -432,13 +443,26 @@ UINT WINAPI CDataIO::RecvThreadProc(LPVOID pParam)
 
 		bool b;
 
-		b = pSys->WaitBlock();
-		if (b == false) break;
+		if(b=pSys->WaitBlock()) {
+			avg.push_front(t);
+			sleepy+=avg.front();
+			t=MIN_WAIT, s=GetTickCount();
+		}
+		else
+			t=std::min<DWORD>(GetTickCount()-s, MAX_WAIT);
 
-		pSys->CopyBlock();
+		if(b) {
+			pSys->CopyBlock();
+			if(!pSys->DispatchBlock()) break;
+		}
 
-		b = pSys->DispatchBlock();
-		if (b == false) break;
+		while(avg.size()>MAX_AVG) {
+			sleepy-=avg.back();
+			avg.pop_back();
+		}
+
+		if(DWORD wait = avg.size()>0 ? DWORD(sleepy/avg.size()) : 0)
+			Sleep(wait);
 	}
 
 	return 0;
@@ -456,8 +480,12 @@ bool CDataIO::WaitBlock()
 		}
 
 		// ブロックの末尾が 0 でなければ、そのブロックの DMA 転送が完了したことになる
+		#if 0
 		if (Read(mVirtualIndex, mImageIndex, mBlockIndex) != 0) break;
 		Sleep(3);
+		#else
+		return Read(mVirtualIndex, mImageIndex, mBlockIndex) != 0 ;
+		#endif
 	}
 	//::wprintf(L"(mVirtualIndex, mImageIndex, mBlockIndex) = (%d, %d, %d) の転送が終わりました。\n", mVirtualIndex, mImageIndex, mBlockIndex);
 

@@ -170,8 +170,12 @@
     <ClInclude Include="..\Common\IBonDriver3.h" />
     <ClInclude Include="..\Common\IBonPTx.h" />
     <ClInclude Include="..\Common\IBonTransponder.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="PTxScanS.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
