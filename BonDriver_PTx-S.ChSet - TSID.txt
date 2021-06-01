@@ -1,5 +1,5 @@
 ; -*- This file was generated automatically by PTxScanS -*-
-;	@ Wed Apr 14 13:26:27 2021
+;	@ Tue Jun  1 14:42:13 2021
 ;BS/CS用
 ;チューナー空間(タブ区切り：$名称	BonDriverとしてのチューナ空間
 $BS	0
@@ -32,7 +32,6 @@ BS21/TS0	0	23	10	18256
 BS21/TS1	0	24	10	18257
 BS21/TS2	0	25	10	18258
 BS23/TS0	0	26	11	18288
-BS23/TS1	0	27	11	18289
 ND02/TS0	1	0	12	24608
 ND04/TS0	1	1	13	28736
 ND06/TS0	1	2	14	28768
