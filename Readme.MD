@@ -2,7 +2,7 @@
 
 ## ♦ 一番簡単な導入例
 
-　以下のファイルを各アプリケーションのBonDriverフォルダに配置すれば一応動作します。
+  以下のファイルを各アプリケーションのBonDriverフォルダに配置すれば一応動作します。
   ```
   BonDriver_PTx-S.dll ← BonDriver_PTx.dllをリネームしたものを配置してください
   BonDriver_PTx-T.dll ← BonDriver_PTx.dllをリネームしたものを配置してください
