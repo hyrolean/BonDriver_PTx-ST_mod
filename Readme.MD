@@ -2,6 +2,31 @@
 
 ## オリジナルのBonDriver_PT3(人柱版4)との使用する上での相違点
 
+### ■ PTxの代替としてのPTwチューナー差し替えの簡略化。
+
+  以下の工程を追うことにより、PTwのBonDriverをPTxのBonDriverで簡単に差し替えすることが出来るようになりました。
+  
+  
+  以下のファイル群をアプリ側のBonDriverフォルダに配置…
+  ```
+  BonDriver_PTx-S.dll ← BS/CS110 複合チューナー S側ID自動判別 (BonDriver_PTx.dllをリネームしたもの)
+  BonDriver_PTx-T.dll ← 地デジ 複合チューナー T側ID自動判別 (BonDriver_PTx.dllをリネームしたもの)
+  BonDriver_PTx-ST.ini
+  PTxCtrl.exe ← PT1/PT2/PT3 自動判別PT制御実行ファイル(※pt2wdmだけ使用の場合は無くても可)
+  PTwCtrl.exe ← pt2wdm 制御実行ファイル (PTwCtrl.vcxprojをコンパイルして出来上がったファイル)
+  ```
+  そして、BonDriver_PTx-ST.ini ファイルの以下の部分を下記のように修正…
+  ```
+  [SET]
+  ; xSparePTw=0 を xSparePTw=1 に変更
+  xSparePTw=1
+  ```
+  すると、現在使用しているデバイスドライバが EARTHSOFT 純正であるか pt2wdm であるかに関わらず、適切なデバイスを自動判別して任意のチューナーを開くことが出来るようになります。
+  EARTHSOFT純正ドライバからpt2wdmのドライバに対応したBonDriverに挿げ替える作業は、実質上記iniファイルの一か所を修正する作業だけで済むため、BonDriverの名前変更などの煩わしい一連の作業を省略できます。
+
+- [mod5.2 BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS+SparePTw fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod5.2)(***※[PTwCtrl.exe](https://github.com/hyrolean/BonDriver_PTx-ST_mod/tree/master/PTwCtrl)の構築が別途必要***)
+    (Described by 2022/03/11 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+
 ### ■ サテライト側の.ChSet.txtファイルを自動生成するプログラム PTxScanS.exe を追加。
 
   各々のBonDriverが存在するディレクトリにPTxScanS.exeを配置して実行し、指示に従うだけで容易にサテライト側の.ChSet.txtファイルを自動生成することを可能とする機能を追加しました。
