@@ -8,6 +8,8 @@
 #include <memory>
 #include <deque>
 #include <ctime>
+#include <cctype>
+#include <conio.h>
 #include "../Common/IBonTransponder.h"
 #include "../Common/IBonPTx.h"
 
@@ -67,6 +69,18 @@ void help()
       Load indicated .dll automatically if specified at the last argument.)^");
 }
 
+char prompt(char def=0)
+{
+	char c;
+	printf("> ");
+	do {
+		c = tolower(_getch());
+		if(c<=0x20) c=def;
+	} while(!isalnum(c));
+	printf("%c\n",c);
+	return c;
+}
+
 string wcs2mbcs(wstring src, UINT code_page=CP_ACP)
 {
   int mbLen = WideCharToMultiByte(code_page, 0, src.c_str(), (int)src.length(), NULL, 0, NULL, NULL) ;
@@ -118,12 +132,10 @@ string DoSelectS()
 				printf("  %d) %s\n",int(j-i),candidates[j].c_str());
 			}
 			if(n<candidates.size())
-				printf("サテライトスキャンする候補を選択[0～%d][q=中断][n=次頁]> ",int(n-i-1));
+				printf("サテライトスキャンする候補を選択[0～%d][q=中断][n=次頁]",int(n-i-1));
 			else
-				printf("サテライトスキャンする候補を選択[0～%d][q=中断]> ",int(n-i-1));
-			char c = tolower(getchar());
-			while(c<=0x20) c = tolower(getchar());
-			putchar('\n');
+				printf("サテライトスキャンする候補を選択[0～%d][q=中断]",int(n-i-1));
+			char c = prompt();
 			if(n<candidates.size()&&c=='n') break ;
 			else if(c=='q') {
 				puts("中断しました。\n");
@@ -484,14 +496,14 @@ bool DoScanS()
 		}
 		char c = vp_chset ;
 		if(!c) {
-			printf("\nファイル \"%s\" にスキャン結果を出力しますか？[y/N]> ",out_file.c_str());
-			while((c=tolower(getchar()))<=0x20) ;
+			printf("\nファイル \"%s\" にスキャン結果を出力しますか？[y/N]",out_file.c_str());
+			c=prompt('n') ;
 		}
 		if(c=='y') {
 			c = vp_transponder ;
 			if(!c) {
-				printf("トランスポンダ情報も出力しますか？[y/N]> ");
-				while((c=tolower(getchar()))<=0x20) ;
+				printf("トランスポンダ情報も出力しますか？[y/N]");
+				c=prompt('n') ;
 			}
 			printf("スキャン結果をファイル \"%s\" に出力しています...\n",out_file.c_str());
 			if(!OutChSet(out_file, spaces, transponders_list, c=='y')) {

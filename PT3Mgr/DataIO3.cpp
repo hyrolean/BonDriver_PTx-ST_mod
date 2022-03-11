@@ -23,6 +23,8 @@ CDataIO3::CDataIO3(BOOL bMemStreaming)
 	m_S0SetBuff = NULL;
 	m_S1SetBuff = NULL;
 
+	m_hWakeupEvent = _CreateEvent(FALSE, FALSE, NULL );
+
 	m_hSetBuffEvent1 = _CreateEvent(FALSE, TRUE, NULL );
 	m_hSetBuffEvent2 = _CreateEvent(FALSE, TRUE, NULL );
 	m_hSetBuffEvent3 = _CreateEvent(FALSE, TRUE, NULL );
@@ -113,6 +115,11 @@ CDataIO3::~CDataIO3(void)
 		BuffUnLock4();
 		CloseHandle(m_hBuffEvent4);
 		m_hBuffEvent4 = NULL;
+	}
+
+	if( m_hWakeupEvent != NULL){
+		CloseHandle(m_hWakeupEvent);
+		m_hWakeupEvent = NULL;
 	}
 }
 
@@ -302,6 +309,7 @@ void CDataIO3::Run(int iID)
 		m_hThread4 == INVALID_HANDLE_VALUE ) {
 
 		m_bThTerm=FALSE;
+		::ResetEvent(m_hWakeupEvent);
 	}
 
 	if(enISDB == PT::Device::ISDB_T) {
@@ -359,6 +367,7 @@ void CDataIO3::Stop()
 		if(m_hThread3!=INVALID_HANDLE_VALUE) handles[cnt++]=m_hThread3 ;
 		if(m_hThread4!=INVALID_HANDLE_VALUE) handles[cnt++]=m_hThread4 ;
 		m_bThTerm=TRUE;
+		::SetEvent(m_hWakeupEvent);
 		if ( ::WaitForMultipleObjects(cnt,handles,TRUE, 15000) == WAIT_TIMEOUT ){
 			for(DWORD i=0;i<cnt;i++)
 				if(::WaitForSingleObject(handles[i],0)!=WAIT_OBJECT_0)
@@ -398,6 +407,7 @@ void CDataIO3::StartPipeServer(int iID)
 
 	auto start = [&](DWORD dwID) {
 		SetBuffLock(dwID);
+		::SetEvent(m_hWakeupEvent);
 		auto &buff = SetBuff(dwID);
 		if( buff == NULL ){
 			buff = new EARTH3::EX::Buffer(m_pcDevice);
@@ -424,6 +434,7 @@ void CDataIO3::StartPipeServer(int iID)
 					SHAREDMEM_TRANSPORT_PACKET_NUM);
 			BuffUnLock(dwID);
 		}
+		::ResetEvent(m_hWakeupEvent);
 		SetBuffUnLock(dwID);
 		if(!m_bMemStreaming)
 			Pipe(dwID).StartServer(strEvent.c_str(), strPipe.c_str(),
@@ -729,7 +740,7 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 	HANDLE hCurThread = GetCurrentThread();
 	SetThreadPriority(hCurThread, THREAD_PRIORITY_HIGHEST);
 
-	const DWORD IDLE_WAIT = 250 ;
+	const DWORD IDLE_WAIT = 5000 ;
 	const DWORD MAX_WAIT = 200 ;
 	const DWORD MIN_WAIT = 0 ;
 	const size_t MAX_AVG = 10 ;
@@ -773,7 +784,7 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 			avg.pop_back();
 		}
 		if(DWORD wait = avg.size()>0 ? DWORD(sleepy/avg.size()) : 0)
-			Sleep(wait);
+			WaitForSingleObject(pSys->m_hWakeupEvent, wait)==WAIT_TIMEOUT || pSys->m_bThTerm || !SleepEx(10, TRUE) ;
 	}
 
 	return 0;
@@ -897,23 +908,31 @@ UINT CDataIO3::MemStreamingThreadProcMain(DWORD dwID)
 	while (!m_bMemStreamingTerm) {
 
 		auto tx = [&](PTBUFFER &buf, CSharedTransportStreamer *st) -> bool {
-			bool res = false;
-			if (BuffLock(dwID, CmdWait)) {
-				if (st != NULL) {
+			bool res = true ;
+			if(BuffLock(dwID,CmdWait)) {
+				res = !buf.empty() ;
+				if(res && st!=NULL) {
 					wstring mutexName = st->Name().substr(0, st->Name().length() - sln);
-					if (HANDLE hMutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, mutexName.c_str())) {
+					if(HANDLE hMutex = OpenMutex(MUTEX_ALL_ACCESS,FALSE,mutexName.c_str())) {
 						CloseHandle(hMutex);
-						while ((res = !buf.empty()) != false) {
-							auto p = buf.pull();
-							auto data = p->data();
-							auto size = p->size();
+						do {
+							auto p = buf.pull() ;
+							auto data = p->data() ;
+							auto size = p->size() ;
+							res = !buf.empty() ;
 							BuffUnLock(dwID);
-							if (!st->Tx(data, (DWORD)size, CmdWait)) {
-								buf.pull_undo();  return false;
-							}
-							if (m_bMemStreamingTerm || !BuffLock(dwID, CmdWait))
+							if(!st->Tx(data,(DWORD)size,CmdWait)) {
+								if(BuffLock(dwID)) {
+									auto done = buf.pull_undo();
+									BuffUnLock(dwID);
+									return done ? true : res ;
+								}
 								return res;
-						}
+							}
+							if(m_bMemStreamingTerm||!BuffLock(dwID,CmdWait))
+								return res;
+							res = !buf.empty() ;
+						}while(res);
 					}
 				}
 				BuffUnLock(dwID);

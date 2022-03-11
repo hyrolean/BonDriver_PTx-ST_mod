@@ -79,7 +79,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			return -2;
 		}
 		// 別プロセスが終了処理中の場合は終了を待つ(最大1.5秒)
-		if (::WaitForSingleObject(g_hStartEnableEvent, 1500) == WAIT_TIMEOUT) {
+		if (::WaitForSingleObject(g_hStartEnableEvent, g_bXCompactService?1000:1500) == WAIT_TIMEOUT) {
 			::CloseHandle(g_hStartEnableEvent);
 			return -3;
 		}
@@ -344,7 +344,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 			// すべてのクライアントが居なくなった状態
 			DWORD dwDurLastDeact = dur(LastDeactivated) ;
 			// T->Sなどの切替の際のPTxCtrl.exeの再起動を一定時間抑制する処理
-			if(dwDurLastDeact<500) {
+			if(!g_bXCompactService && dwDurLastDeact<500) {
 				// 500ミリ秒だけ新規クライアントに接続のチャンスを与える
 				dwServiceWait=500-dwDurLastDeact;
 			}else {

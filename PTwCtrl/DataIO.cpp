@@ -765,23 +765,31 @@ UINT CDataIO::MemStreamingThreadProcMain(DWORD dwID)
 	while (!m_bMemStreamingTerm) {
 
 		auto tx = [&](PTBUFFER &buf, CSharedTransportStreamer *st) -> bool {
-			bool res = false ;
+			bool res = true ;
 			if(BuffLock(dwID,CmdWait)) {
-				if(st!=NULL) {
+				res = !buf.empty() ;
+				if(res && st!=NULL) {
 					wstring mutexName = st->Name().substr(0, st->Name().length() - sln);
 					if(HANDLE hMutex = OpenMutex(MUTEX_ALL_ACCESS,FALSE,mutexName.c_str())) {
 						CloseHandle(hMutex);
-						while((res = !buf.empty())!=false) {
+						do {
 							auto p = buf.pull() ;
 							auto data = p->data() ;
 							auto size = p->size() ;
+							res = !buf.empty() ;
 							BuffUnLock(dwID);
 							if(!st->Tx(data,(DWORD)size,CmdWait)) {
-								buf.pull_undo();  return false;
+								if(BuffLock(dwID)) {
+									auto done = buf.pull_undo();
+									BuffUnLock(dwID);
+									return done ? true : res ;
+								}
+								return res;
 							}
 							if(m_bMemStreamingTerm||!BuffLock(dwID,CmdWait))
 								return res;
-						}
+							res = !buf.empty() ;
+						}while(res);
 					}
 				}
 				BuffUnLock(dwID);

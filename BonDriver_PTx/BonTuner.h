@@ -93,6 +93,7 @@ protected:
 	BOOL m_bTrySpares;
 	BOOL m_bFastScan;
 	BOOL m_bXFirstPT3;
+	BOOL m_bXSparePTw;
 	DWORD m_dwSetChDelay;
 	DWORD m_dwRetryDur;
 	DWORD m_dwStartBuff;

@@ -33,6 +33,8 @@ protected:
 	PT::Device* m_pcDevice;
 
 	BOOL m_bThTerm;
+	HANDLE m_hWakeupEvent;
+
 	HANDLE m_hThread1;
 	HANDLE m_hThread2;
 	HANDLE m_hThread3;

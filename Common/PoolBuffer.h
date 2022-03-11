@@ -127,7 +127,7 @@ public:
 		return &pool_[empties_.back()];
 	}
 	bool pull_undo() { // empties ‚ÌÅŒã”ö‚ğ uses ‚Ìæ“ª ‚ÉˆÚ‚µ‚Äˆê‚Â–ß‚·
-		if(empties_.size()<=minimum_pool_) return false;
+		if(empties_.empty()) return false;
 		uses_.push_front(empties_.back());
 		empties_.pop_back();
 		return true;

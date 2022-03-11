@@ -137,9 +137,11 @@ CBonTuner::CBonTuner()
 	if(m_iPT==0) { // PTx Tuner ( auto detect )
 
 		int detection = GetPrivateProfileIntW(L"SET", L"xFirstPT3", -1, strIni.c_str());
+		int bypassPTw = GetPrivateProfileIntW(L"SET", L"xSparePTw", 0, strIni.c_str());
 		m_bXFirstPT3 = detection>=0 ? BOOL(detection) :
 			PathFileExists((m_strDirPath+L"PT3Ctrl.exe").c_str()) ;
-
+		m_bXSparePTw = bypassPTw==0 ? FALSE:
+			PathFileExists((m_strDirPath+L"PTwCtrl.exe").c_str()) ;
 		parse_fname(L"PTx");
 
 	}else if(m_iPT==2) { // pt2wdm Tuner
@@ -459,61 +461,72 @@ BOOL CBonTuner::TryOpenTuner()
 		return true;
 	};
 
-	bool opened = false ;
+	for( bool opened=false, retry=true ; retry ; ) {
 
-	if(!m_iPT) { // PTx ( PT1/2/3 - auto detect )
+		retry=false ;
 
-		//PTx自動検出機能の追加
-		//(added by 2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-		int tid = m_iTunerID ;
-		for(int i=0;i<2;i++) {
-			int iPT = m_bXFirstPT3 ? (i?1:3) : (i?3:1) ;
-			BOOL ptx = FALSE ;
-			if(!LaunchPTCtrl(iPT)) {
-				if(!launchPTxCtrl(iPT))
-					continue;
-			}else {
-				SAFE_DELETE(m_pPTxCtrlOp);
-			}
-			switch(iPT) {
-			case 1:	m_pCmdSender = &PT1CmdSender; break;
-			case 3:	m_pCmdSender = &PT3CmdSender; break;
-			}
-			DWORD dwNumTuner=0;
-			if(m_pCmdSender->GetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS) {
-				if(tid>=0 && DWORD(tid)>=dwNumTuner) {
-					tid-=dwNumTuner ;
-					continue;
+		if(!m_iPT) { // PTx ( PT1/2/3 - auto detect )
+
+			//PTx自動検出機能の追加
+			//(added by 2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+			int tid = m_iTunerID ;
+			for(int i=0;i<2;i++) {
+				int iPT = m_bXFirstPT3 ? (i?1:3) : (i?3:1) ;
+				BOOL ptx = FALSE ;
+				if(!LaunchPTCtrl(iPT)) {
+					if(!launchPTxCtrl(iPT))
+						continue;
+				}else {
+					SAFE_DELETE(m_pPTxCtrlOp);
 				}
-				m_iID=-1 ;
-				if(TryOpenTunerByID(tid, &m_iID)) {
-					opened = true; break;
-				}else if(m_bTrySpares) {
-					if(tid>=0) tid=-1, i=-1 ;
+				switch(iPT) {
+				case 1:	m_pCmdSender = &PT1CmdSender; break;
+				case 3:	m_pCmdSender = &PT3CmdSender; break;
 				}
-				if(tid>=0) break;
+				DWORD dwNumTuner=0;
+				if(m_pCmdSender->GetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS) {
+					if(tid>=0 && DWORD(tid)>=dwNumTuner) {
+						tid-=dwNumTuner ;
+						continue;
+					}
+					m_iID=-1 ;
+					if(TryOpenTunerByID(tid, &m_iID)) {
+						opened = true; break;
+					}else if(m_bTrySpares) {
+						if(tid>=0) tid=-1, i=-1 ;
+					}
+					if(tid>=0) break;
+				}
 			}
+
+		}else do { // PT1/2/3 or pt2wdm ( manual )
+
+			if(!LaunchPTCtrl(m_iPT)) {
+				if(!launchPTxCtrl(m_iPT))
+					break;
+			}
+			if(!TryOpenTunerByID(m_iTunerID, &m_iID)){
+				if(m_iTunerID<0 || !m_bTrySpares || !TryOpenTunerByID(-1, &m_iID))
+					break;
+			}
+
+			opened = true ;
+
+		}while(0);
+
+		if(!opened) {
+			SAFE_DELETE(m_pPTxCtrlOp);
+			if(!m_iPT) {
+				if(m_bXSparePTw) { // Make a bypass to pt2wdm
+					m_iPT = 2 ;
+					m_pCmdSender = &PTwCmdSender ;
+					retry = true ;
+				}
+			}
+			if(!retry) return FALSE ;
 		}
-
-	}else do { // PT1/2/3 or pt2wdm ( manual )
-
-		if(!LaunchPTCtrl(m_iPT)) {
-			if(!launchPTxCtrl(m_iPT))
-				break;
-		}
-		if(!TryOpenTunerByID(m_iTunerID, &m_iID)){
-			if(m_iTunerID<0 || !m_bTrySpares || !TryOpenTunerByID(-1, &m_iID))
-				break;
-		}
-
-		opened = true ;
-
-	}while(0);
-
-	if(!opened) {
-		SAFE_DELETE(m_pPTxCtrlOp);
-		return FALSE ;
 	}
+
 
 	PTSTREAMING streaming_method=PTSTREAMING_PIPEIO;
 	m_pCmdSender->GetStreamingMethod(&streaming_method);

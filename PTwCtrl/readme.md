@@ -1,18 +1,18 @@
-# [pt2wdm](https://www.vector.co.jp/soft/winnt/hardware/se507005.html) 暫定対応β版
+# pt2wdm 暫定対応β版
 
 ## 構築と動作確認
 
   ソリューションBonDriver_PTx+PTw.slnを構築する前に以下のファイルを配置する必要があります。
 
   - PTwCtrl/inc フォルダに以下のファイルを配置
-    - EarthPtIf.h  (pt2wdmドライバに同封されているもの)
-    - PtDrvIfLib.h  (pt2wdmドライバに同封されているもの)
+    - EarthPtIf.h  ([pt2wdmドライバ](https://www.vector.co.jp/soft/winnt/hardware/se507005.html)に同封されているもの)
+    - PtDrvIfLib.h  ([pt2wdmドライバ](https://www.vector.co.jp/soft/winnt/hardware/se507005.html)に同封されているもの)
 
   - PTwCtrl/lib フォルダに以下のファイルを配置
-    - EarthIfLib.lib  (pt2wdmドライバに同封されているもの)
-    - EarthIfLib64.lib  (pt2wdmドライバに同封されているもの)
-    - PtDrvIfLib.lib  (pt2wdmドライバに同封されているもの)
-    - PtDrvIfLib64.lib  (pt2wdmドライバに同封されているもの)
+    - EarthIfLib.lib  ([pt2wdmドライバ](https://www.vector.co.jp/soft/winnt/hardware/se507005.html)に同封されているもの)
+    - EarthIfLib64.lib  ([pt2wdmドライバ](https://www.vector.co.jp/soft/winnt/hardware/se507005.html)に同封されているもの)
+    - PtDrvIfLib.lib  ([pt2wdmドライバ](https://www.vector.co.jp/soft/winnt/hardware/se507005.html)に同封されているもの)
+    - PtDrvIfLib64.lib  ([pt2wdmドライバ](https://www.vector.co.jp/soft/winnt/hardware/se507005.html)に同封されているもの)
 
   ソリューションBonDriver_PTx+PTw.slnをコンパイルして出来上がったPTwCtrl.exeと以下のファイル群をアプリ側のBonDriverフォルダに配置して動作確認…
   ```
@@ -38,5 +38,25 @@
   BonDriver_PTw-S5.dll ← BS/CS110 複合チューナーの三枚目のチューナーのS2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
   BonDriver_PTw-T5.dll ← 地デジ 複合チューナーの三枚目のチューナーのT2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
   ```
+
+  ***※ mod5.2 から、下記のような工程を施すことにより PTx の代替として PTw チューナーを容易にオープンすることも可能です。***
+
+  以下のファイル群をアプリ側のBonDriverフォルダに配置…
+  ```
+  BonDriver_PTx-S.dll ← BS/CS110 複合チューナー S側ID自動判別 (BonDriver_PTx.dllをリネームしたもの)
+  BonDriver_PTx-T.dll ← 地デジ 複合チューナー T側ID自動判別 (BonDriver_PTx.dllをリネームしたもの)
+  BonDriver_PTx-ST.ini
+  PTxCtrl.exe ← PT1/PT2/PT3 自動判別PT制御実行ファイル(※pt2wdmだけ使用の場合は無くても可)
+  PTwCtrl.exe ← pt2wdm 制御実行ファイル (PTwCtrl.vcxprojをコンパイルして出来上がったファイル)
+  ```
+  そして、BonDriver_PTx-ST.ini ファイルの以下の部分を下記のように修正…
+  ```
+  [SET]
+  ; xSparePTw=0 を xSparePTw=1 に変更
+  xSparePTw=1
+  ```
+  すると、現在使用しているデバイスドライバが EARTHSOFT 純正であるか pt2wdm であるかに関わらず、適切なデバイスを自動判別して任意のチューナーを開くことが出来るようになります。
+  EARTHSOFT純正ドライバからpt2wdmのドライバに対応したBonDriverに挿げ替える作業は、実質上記iniファイルの一か所を修正する作業だけで済むため、BonDriverの名前変更などの煩わしい一連の作業を省略できます。
+
 
   **※β版です。無保証( NO WARRANTY )です。テスト期間が短い為、潜在的なバグについては未知数です。**
