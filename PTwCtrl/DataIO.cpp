@@ -759,16 +759,14 @@ DWORD CDataIO::GetOverFlowCount(int iID)
 // MemStreaming
 UINT CDataIO::MemStreamingThreadProcMain(DWORD dwID)
 {
-	const DWORD CmdWait = 100 ;
+	const DWORD CmdWait = 100;
 	const size_t sln = wstring(SHAREDMEM_TRANSPORT_STREAM_SUFFIX).length();
 
 	while (!m_bMemStreamingTerm) {
 
-		auto tx = [&](PTBUFFER &buf, CSharedTransportStreamer *st) -> bool {
-			bool res = true ;
+		auto tx = [&](PTBUFFER &buf, CSharedTransportStreamer *st) -> void {
 			if(BuffLock(dwID,CmdWait)) {
-				res = !buf.empty() ;
-				if(res && st!=NULL) {
+				if(!buf.empty() && st!=NULL) {
 					wstring mutexName = st->Name().substr(0, st->Name().length() - sln);
 					if(HANDLE hMutex = OpenMutex(MUTEX_ALL_ACCESS,FALSE,mutexName.c_str())) {
 						CloseHandle(hMutex);
@@ -776,34 +774,30 @@ UINT CDataIO::MemStreamingThreadProcMain(DWORD dwID)
 							auto p = buf.pull() ;
 							auto data = p->data() ;
 							auto size = p->size() ;
-							res = !buf.empty() ;
+							if(buf.empty()) m_fDataCarry[dwID] = false ;
 							BuffUnLock(dwID);
 							if(!st->Tx(data,(DWORD)size,CmdWait)) {
 								if(BuffLock(dwID)) {
-									auto done = buf.pull_undo();
+									if(buf.pull_undo())
+										m_fDataCarry[dwID] = true ;
 									BuffUnLock(dwID);
-									return done ? true : res ;
-								}
-								return res;
+								}else
+									return ;
 							}
 							if(m_bMemStreamingTerm||!BuffLock(dwID,CmdWait))
-								return res;
-							res = !buf.empty() ;
-						}while(res);
+								return ;
+						}while(!buf.empty());
 					}
 				}
 				BuffUnLock(dwID);
 			}
-			return res;
 		};
 
-		if(m_fDataCarry[dwID]) {
-			if(!tx(Buff(dwID), MemStreamer(dwID)))
-				m_fDataCarry[dwID] = false ;
-		}
+		if (m_fDataCarry[dwID])
+			tx(Buff(dwID), MemStreamer(dwID));
 
-		if(!m_fDataCarry[dwID])
-			Sleep(MemStreamer(dwID)?10:CmdWait);
+		if (!m_fDataCarry[dwID])
+			Sleep(MemStreamer(dwID) ? 10 : CmdWait);
 	}
 
 	return 0;
