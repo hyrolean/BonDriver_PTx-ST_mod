@@ -1,6 +1,19 @@
 # BonDriver_PTx-ST MOD
 
-## オリジナルのBonDriver_PT3(人柱版4)との使用する上での相違点
+## ♦ 一番簡単な導入例
+
+　以下のファイルを各アプリケーションのBonDriverフォルダに配置すれば一応動作します。
+  ```
+  BonDriver_PTx-S.dll ← BonDriver_PTx.dllをリネームしたものを配置してください
+  BonDriver_PTx-T.dll ← BonDriver_PTx.dllをリネームしたものを配置してください
+  BonDriver_PTx-ST.ini ← 設定ファイル
+  PTxCtrl.exe ← PT1/PT2/PT3 自動判別PT制御実行ファイル
+  ```
+  (***※チャンネルファイル配置の必要はありません。***)
+
+  より詳しい使い方は、以下の相違点(更新歴の新しい順)を追ってみてください。
+
+## ♦ オリジナルのBonDriver_PT3(人柱版4)との使用する上での相違点
 
 ### ■ PTxの代替としてのPTwチューナー差し替えの簡略化。
 
