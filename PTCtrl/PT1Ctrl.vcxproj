@@ -196,10 +196,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Common\BaseIO.cpp" />
     <ClCompile Include="..\Common\PipeServer.cpp" />
     <ClCompile Include="..\Common\PTCreateCtrlCmdUtil.cpp" />
     <ClCompile Include="..\Common\PTCtrlMain.cpp" />
     <ClCompile Include="..\Common\PTSendCtrlCmdUtil.cpp" />
+    <ClInclude Include="..\Common\BaseIO.h" />
     <ClInclude Include="..\Common\PoolBuffer.h" />
     <ClInclude Include="..\Common\PTxManager.cxx">
       <FileType>CppCode</FileType>

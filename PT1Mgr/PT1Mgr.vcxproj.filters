@@ -95,5 +95,8 @@
     <ClInclude Include="..\Common\PTxManager.cxx">
       <Filter>ヘッダー ファイル\Common</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\BaseIO.h">
+      <Filter>ヘッダー ファイル\Common</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

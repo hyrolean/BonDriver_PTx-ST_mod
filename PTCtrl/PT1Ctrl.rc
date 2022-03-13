@@ -88,7 +88,7 @@ BEGIN
             VALUE "InternalName", "PTCtrl"
             VALUE "LegalCopyright", "‚è‚å‚¤‚¿‚ñ Copyright (C) 2008-2009, MOD by 2020-2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg"
             VALUE "OriginalFilename", "PTCtrl.exe"
-            VALUE "ProductName", "PTCtrl_mod5.2"
+            VALUE "ProductName", "PTCtrl_mod6"
             VALUE "ProductVersion", "0, 1, 1, 0"
         END
     END

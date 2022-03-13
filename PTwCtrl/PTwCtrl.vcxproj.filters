@@ -72,6 +72,9 @@
     <ClCompile Include="PTxWDMCmdSrv.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="..\Common\BaseIO.cpp">
+      <Filter>ソース ファイル\Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DataIO.h">
@@ -144,6 +147,9 @@
       <Filter>ヘッダー ファイル\inc</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\PoolBuffer.h">
+      <Filter>ヘッダー ファイル\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\BaseIO.h">
       <Filter>ヘッダー ファイル\Common</Filter>
     </ClInclude>
   </ItemGroup>

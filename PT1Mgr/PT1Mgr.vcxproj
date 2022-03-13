@@ -130,6 +130,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\Common\BaseIO.h" />
     <ClInclude Include="..\Common\PTxManager.cxx">
       <FileType>CppHeader</FileType>
     </ClInclude>

@@ -157,6 +157,7 @@
     <None Include="PTxCtrl.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Common\BaseIO.h" />
     <ClInclude Include="..\Common\PipeServer.h" />
     <ClInclude Include="..\Common\PoolBuffer.h" />
     <ClInclude Include="..\Common\PTCreateCtrlCmdUtil.h" />
@@ -175,6 +176,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Common\BaseIO.cpp" />
     <ClCompile Include="..\Common\PipeServer.cpp" />
     <ClCompile Include="..\Common\PTCreateCtrlCmdUtil.cpp" />
     <ClCompile Include="..\Common\PTCtrlMain.cpp" />

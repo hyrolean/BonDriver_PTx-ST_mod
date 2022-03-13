@@ -422,33 +422,33 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 
 	hasStream = FALSE ;
 
-	if( (int)m_EnumDev.size() <= iDevID ){
-		return FALSE;
-	}
+	BOOL result = FALSE ;
+	do {
 
-	BOOL bRes;
-	for (DWORD t=0,s=dur(),n=0; t<m_dwMaxDurFREQ; t=dur(s)) {
-
-		bRes = SetFreq(iID, ulCh);
-		if( bRes ) {
-			if(++n>=2) {
-				_OutputDebugString(L"CPT%dManager::SetFreq: Device::SetFrequency: ISDB:%d tuner:%d ch:%d\n",PT_VER,enISDB,iTuner,ch);
-				break ;
-			}
+		if( (int)m_EnumDev.size() <= iDevID ){
+			break;
 		}
-		Sleep(50);
-	}
 
-	if( !bRes ) {
-		_OutputDebugString(L"CPT%dManager::SetFreq: Device::SetFrequency failure!\n",PT_VER) ;
-		return FALSE ;
-	}
+		BOOL bRes=FALSE;
+		for (DWORD t=0,s=dur(),n=0; t<m_dwMaxDurFREQ; t=dur(s)) {
 
-	if( enISDB == PT::Device::ISDB_S ){
-		if(!(dwTSID&~7UL)) {
-			//dwTSIDに0～7が指定された場合は、TSIDをチューナーから取得して
-			//下位３ビットと一致するものに書き換える
-			// by 2020 LVhJPic0JSk5LiQ1ITskKVk9UGBg
+			bRes = SetFreq(iID, ulCh);
+			if( bRes ) {
+				if(++n>=2) {
+					_OutputDebugString(L"CPT%dManager::SetFreq: Device::SetFrequency: ISDB:%d tuner:%d ch:%d\n",PT_VER,enISDB,iTuner,ch);
+					break ;
+				}
+			}
+			Sleep(50);
+		}
+
+		if( !bRes ) {
+			_OutputDebugString(L"CPT%dManager::SetFreq: Device::SetFrequency failure!\n",PT_VER) ;
+			break ;
+		}
+
+		if( enISDB == PT::Device::ISDB_S ){
+			bool checkOnly = (dwTSID&~7UL)!=0 ,checkFinished=false ;
 			Sleep(50);
 			for (DWORD t=0,s=dur(); t<m_dwMaxDurTMCC; t=dur(s)) {
 				PTTSIDLIST PtTSIDList = {0};
@@ -457,44 +457,57 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 					for (uint32 i=0; i<8; i++) {
 						DWORD id = PtTSIDList.dwId[i]&0xffff;
 						if ((id&0xff00) && (id^0xffff)) {
-							if( (id&7) == dwTSID ) { //ストリームに一致した
-								//一致したidに書き換える
+							if(checkOnly) {
+								//dwTSIDに既にTSIDを記述してある場合は、IDの一致だけを確かめる
+								// mod6 by 2022 LVhJPic0JSk5LiQ1ITskKVk9UGBg
+								if(checkFinished = dwTSID == id) break;
+							}
+							else if( (id&7) == dwTSID ) {
+								//dwTSIDに0～7が指定された場合は、TSIDをチューナーから取得して
+								//下位３ビットと一致するものに書き換える
+								// mod by 2020 LVhJPic0JSk5LiQ1ITskKVk9UGBg
 								dwTSID = id ;
 								_OutputDebugString(L"CPT%dManager::SetCh: replaced TSID=%d\n",PT_VER,id) ;
 								break;
 							}
 						}
 					}
-					if(dwTSID&~7UL) break ;
+				}
+				Sleep(50);
+			}
+			if(checkOnly&&!checkFinished) {
+				_OutputDebugString(L"CPT%dManager::SetCh: TSID:%04x was not found on TMCC!\n",PT_VER,dwTSID) ;
+				break;
+			}
+			if(dwTSID&~7UL) {
+				if(!SetIdS(iID, dwTSID)) {
+					_OutputDebugString(L"CPT%dManager::SetCh: SetIdS failure!\n",PT_VER) ;
+					break;
+				}
+				hasStream = TRUE ;
+			}
+		}else {
+			Sleep(50);
+			for (DWORD t=0,s=dur(); t<m_dwMaxDurTMCC; t=dur(s)) {
+				PT::Device::TmccT tmcc;
+				ZeroMemory(&tmcc,sizeof(tmcc));
+				//std::fill_n(tmcc.Id,8,0xffff) ;
+				status enStatus = m_EnumDev[iDevID]->pcDevice->GetTmccT(iTuner, &tmcc);
+				if (enStatus == PT::STATUS_OK) {
+					hasStream = TRUE ; break;
 				}
 				Sleep(50);
 			}
 		}
-		if(dwTSID&~7UL) {
-			if(!SetIdS(iID, dwTSID)) {
-				_OutputDebugString(L"CPT%dManager::SetCh: failure!\n",PT_VER) ;
-				return FALSE;
-			}
-			hasStream = TRUE ;
-		}
-	}else {
-		Sleep(50);
-		for (DWORD t=0,s=dur(); t<m_dwMaxDurTMCC; t=dur(s)) {
-			PT::Device::TmccT tmcc;
-			ZeroMemory(&tmcc,sizeof(tmcc));
-			//std::fill_n(tmcc.Id,8,0xffff) ;
-			status enStatus = m_EnumDev[iDevID]->pcDevice->GetTmccT(iTuner, &tmcc);
-			if (enStatus == PT::STATUS_OK) {
-				hasStream = TRUE ; break;
-			}
-			Sleep(50);
-		}
-	}
+
+		result = TRUE;
+		_OutputDebugString(L"CPT%dManager::SetCh: success!\n",PT_VER) ;
+
+	}while(0);
 
 	m_EnumDev[iDevID]->cDataIO.ClearBuff(iID);
 
-	_OutputDebugString(L"CPT%dManager::SetCh: success!\n",PT_VER) ;
-	return TRUE;
+	return result ;
 }
 
 DWORD CPTxManager::GetSignal(int iID)

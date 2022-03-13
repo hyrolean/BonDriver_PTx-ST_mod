@@ -6,8 +6,7 @@
 #define NOT_SYNC_BYTE		0x74
 
 CDataIO3::CDataIO3(BOOL bMemStreaming)
- : m_T0Buff(MAX_DATA_BUFF_COUNT, 1), m_T1Buff(MAX_DATA_BUFF_COUNT, 1),
- 	m_S0Buff(MAX_DATA_BUFF_COUNT, 1), m_S1Buff(MAX_DATA_BUFF_COUNT, 1)
+ : CBaseIO(bMemStreaming)
 {
 	VIRTUAL_COUNT = 8*8;
 
@@ -30,50 +29,11 @@ CDataIO3::CDataIO3(BOOL bMemStreaming)
 	m_hSetBuffEvent3 = _CreateEvent(FALSE, TRUE, NULL );
 	m_hSetBuffEvent4 = _CreateEvent(FALSE, TRUE, NULL );
 
-	m_hBuffEvent1 = _CreateEvent(FALSE, TRUE, NULL );
-	m_hBuffEvent2 = _CreateEvent(FALSE, TRUE, NULL );
-	m_hBuffEvent3 = _CreateEvent(FALSE, TRUE, NULL );
-	m_hBuffEvent4 = _CreateEvent(FALSE, TRUE, NULL );
-
-	m_dwT0OverFlowCount = 0;
-	m_dwT1OverFlowCount = 0;
-	m_dwS0OverFlowCount = 0;
-	m_dwS1OverFlowCount = 0;
-
-	for(auto &c : m_fDataCarry) c = false ;
-
-	// MemStreaming
-	m_bMemStreaming = bMemStreaming ;
-	m_bMemStreamingTerm = TRUE ;
-	m_T0MemStreamer = NULL ;
-	m_T1MemStreamer = NULL ;
-	m_S0MemStreamer = NULL ;
-	m_S1MemStreamer = NULL ;
-	m_hT0MemStreamingThread = INVALID_HANDLE_VALUE ;
-	m_hT1MemStreamingThread = INVALID_HANDLE_VALUE ;
-	m_hS0MemStreamingThread = INVALID_HANDLE_VALUE ;
-	m_hS1MemStreamingThread = INVALID_HANDLE_VALUE ;
 }
 
 CDataIO3::~CDataIO3(void)
 {
 	Stop();
-
-	// MemStreaming
-	SAFE_DELETE(m_T0MemStreamer);
-	SAFE_DELETE(m_T1MemStreamer);
-	SAFE_DELETE(m_S0MemStreamer);
-	SAFE_DELETE(m_S1MemStreamer);
-
-	SAFE_DELETE(m_T0SetBuff);
-	SAFE_DELETE(m_T1SetBuff);
-	SAFE_DELETE(m_S0SetBuff);
-	SAFE_DELETE(m_S1SetBuff);
-
-	Flush(m_T0Buff, TRUE);
-	Flush(m_T1Buff, TRUE);
-	Flush(m_S0Buff, TRUE);
-	Flush(m_S1Buff, TRUE);
 
 	if( m_hSetBuffEvent1 != NULL ){
 		SetBuffUnLock1();
@@ -94,27 +54,6 @@ CDataIO3::~CDataIO3(void)
 		SetBuffUnLock4();
 		CloseHandle(m_hSetBuffEvent4);
 		m_hSetBuffEvent4 = NULL;
-	}
-
-	if( m_hBuffEvent1 != NULL ){
-		BuffUnLock1();
-		CloseHandle(m_hBuffEvent1);
-		m_hBuffEvent1 = NULL;
-	}
-	if( m_hBuffEvent2 != NULL ){
-		BuffUnLock2();
-		CloseHandle(m_hBuffEvent2);
-		m_hBuffEvent2 = NULL;
-	}
-	if( m_hBuffEvent3 != NULL ){
-		BuffUnLock3();
-		CloseHandle(m_hBuffEvent3);
-		m_hBuffEvent3 = NULL;
-	}
-	if( m_hBuffEvent4 != NULL ){
-		BuffUnLock4();
-		CloseHandle(m_hBuffEvent4);
-		m_hBuffEvent4 = NULL;
 	}
 
 	if( m_hWakeupEvent != NULL){
@@ -198,83 +137,6 @@ void CDataIO3::SetBuffUnLock4()
 		SetEvent(m_hSetBuffEvent4);
 	}
 }
-
-bool CDataIO3::BuffLock1(DWORD timeout)
-{
-	if( m_hBuffEvent1 == NULL ){
-		return false ;
-	}
-	if( WaitForSingleObject(m_hBuffEvent1, timeout) == WAIT_TIMEOUT ){
-		OutputDebugString(L"time out1b");
-		return false ;
-	}
-	return true ;
-}
-
-void CDataIO3::BuffUnLock1()
-{
-	if( m_hBuffEvent1 != NULL ){
-		SetEvent(m_hBuffEvent1);
-	}
-}
-
-bool CDataIO3::BuffLock2(DWORD timeout)
-{
-	if( m_hBuffEvent2 == NULL ){
-		return false ;
-	}
-	if( WaitForSingleObject(m_hBuffEvent2, timeout) == WAIT_TIMEOUT ){
-		OutputDebugString(L"time out2b");
-		return false ;
-	}
-	return true ;
-}
-
-void CDataIO3::BuffUnLock2()
-{
-	if( m_hBuffEvent2 != NULL ){
-		SetEvent(m_hBuffEvent2);
-	}
-}
-
-bool CDataIO3::BuffLock3(DWORD timeout)
-{
-	if( m_hBuffEvent3 == NULL ){
-		return false ;
-	}
-	if( WaitForSingleObject(m_hBuffEvent3, timeout) == WAIT_TIMEOUT ){
-		OutputDebugString(L"time out3b");
-		return false ;
-	}
-	return true ;
-}
-
-void CDataIO3::BuffUnLock3()
-{
-	if( m_hBuffEvent3 != NULL ){
-		SetEvent(m_hBuffEvent3);
-	}
-}
-
-bool CDataIO3::BuffLock4(DWORD timeout)
-{
-	if( m_hBuffEvent4 == NULL ){
-		return false ;
-	}
-	if( WaitForSingleObject(m_hBuffEvent4, timeout) == WAIT_TIMEOUT ){
-		OutputDebugString(L"time out4b");
-		return false ;
-	}
-	return true ;
-}
-
-void CDataIO3::BuffUnLock4()
-{
-	if( m_hBuffEvent4 != NULL ){
-		SetEvent(m_hBuffEvent4);
-	}
-}
-
 
 void CDataIO3::ClearBuff(int iID)
 {
@@ -790,93 +652,6 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 	return 0;
 }
 
-int CALLBACK CDataIO3::OutsideCmdCallbackT0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
-{
-	CDataIO3* pSys = (CDataIO3*)pParam;
-	switch( pCmdParam->dwParam ){
-		case CMD_SEND_DATA:
-			pSys->CmdSendData(0, pCmdParam, pResParam, pbResDataAbandon);
-			break;
-		default:
-			pResParam->dwParam = CMD_NON_SUPPORT;
-			break;
-	}
-	return 0;
-}
-
-int CALLBACK CDataIO3::OutsideCmdCallbackT1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
-{
-	CDataIO3* pSys = (CDataIO3*)pParam;
-	switch( pCmdParam->dwParam ){
-		case CMD_SEND_DATA:
-			pSys->CmdSendData(1, pCmdParam, pResParam, pbResDataAbandon);
-			break;
-		default:
-			pResParam->dwParam = CMD_NON_SUPPORT;
-			break;
-	}
-	return 0;
-}
-
-int CALLBACK CDataIO3::OutsideCmdCallbackS0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
-{
-	CDataIO3* pSys = (CDataIO3*)pParam;
-	switch( pCmdParam->dwParam ){
-		case CMD_SEND_DATA:
-			pSys->CmdSendData(2, pCmdParam, pResParam, pbResDataAbandon);
-			break;
-		default:
-			pResParam->dwParam = CMD_NON_SUPPORT;
-			break;
-	}
-	return 0;
-}
-
-int CALLBACK CDataIO3::OutsideCmdCallbackS1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
-{
-	CDataIO3* pSys = (CDataIO3*)pParam;
-	switch( pCmdParam->dwParam ){
-		case CMD_SEND_DATA:
-			pSys->CmdSendData(3, pCmdParam, pResParam, pbResDataAbandon);
-			break;
-		default:
-			pResParam->dwParam = CMD_NON_SUPPORT;
-			break;
-	}
-	return 0;
-}
-
-void CDataIO3::CmdSendData(DWORD dwID, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon)
-{
-	if(!m_fDataCarry[dwID]) {
-		pResParam->dwParam = CMD_ERR_BUSY;
-		return;
-	}
-
-	pResParam->dwParam = CMD_SUCCESS;
-	BOOL bSend = FALSE;
-
-	auto tx = [&](PTBUFFER &buf) {
-		if( buf.size() > 0 ){
-			auto p = buf.pull();
-			pResParam->dwSize = (DWORD)p->size();
-			pResParam->bData = p->data();
-			*pbResDataAbandon = TRUE;
-			bSend = TRUE;
-		}
-		if(buf.empty())
-			m_fDataCarry[dwID] = false ;
-	};
-
-	BuffLock(dwID);
-	tx(Buff(dwID));
-	BuffUnLock(dwID);
-
-	if( bSend == FALSE ){
-		pResParam->dwParam = CMD_ERR_BUSY;
-	}
-}
-
 DWORD CDataIO3::GetOverFlowCount(int iID)
 {
 	int iDevID = iID>>16;
@@ -898,123 +673,5 @@ DWORD CDataIO3::GetOverFlowCount(int iID)
 		}
 	}
 	return dwRet;
-}
-
-UINT CDataIO3::MemStreamingThreadProcMain(DWORD dwID)
-{
-	const DWORD CmdWait = 100;
-	const size_t sln = wstring(SHAREDMEM_TRANSPORT_STREAM_SUFFIX).length();
-
-	while (!m_bMemStreamingTerm) {
-
-		auto tx = [&](PTBUFFER &buf, CSharedTransportStreamer *st) -> void {
-			if(BuffLock(dwID,CmdWait)) {
-				if(!buf.empty() && st!=NULL) {
-					wstring mutexName = st->Name().substr(0, st->Name().length() - sln);
-					if(HANDLE hMutex = OpenMutex(MUTEX_ALL_ACCESS,FALSE,mutexName.c_str())) {
-						CloseHandle(hMutex);
-						do {
-							auto p = buf.pull() ;
-							auto data = p->data() ;
-							auto size = p->size() ;
-							if(buf.empty()) m_fDataCarry[dwID] = false ;
-							BuffUnLock(dwID);
-							if(!st->Tx(data,(DWORD)size,CmdWait)) {
-								if(BuffLock(dwID)) {
-									if(buf.pull_undo())
-										m_fDataCarry[dwID] = true ;
-									BuffUnLock(dwID);
-								}else
-									return ;
-							}
-							if(m_bMemStreamingTerm||!BuffLock(dwID,CmdWait))
-								return ;
-						}while(!buf.empty());
-					}
-				}
-				BuffUnLock(dwID);
-			}
-		};
-
-		if (m_fDataCarry[dwID])
-			tx(Buff(dwID), MemStreamer(dwID));
-
-		if (!m_fDataCarry[dwID])
-			Sleep(MemStreamer(dwID) ? 10 : CmdWait);
-	}
-
-	return 0;
-}
-
-// MemStreaming
-UINT WINAPI CDataIO3::MemStreamingThreadProc(LPVOID pParam)
-{
-	auto p = static_cast<MEMSTREAMINGTHREAD_PARAM*>(pParam);
-	CDataIO3* pSys = p->pSys;
-	DWORD dwID = p->dwID ;
-	delete p;
-
-	HANDLE hCurThread = GetCurrentThread();
-	SetThreadPriority(hCurThread, THREAD_PRIORITY_HIGHEST);
-
-	return pSys->MemStreamingThreadProcMain(dwID);
-}
-
-// MemStreaming
-void CDataIO3::StartMemStreaming(DWORD dwID)
-{
-	if( MemStreamingThread(0) == INVALID_HANDLE_VALUE &&
-		MemStreamingThread(1) == INVALID_HANDLE_VALUE &&
-		MemStreamingThread(2) == INVALID_HANDLE_VALUE &&
-		MemStreamingThread(3) == INVALID_HANDLE_VALUE )
-			m_bMemStreamingTerm = FALSE;
-
-	HANDLE &hThread = MemStreamingThread(dwID) ;
-	if(m_bMemStreaming&&hThread==INVALID_HANDLE_VALUE) {
-		hThread = (HANDLE)_beginthreadex(NULL, 0, MemStreamingThreadProc,
-			(LPVOID) new MEMSTREAMINGTHREAD_PARAM(this, dwID), CREATE_SUSPENDED, NULL);
-		if(hThread != INVALID_HANDLE_VALUE) {
-			SetThreadPriority( hThread, THREAD_PRIORITY_ABOVE_NORMAL );
-			ResumeThread(hThread);
-		}
-	}
-}
-
-// MemStreaming
-void CDataIO3::StopMemStreaming()
-{
-	if( MemStreamingThread(0) != INVALID_HANDLE_VALUE ||
-		MemStreamingThread(1) != INVALID_HANDLE_VALUE ||
-		MemStreamingThread(2) != INVALID_HANDLE_VALUE ||
-		MemStreamingThread(3) != INVALID_HANDLE_VALUE ){
-		// スレッド終了待ち
-		HANDLE handles[4];
-		DWORD cnt=0;
-		for(DWORD dwID=0;dwID<4;dwID++)
-			if(MemStreamingThread(dwID)!=INVALID_HANDLE_VALUE)
-				handles[cnt++]=MemStreamingThread(dwID);
-		m_bMemStreamingTerm=TRUE;
-		if ( ::WaitForMultipleObjects(cnt,handles,TRUE, 15000) == WAIT_TIMEOUT ){
-			for(DWORD i=0;i<cnt;i++)
-				if(::WaitForSingleObject(handles[i],0)!=WAIT_OBJECT_0)
-					::TerminateThread(handles[i], 0xffffffff);
-		}
-		for(DWORD i=0;i<cnt;i++)
-			CloseHandle(handles[i]);
-		for(DWORD dwID=0;dwID<4;dwID++)
-			MemStreamingThread(dwID)=INVALID_HANDLE_VALUE;
-	}
-}
-
-void CDataIO3::Flush(PTBUFFER &buf, BOOL dispose)
-{
-	if(dispose) {
-		buf.dispose();
-		for(size_t i=0; i<INI_DATA_BUFF_COUNT; i++) {
-			buf.head()->growup(DATA_BUFF_SIZE) ;
-			buf.push();
-		}
-	}
-	buf.clear();
 }
 

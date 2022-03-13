@@ -101,5 +101,8 @@
     <ClInclude Include="PT3Manager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\BaseIO.h">
+      <Filter>ヘッダー ファイル\Common</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

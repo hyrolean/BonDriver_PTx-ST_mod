@@ -71,6 +71,9 @@
     <ClInclude Include="..\Common\SharedMem.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\BaseIO.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -101,6 +104,9 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\SharedMem.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\BaseIO.cpp">
       <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
