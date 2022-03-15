@@ -568,7 +568,7 @@ bool CDataIO3::ReadAddBuff(DWORD dwID)
 
 	for (uint32 i = 0; i<DATA_UNIT_SIZE; i += DATA_BUFF_SIZE){
 		if(tsBuff.no_pool()) { // overflow
-			tsBuff.pull();
+			tsBuff.pull_trash();
 			OverFlow++ ;
 			OutputDebugString(IdentStr(dwID,L" Buff Full").c_str());
 		}else {

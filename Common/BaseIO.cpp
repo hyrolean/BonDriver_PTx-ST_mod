@@ -11,10 +11,7 @@ CBaseIO::CBaseIO(BOOL bMemStreaming)
   : m_T0Buff(MAX_DATA_BUFF_COUNT,1), m_T1Buff(MAX_DATA_BUFF_COUNT,1),
 	m_S0Buff(MAX_DATA_BUFF_COUNT,1), m_S1Buff(MAX_DATA_BUFF_COUNT,1)
 {
-	m_hBuffEvent1 = _CreateEvent(FALSE, TRUE, NULL );
-	m_hBuffEvent2 = _CreateEvent(FALSE, TRUE, NULL );
-	m_hBuffEvent3 = _CreateEvent(FALSE, TRUE, NULL );
-	m_hBuffEvent4 = _CreateEvent(FALSE, TRUE, NULL );
+	for(auto &h: m_hBuffEvents) h = _CreateEvent(FALSE, TRUE, NULL ) ;
 
 	m_dwT0OverFlowCount = 0;
 	m_dwT1OverFlowCount = 0;
@@ -46,101 +43,31 @@ CBaseIO::~CBaseIO(void)
 	SAFE_DELETE(m_S0MemStreamer);
 	SAFE_DELETE(m_S1MemStreamer);
 
-	if( m_hBuffEvent1 != NULL ){
-		BuffUnLock1();
-		CloseHandle(m_hBuffEvent1);
-		m_hBuffEvent1 = NULL;
-	}
-	if( m_hBuffEvent2 != NULL ){
-		BuffUnLock2();
-		CloseHandle(m_hBuffEvent2);
-		m_hBuffEvent2 = NULL;
-	}
-	if( m_hBuffEvent3 != NULL ){
-		BuffUnLock3();
-		CloseHandle(m_hBuffEvent3);
-		m_hBuffEvent3 = NULL;
-	}
-	if( m_hBuffEvent4 != NULL ){
-		BuffUnLock4();
-		CloseHandle(m_hBuffEvent4);
-		m_hBuffEvent4 = NULL;
+	for(auto &h: m_hBuffEvents) {
+		if( h != NULL ){
+			SetEvent(h);
+			CloseHandle(h);
+			h = NULL;
+		}
 	}
 }
 //---------------------------------------------------------------------------
-bool CBaseIO::BuffLock1(DWORD timeout)
+bool CBaseIO::BuffLock(DWORD dwID, DWORD timeout)
 {
-	if( m_hBuffEvent1 == NULL ){
+	if( m_hBuffEvents[dwID] == NULL ){
 		return false ;
 	}
-	if( WaitForSingleObject(m_hBuffEvent1, timeout) == WAIT_TIMEOUT ){
-		OutputDebugString(L"time out1");
+	if( WaitForSingleObject(m_hBuffEvents[dwID], timeout) == WAIT_TIMEOUT ){
+		_OutputDebugString(L"time out%d", dwID+1);
 		return false ;
 	}
 	return true ;
 }
 //---------------------------------------------------------------------------
-void CBaseIO::BuffUnLock1()
+void CBaseIO::BuffUnLock(DWORD dwID)
 {
-	if( m_hBuffEvent1 != NULL ){
-		SetEvent(m_hBuffEvent1);
-	}
-}
-//---------------------------------------------------------------------------
-bool CBaseIO::BuffLock2(DWORD timeout)
-{
-	if( m_hBuffEvent2 == NULL ){
-		return false ;
-	}
-	if( WaitForSingleObject(m_hBuffEvent2, timeout) == WAIT_TIMEOUT ){
-		OutputDebugString(L"time out2");
-		return false ;
-	}
-	return true ;
-}
-//---------------------------------------------------------------------------
-void CBaseIO::BuffUnLock2()
-{
-	if( m_hBuffEvent2 != NULL ){
-		SetEvent(m_hBuffEvent2);
-	}
-}
-//---------------------------------------------------------------------------
-bool CBaseIO::BuffLock3(DWORD timeout)
-{
-	if( m_hBuffEvent3 == NULL ){
-		return false ;
-	}
-	if( WaitForSingleObject(m_hBuffEvent3, timeout) == WAIT_TIMEOUT ){
-		OutputDebugString(L"time out3");
-		return false ;
-	}
-	return true ;
-}
-//---------------------------------------------------------------------------
-void CBaseIO::BuffUnLock3()
-{
-	if( m_hBuffEvent3 != NULL ){
-		SetEvent(m_hBuffEvent3);
-	}
-}
-//---------------------------------------------------------------------------
-bool CBaseIO::BuffLock4(DWORD timeout)
-{
-	if( m_hBuffEvent4 == NULL ){
-		return false ;
-	}
-	if( WaitForSingleObject(m_hBuffEvent4, timeout) == WAIT_TIMEOUT ){
-		OutputDebugString(L"time out4");
-		return false ;
-	}
-	return true ;
-}
-//---------------------------------------------------------------------------
-void CBaseIO::BuffUnLock4()
-{
-	if( m_hBuffEvent4 != NULL ){
-		SetEvent(m_hBuffEvent4);
+	if( m_hBuffEvents[dwID] != NULL ){
+		SetEvent(m_hBuffEvents[dwID]);
 	}
 }
 //---------------------------------------------------------------------------

@@ -65,39 +65,14 @@ protected:
 		}
 	}
 
-	HANDLE m_hBuffEvent1;
-	HANDLE m_hBuffEvent2;
-	HANDLE m_hBuffEvent3;
-	HANDLE m_hBuffEvent4;
+	HANDLE m_hBuffEvents[4];
 
 	bool m_fDataCarry[4];
 
 protected:
 
-	bool BuffLock1(DWORD timeout=IO_DEFAULT_TIMEOUT);
-	void BuffUnLock1();
-	bool BuffLock2(DWORD timeout=IO_DEFAULT_TIMEOUT);
-	void BuffUnLock2();
-	bool BuffLock3(DWORD timeout=IO_DEFAULT_TIMEOUT);
-	void BuffUnLock3();
-	bool BuffLock4(DWORD timeout=IO_DEFAULT_TIMEOUT);
-	void BuffUnLock4();
-	bool BuffLock(DWORD dwID, DWORD timeout=IO_DEFAULT_TIMEOUT) {
-		switch(dwID) {
-		case 1: return BuffLock2(timeout);
-		case 2: return BuffLock3(timeout);
-		case 3: return BuffLock4(timeout);
-		default: return BuffLock1(timeout);
-		}
-	}
-	void BuffUnLock(DWORD dwID) {
-		switch(dwID) {
-		case 1: BuffUnLock2(); break;
-		case 2: BuffUnLock3(); break;
-		case 3: BuffUnLock4(); break;
-		default: BuffUnLock1(); break;
-		}
-	}
+	bool BuffLock(DWORD dwID, DWORD timeout=IO_DEFAULT_TIMEOUT);
+	void BuffUnLock(DWORD dwID);
 
 	static int CALLBACK OutsideCmdCallbackT0(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon);
 	static int CALLBACK OutsideCmdCallbackT1(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon);

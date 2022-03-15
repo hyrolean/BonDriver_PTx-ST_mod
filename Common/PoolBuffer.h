@@ -132,7 +132,13 @@ public:
 		empties_.pop_back();
 		return true;
 	}
-	void clear() { while(pull()!=nullptr); }
+	bool pull_trash() { // uses ‚Ìæ“ª‚ğ empties ‚Ìæ“ª‚ÉˆÚ‚µ‚Ä”jŠü
+		if(empty()) return false;
+		empties_.push_front(uses_.front());
+		uses_.pop();
+		return true;
+	}
+	void clear() { while(pull_trash()); }
 	void dispose() { clear(); for(auto &v: pool_) v.free(); }
 	bool empty() const { return uses_.empty(); }
 	bool no_pool() const { return empties_.size()<=minimum_pool_&&total()>=maximum_pool_; }

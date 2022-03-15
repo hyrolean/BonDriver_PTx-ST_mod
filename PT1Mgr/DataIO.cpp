@@ -508,7 +508,7 @@ void CDataIO::MicroPacket(BYTE* pbPacket)
 		if( head->size() >= head->capacity() ){
 			buf.push();
 			if(buf.no_pool()) { // overflow
-				buf.pull();
+				buf.pull_trash();
 				overflow++;
 				OutputDebugString(IdentStr(dwID,L" Buff Full").c_str());
 			}else{

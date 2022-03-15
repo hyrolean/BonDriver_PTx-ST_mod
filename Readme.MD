@@ -37,8 +37,8 @@
   すると、現在使用しているデバイスドライバが EARTHSOFT 純正であるか pt2wdm であるかに関わらず、適切なデバイスを自動判別して任意のチューナーを開くことが出来るようになります。
   EARTHSOFT純正ドライバからpt2wdmのドライバに対応したBonDriverに挿げ替える作業は、実質上記iniファイルの一か所を修正する作業だけで済むため、BonDriverの名前変更などの煩わしい一連の作業を省略できます。
 
-- [mod6 BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS+SparePTw fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod6)(***※[PTwCtrl.exe](https://github.com/hyrolean/BonDriver_PTx-ST_mod/tree/master/PTwCtrl)の構築が別途必要***)
-    (Described by 2022/03/13 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+- [mod6.1 BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS+SparePTw fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod6.1)(***※[PTwCtrl.exe](https://github.com/hyrolean/BonDriver_PTx-ST_mod/tree/master/PTwCtrl)の構築が別途必要***)
+    (Described by 2022/03/11 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 
 ### ■ サテライト側の.ChSet.txtファイルを自動生成するプログラム PTxScanS.exe を追加。
 
