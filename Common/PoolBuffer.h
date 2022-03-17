@@ -151,15 +151,8 @@ public:
 template<class T>
 class pool_buffer_object {
 	struct ref_t {
-		ref_t(): data_(nullptr), ref_cnt_(1), size_(0), grew_(0) {}
+		ref_t(): data_(nullptr), size_(0), grew_(0) {}
 		~ref_t() { free(); }
-		void addref() {ref_cnt_++;}
-		bool release() {
-			if(!--ref_cnt_) {
-				return true ;
-			}
-			return false;
-		}
 		void free() {
 			if(data_!=nullptr) {
 				delete [] data_ ;
@@ -196,15 +189,14 @@ class pool_buffer_object {
 		T* data_;
 		size_t size_;
 		size_t grew_;
-		size_t ref_cnt_;
 	};
 	ref_t* ref_;
 public:
 	pool_buffer_object() { ref_ = new ref_t() ; }
-	pool_buffer_object(const pool_buffer_object &obj)
-	{ ref_ = obj.ref_; ref_->addref(); }
+	pool_buffer_object(pool_buffer_object &&obj)
+	{ ref_ = obj.ref_; obj.ref_ = nullptr; }
 	~pool_buffer_object()
-	{ if(ref_->release()) delete ref_; }
+	{ if(ref_!=nullptr) delete ref_; }
 	void free() { ref_->free(); }
 	bool resize(size_t new_size) { return ref_->resize(new_size); }
 	bool growup(size_t capa_size) { return ref_->growup(capa_size); }
@@ -212,8 +204,8 @@ public:
 	size_t size() const { return ref_->size(); }
 	size_t capacity() const { return ref_->capacity(); }
     T& operator[](size_t index) { return (*ref_)[index] ; }
-	pool_buffer_object& operator =(const pool_buffer_object &obj)
-	{ if(ref_->release()) delete ref_; ref_=obj.ref_; ref_->addref(); return *this; }
+	pool_buffer_object& operator =(pool_buffer_object &&obj)
+	{ if(ref_!=nullptr) delete ref_; ref_=obj.ref_; obj.ref_=nullptr; return *this; }
 };
 
   // pool_buffer
