@@ -235,7 +235,6 @@ void CPTCtrlMain::CmdCloseTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 }
 
 //CMD_SET_CH SetChannel
-// MARK : void CPTCtrlMain::CmdSetCh(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 void CPTCtrlMain::CmdSetCh(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	int iID;

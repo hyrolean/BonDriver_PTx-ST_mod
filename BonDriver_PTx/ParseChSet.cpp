@@ -178,7 +178,6 @@ BOOL CParseChSet::Parse1Line(string parseLine, TP_DATA* tpInfo )
 	return TRUE;
 }
 
-// MARK: BOOL CParseChSet::Parse1Line(string parseLine, CH_DATA* chInfo )
 BOOL CParseChSet::Parse1Line(string parseLine, CH_DATA* chInfo )
 {
 	auto ParseData=[](string strBuff, DWORD lastVal) -> DWORD {
