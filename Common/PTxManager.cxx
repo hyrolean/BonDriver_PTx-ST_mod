@@ -409,13 +409,13 @@ BOOL CPTxManager::SetIdS(int iID, DWORD dwTSID)
 
 	DWORD dwGetID=0xffff;
 	for (DWORD t=0,s=dur(),n=0; t<m_dwMaxDurTSID ; t=dur(s)) {
-		Sleep(40);
+		HRSleep(40);
 		status enStatus = m_EnumDev[iDevID]->pcDevice->SetIdS(iTuner, dwTSID);
 		if( enStatus == PT::STATUS_OK ) { if(++n>=2) break ; }
 	}
 	BOOL bRes = FALSE ;
 	for (DWORD t=0,s=dur(); t<m_dwMaxDurTSID && dwTSID != dwGetID ; t=dur(s)) {
-		Sleep(10);
+		HRSleep(10);
 		if(GetIdS(iID, &dwGetID)) bRes=TRUE;
 	}
 	return bRes && (dwTSID==dwGetID) ? TRUE : FALSE ;
@@ -453,7 +453,7 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 					break ;
 				}
 			}
-			Sleep(n>1?50:30);
+			HRSleep(n>1?50:30);
 		}
 
 		if( !bRes ) {
@@ -485,9 +485,9 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 							}
 						}
 					}
-					Sleep(10);
+					HRSleep(10);
 				}else
-					Sleep(40);
+					HRSleep(40);
 			}
 			if(!checkFinished) {
 				_OutputDebugString(L"CPT%dManager::SetCh: TSID:%04x was not found on TMCC!\n",PT_VER,dwTSID) ;
@@ -505,7 +505,7 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 				PT::Device::TmccT tmcc;
 				ZeroMemory(&tmcc,sizeof(tmcc));
 				//std::fill_n(tmcc.Id,8,0xffff) ;
-				Sleep(40);
+				HRSleep(40);
 				status enStatus = m_EnumDev[iDevID]->pcDevice->GetTmccT(iTuner, &tmcc);
 				if (enStatus == PT::STATUS_OK) {
 					hasStream = TRUE ; break;
@@ -655,7 +655,7 @@ int CPTxManager::OpenTuner2(BOOL bSate, int iTunerID)
 			OutputDebugStringA(log);
 			// PT::STATUS_DEVICE_IS_ALREADY_OPEN_ERRORの場合は考慮しない
 			m_EnumDev[iDevID]->pcDevice->Close();
-			Sleep(10);	// 保険
+			HRSleep(10);	// 保険
 		}
 		if( enStatus != PT::STATUS_OK ){
 			m_EnumDev[iDevID]->pcDevice->Delete();
@@ -673,7 +673,7 @@ int CPTxManager::OpenTuner2(BOOL bSate, int iTunerID)
 			OutputDebugStringA(log);
 			return -1;
 		}
-		Sleep(20);
+		HRSleep(20);
 		enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerPowerReset(PT::Device::TUNER_POWER_ON_RESET_DISABLE);
 		if( enStatus != PT::STATUS_OK ){
 			m_EnumDev[iDevID]->pcDevice->Close();
@@ -683,7 +683,7 @@ int CPTxManager::OpenTuner2(BOOL bSate, int iTunerID)
 			OutputDebugStringA(log);
 			return -1;
 		}
-		Sleep(1);
+		HRSleep(1);
 		for( uint32 i=0; i<2; i++ ){
 			enStatus = m_EnumDev[iDevID]->pcDevice->InitTuner(i);
 			if( enStatus != PT::STATUS_OK ){
@@ -759,7 +759,7 @@ int CPTxManager::OpenTuner2(BOOL bSate, int iTunerID)
 			m_EnumDev[iDevID]->bUseT1 = TRUE;
 		}
 #if PT_VER==1 || PT_VER==2
-		Sleep(10);	// PT1/2のT側はこの後の選局までが早すぎるとエラーになる場合があるので
+		HRSleep(10);	// PT1/2のT側はこの後の選局までが早すぎるとエラーになる場合があるので
 #endif
 	}else{
 		if( iTuner == 0 ){

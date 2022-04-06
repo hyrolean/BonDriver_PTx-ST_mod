@@ -147,7 +147,7 @@ BOOL CPTxWDMCmdServiceOperator::ResSetChannel(BOOL &Tuned, DWORD Freq,
 			if(!done) break ;
 		}
 
-		Sleep(60);
+		HRSleep(60);
 
 		if(Sate_) {
 			if(!TSID) {
@@ -168,7 +168,7 @@ BOOL CPTxWDMCmdServiceOperator::ResSetChannel(BOOL &Tuned, DWORD Freq,
 						}
 						if(TSID&~7UL) break ;
 					}
-					Sleep(50);
+					HRSleep(50);
 				}
 			}
 			if(!TSID) break ;
@@ -177,7 +177,7 @@ BOOL CPTxWDMCmdServiceOperator::ResSetChannel(BOOL &Tuned, DWORD Freq,
 			TMCC_STATUS tmcc;
 			for (DWORD t=0,s=dur(); t<MAXDUR_TMCC; t=dur(s)) {
 				if(Tuner_->GetTmcc(&tmcc)) {tuned=true;break;}
-				Sleep(50);
+				HRSleep(50);
 			}
 		}
 
@@ -235,7 +235,7 @@ BOOL CPTxWDMCmdServiceOperator::ResSetIdS(DWORD TSID)
 		BOOL bRes = FALSE ;
 		for (DWORD t=0,s=dur(),n=0; t<MAXDUR_TSID ; t=dur(s)) {
 			if(Tuner_->SetIdS(TSID)) { if(++n>=2) {bRes=TRUE;break;} }
-			Sleep(50);
+			HRSleep(50);
 		}
 		return bRes;
 	}

@@ -14,9 +14,6 @@
 // サービス実行中にクライアントが居なくなったらSDKを閉じてメモリを開放するかどうか
 BOOL g_bXCompactService = FALSE ;
 
-// 高精度タイマーを有効にして割込みの精度を高めるかどうか
-BOOL g_bXUseHRTimer = FALSE ;
-
 CPTCtrlMain g_cMain3(PT0_GLOBAL_LOCK_MUTEX, CMD_PT3_CTRL_EVENT_WAIT_CONNECT, CMD_PT3_CTRL_PIPE, FALSE);
 CPTCtrlMain g_cMain1(PT0_GLOBAL_LOCK_MUTEX, CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_CTRL_PIPE, FALSE);
 
@@ -51,7 +48,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	strIni += L"\\BonDriver_PTx-ST.ini";
 	g_bXCompactService = GetPrivateProfileInt(L"SET", L"xCompactService", 0, strIni.c_str());
-	g_bXUseHRTimer =  GetPrivateProfileInt(L"SET", L"xUseHRTimer", 0, strIni.c_str());
+	SetHRSleepMode(GetPrivateProfileInt(L"SET", L"xUseHRTimer", 0, strIni.c_str()));
 
 	if( _tcslen(lpCmdLine) > 0 ){
 		if( lpCmdLine[0] == '-' || lpCmdLine[0] == '/' ){
@@ -217,7 +214,6 @@ CPTxCtrlCmdServiceOperator::CPTxCtrlCmdServiceOperator(wstring name, BOOL bServi
 	PtService = bService ;
 	PtPipeServer1 = PtPipeServer3 = NULL ;
 	PtSupported = PtActivated = 0 ;
-	HRTimerHandle = NULL ;
 
 	Pt1Manager = CreatePT1Manager();
 	Pt3Manager = CreatePT3Manager();
@@ -244,29 +240,10 @@ CPTxCtrlCmdServiceOperator::CPTxCtrlCmdServiceOperator(wstring name, BOOL bServi
 
 CPTxCtrlCmdServiceOperator::~CPTxCtrlCmdServiceOperator()
 {
-	DeactivateHRTimer();
 	SAFE_DELETE(PtPipeServer1) ;
 	SAFE_DELETE(PtPipeServer3) ;
 	SAFE_DELETE(Pt1Manager) ;
 	SAFE_DELETE(Pt3Manager) ;
-}
-
-void CPTxCtrlCmdServiceOperator::ActivateHRTimer()
-{
-	if(g_bXUseHRTimer) {
-		if(HRTimerHandle==NULL) {
-			HRTimerHandle = CreateWaitableTimerEx(NULL, NULL,
-				CREATE_WAITABLE_TIMER_HIGH_RESOLUTION , TIMER_ALL_ACCESS);
-		}
-	}
-}
-
-void CPTxCtrlCmdServiceOperator::DeactivateHRTimer()
-{
-	if(HRTimerHandle!=NULL) {
-		CloseHandle(HRTimerHandle);
-		HRTimerHandle=NULL;
-	}
 }
 
 BOOL CPTxCtrlCmdServiceOperator::ResSupported(DWORD &PtBits)
@@ -305,7 +282,6 @@ BOOL CPTxCtrlCmdServiceOperator::ResActivatePt(DWORD PtVer)
 
 	if(Result) {
 		LastActivated = GetTickCount() ;
-		ActivateHRTimer();
 	}
 
 	return Result;
@@ -367,9 +343,6 @@ void CPTxCtrlCmdServiceOperator::Main()
 					ResetEvent(g_cMain1.GetStopEvent());
 				}
 			}
-
-			if(!PtActivated)
-				DeactivateHRTimer();
 
 		}
 

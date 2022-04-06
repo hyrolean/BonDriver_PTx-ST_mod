@@ -142,6 +142,8 @@ CBonTuner::CBonTuner()
 			PathFileExists((m_strDirPath+L"PT3Ctrl.exe").c_str()) ;
 		m_bXSparePTw = bypassPTw==0 ? FALSE:
 			PathFileExists((m_strDirPath+L"PTwCtrl.exe").c_str()) ;
+		SetHRSleepMode(GetPrivateProfileIntW(L"SET", L"xUseHRTimer", 0, strIni.c_str()));
+
 		parse_fname(L"PTx");
 
 	}else if(m_iPT==2) { // pt2wdm Tuner
@@ -769,7 +771,7 @@ const BOOL CBonTuner::SetChannel(const DWORD dwSpace, const DWORD dwChannel)
 	}
 
 	if (m_dwSetChDelay)
-		Sleep(m_dwSetChDelay);
+		HRSleep(m_dwSetChDelay);
 
 	PurgeTsStream();
 
@@ -841,7 +843,7 @@ UINT WINAPI CBonTuner::RecvThreadPipeIOProc(LPVOID pParam)
 			}
 		}else{
 			if(!pSys->m_hasStream) pSys->PurgeTsStream();
-			::Sleep(5);
+			HRSleep(5);
 		}
 	}
 
@@ -1057,7 +1059,7 @@ const BOOL CBonTuner::TransponderSetCurID(const DWORD dwID)
 	}
 
 	if (m_dwSetChDelay)
-		Sleep(m_dwSetChDelay);
+		HRSleep(m_dwSetChDelay);
 
 	PurgeTsStream();
 

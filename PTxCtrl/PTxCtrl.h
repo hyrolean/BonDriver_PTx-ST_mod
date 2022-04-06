@@ -22,9 +22,6 @@ class CPTxCtrlCmdServiceOperator : public CPTxCtrlCmdOperator
 	DWORD PtActivated;
 	DWORD LastActivated;
 	static BOOL PtTerminated;
-	HANDLE HRTimerHandle;
-	void ActivateHRTimer();
-	void DeactivateHRTimer();
 public:
 	CPTxCtrlCmdServiceOperator(std::wstring name, BOOL bService);
 	virtual ~CPTxCtrlCmdServiceOperator();

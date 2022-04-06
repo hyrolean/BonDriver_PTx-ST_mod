@@ -5,7 +5,7 @@ HANDLE _CreateEvent(BOOL bManualReset, BOOL bInitialState, LPCTSTR lpName)
 {
 	SECURITY_DESCRIPTOR sd;
 	SECURITY_ATTRIBUTES sa;
-	 
+
 	memset(&sd,0,sizeof(sd));
 	InitializeSecurityDescriptor(&sd,SECURITY_DESCRIPTOR_REVISION);
 	SetSecurityDescriptorDacl(&sd, TRUE, NULL, FALSE);
@@ -20,7 +20,7 @@ HANDLE _CreateFile( LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode
 {
 	SECURITY_DESCRIPTOR sd;
 	SECURITY_ATTRIBUTES sa;
-	 
+
 	memset(&sd,0,sizeof(sd));
 	InitializeSecurityDescriptor(&sd,SECURITY_DESCRIPTOR_REVISION);
 	SetSecurityDescriptorDacl(&sd, TRUE, NULL, FALSE);
@@ -35,7 +35,7 @@ HANDLE _CreateMutex( BOOL bInitialOwner, LPCTSTR lpName )
 {
 	SECURITY_DESCRIPTOR sd;
 	SECURITY_ATTRIBUTES sa;
-	 
+
 	memset(&sd,0,sizeof(sd));
 	InitializeSecurityDescriptor(&sd,SECURITY_DESCRIPTOR_REVISION);
 	SetSecurityDescriptorDacl(&sd, TRUE, NULL, FALSE);
@@ -50,7 +50,7 @@ HANDLE _CreateFileMapping( HANDLE hFile, DWORD flProtect, DWORD dwMaximumSizeHig
 {
 	SECURITY_DESCRIPTOR sd;
 	SECURITY_ATTRIBUTES sa;
-	 
+
 	memset(&sd,0,sizeof(sd));
 	InitializeSecurityDescriptor(&sd,SECURITY_DESCRIPTOR_REVISION);
 	SetSecurityDescriptorDacl(&sd, TRUE, NULL, FALSE);
@@ -65,7 +65,7 @@ HANDLE _CreateNamedPipe( LPCTSTR lpName, DWORD dwOpenMode, DWORD dwPipeMode, DWO
 {
 	SECURITY_DESCRIPTOR sd;
 	SECURITY_ATTRIBUTES sa;
-	 
+
 	memset(&sd,0,sizeof(sd));
 	InitializeSecurityDescriptor(&sd,SECURITY_DESCRIPTOR_REVISION);
 	SetSecurityDescriptorDacl(&sd, TRUE, NULL, FALSE);
@@ -83,7 +83,7 @@ BOOL _CreateDirectory( LPCTSTR lpPathName )
 		TCHAR szCreatePath[MAX_PATH+1] = _T("");
 		szCreatePath[0] = lpPathName[0];
 		szCreatePath[1] = lpPathName[1];
-		
+
 		for (int i = 2; i < (int)_tcslen(lpPathName); i++) {
 			szCreatePath[i] = lpPathName[i];
 			if (szCreatePath[i] == '\\') {
@@ -120,6 +120,60 @@ HANDLE _CreateFile2( LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMod
 	}
 	return hFile;
 }
+
+
+static void sleep_(DWORD msec, DWORD usec)
+{
+  msec += usec/1000;
+  Sleep(msec>0?msec:1);
+}
+
+#ifndef NO_USE_HIGH_RESOLUTION_SLEEP
+
+#ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
+#define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
+#endif
+
+static BOOL s_bHighResolutionSleepMode = FALSE;
+void SetHRSleepMode(BOOL useHighResoluction)
+{ s_bHighResolutionSleepMode = useHighResoluction ; }
+
+static bool doTimerSleep(HANDLE hTimer, const LARGE_INTEGER &time)
+{
+	return ( SetWaitableTimer(hTimer, &time, 0, NULL, NULL, 0) &&
+			WaitForSingleObject(hTimer,INFINITE)==WAIT_OBJECT_0 ) ;
+}
+
+void HRSleep(DWORD msec, DWORD usec)
+{
+	if(!s_bHighResolutionSleepMode&&!usec)
+	{ sleep_(msec,usec); return; }
+
+	HANDLE hTimer =
+		CreateWaitableTimerEx(NULL, NULL,
+			s_bHighResolutionSleepMode?
+				CREATE_WAITABLE_TIMER_HIGH_RESOLUTION:0, TIMER_ALL_ACCESS);
+
+	if(hTimer == NULL)
+	{ sleep_(msec,usec); return; }
+
+	LARGE_INTEGER time;
+	time.QuadPart = - (msec*1000LL + usec) * 10LL ;
+
+	if(!doTimerSleep(hTimer, time))
+		sleep_(msec,usec);
+
+	CloseHandle(hTimer);
+}
+
+#else
+
+void SetHRSleepMode(BOOL useHighResoluction) {}
+
+void HRSleep(DWORD msec, DWORD usec) { sleep_(msec,usec); }
+
+#endif
+
 
 void _OutputDebugString(const TCHAR *format, ...)
 {

@@ -334,7 +334,7 @@ UINT WINAPI CDataIO::RecvThreadProc(LPVOID pParam)
 		}
 
 		if(DWORD wait = avg.size()>0 ? DWORD(sleepy/avg.size()) : 0)
-			Sleep(wait);
+			HRSleep(wait);
 	}
 
 	return 0;
@@ -354,7 +354,7 @@ bool CDataIO::WaitBlock()
 		// ブロックの末尾が 0 でなければ、そのブロックの DMA 転送が完了したことになる
 		#if 0
 		if (Read(mVirtualIndex, mImageIndex, mBlockIndex) != 0) break;
-		Sleep(3);
+		HRSleep(3);
 		#else
 		return Read(mVirtualIndex, mImageIndex, mBlockIndex) != 0 ;
 		#endif

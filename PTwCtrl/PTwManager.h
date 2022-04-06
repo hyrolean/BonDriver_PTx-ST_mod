@@ -124,7 +124,7 @@ private: // MemStreaming
 		bool retry=false;
 		while(!ThTerm) {
 			if(!retry) {
-				if(Op.CurStreamSize()<szp) {Sleep(10);continue;}
+				if(Op.CurStreamSize()<szp) {HRSleep(10);continue;}
 			}
 			TxWriteDone = FALSE;
 			BOOL r = retry ?
