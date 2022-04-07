@@ -128,8 +128,6 @@ static void sleep_(DWORD msec, DWORD usec)
   Sleep(msec>0?msec:1);
 }
 
-#ifndef NO_USE_HIGH_RESOLUTION_SLEEP
-
 #ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
 #define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
 #endif
@@ -150,9 +148,14 @@ void HRSleep(DWORD msec, DWORD usec)
 	{ sleep_(msec,usec); return; }
 
 	HANDLE hTimer =
-		CreateWaitableTimerEx(NULL, NULL,
-			s_bHighResolutionSleepMode?
-				CREATE_WAITABLE_TIMER_HIGH_RESOLUTION:0, TIMER_ALL_ACCESS);
+#if _WIN_VER >= 0x0600
+		s_bHighResolutionSleepMode ?
+			CreateWaitableTimerEx(NULL, NULL,
+				CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS):
+			CreateWaitableTimer(NULL, FALSE, NULL);
+#else
+		CreateWaitableTimer(NULL, FALSE, NULL);
+#endif
 
 	if(hTimer == NULL)
 	{ sleep_(msec,usec); return; }
@@ -165,15 +168,6 @@ void HRSleep(DWORD msec, DWORD usec)
 
 	CloseHandle(hTimer);
 }
-
-#else
-
-void SetHRSleepMode(BOOL) {}
-
-void HRSleep(DWORD msec, DWORD usec) { sleep_(msec,usec); }
-
-#endif
-
 
 void _OutputDebugString(const TCHAR *format, ...)
 {
