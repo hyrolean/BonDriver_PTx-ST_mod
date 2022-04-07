@@ -57,8 +57,9 @@ CPTxManager::CPTxManager(void)
 	m_bMemStreaming = GetPrivateProfileInt(L"SET", L"StreamingMethod", 0, strIni.c_str());
 
 	m_dwMaxDurFREQ = GetPrivateProfileInt(L"SET", L"MAXDUR_FREQ", 1000, strIni.c_str() ); //ü”g”’²®‚É”ï‚â‚·Å‘åŠÔ(msec)
-	m_dwMaxDurTMCC = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC", 1500, strIni.c_str() ); //TMCCæ“¾‚É”ï‚â‚·Å‘åŠÔ(msec)
-	m_dwMaxDurTSID = GetPrivateProfileInt(L"SET", L"MAXDUR_TSID", 3000, strIni.c_str() ); //TSIDİ’è‚É”ï‚â‚·Å‘åŠÔ(msec)
+	m_dwMaxDurTMCC = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC", 1000, strIni.c_str() ); //TMCCæ“¾‚É”ï‚â‚·Å‘åŠÔ(msec)
+	m_dwMaxDurTMCC_S = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC_S", m_dwMaxDurTMCC, strIni.c_str() ); //TMCC(S‘¤)æ“¾‚É”ï‚â‚·Å‘åŠÔ(msec)
+	m_dwMaxDurTSID = GetPrivateProfileInt(L"SET", L"MAXDUR_TSID", 1000, strIni.c_str() ); //TSIDİ’è‚É”ï‚â‚·Å‘åŠÔ(msec)
 }
 
 BOOL CPTxManager::LoadSDK()
@@ -370,9 +371,8 @@ BOOL CPTxManager::GetIdListS(int iID, PTTSIDLIST* pPtTSIDList)
 		return FALSE ;
 	}
 
-	for(uint32 i=0;i<8;i++) {
-		pPtTSIDList->dwId[i] = (DWORD) tmcc.Id[i] ;
-	}
+	PDWORD pdwId = &pPtTSIDList->dwId[0];
+	std::copy(&tmcc.Id[0], &tmcc.Id[8], pdwId);
 
 	return TRUE ;
 }
@@ -408,16 +408,28 @@ BOOL CPTxManager::SetIdS(int iID, DWORD dwTSID)
 	}
 
 	DWORD dwGetID=0xffff;
+	BOOL bRes = FALSE ;
+#if 0
 	for (DWORD t=0,s=dur(),n=0; t<m_dwMaxDurTSID ; t=dur(s)) {
-		HRSleep(40);
+		if(t) HRSleep(40);
 		status enStatus = m_EnumDev[iDevID]->pcDevice->SetIdS(iTuner, dwTSID);
 		if( enStatus == PT::STATUS_OK ) { if(++n>=2) break ; }
 	}
-	BOOL bRes = FALSE ;
 	for (DWORD t=0,s=dur(); t<m_dwMaxDurTSID && dwTSID != dwGetID ; t=dur(s)) {
-		HRSleep(10);
+		if(t) HRSleep(10);
 		if(GetIdS(iID, &dwGetID)) bRes=TRUE;
 	}
+#else
+	status enStatus = PT::STATUS_GENERAL_ERROR ;
+	for (DWORD t=0,s=dur(); t<m_dwMaxDurTSID && dwTSID != dwGetID ; t=dur(s)) {
+		if(t) HRSleep(enStatus==PT::STATUS_OK?10:40);
+		if( enStatus != PT::STATUS_OK )
+			enStatus = m_EnumDev[iDevID]->pcDevice->SetIdS(iTuner, dwTSID);
+		if( enStatus == PT::STATUS_OK ) {
+			if(GetIdS(iID, &dwGetID)) bRes=TRUE;
+		}
+	}
+#endif
 	return bRes && (dwTSID==dwGetID) ? TRUE : FALSE ;
 
 }
@@ -453,7 +465,7 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 					break ;
 				}
 			}
-			HRSleep(n>1?50:30);
+			HRSleep(n>=1?50:30);
 		}
 
 		if( !bRes ) {
@@ -463,7 +475,7 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 
 		if( enISDB == PT::Device::ISDB_S ){
 			bool checkOnly = (dwTSID&~7UL)!=0 ,checkFinished=false ;
-			for (DWORD t=0,s=dur(); !checkFinished && t<m_dwMaxDurTMCC; t=dur(s)) {
+			for (DWORD t=0,s=dur(); !checkFinished && t<m_dwMaxDurTMCC_S; t=dur(s)) {
 				PTTSIDLIST PtTSIDList = {0};
 				bRes = GetIdListS(iID, &PtTSIDList);
 				if (bRes) {
@@ -485,9 +497,9 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 							}
 						}
 					}
-					HRSleep(10);
+					HRSleep(0,500);
 				}else
-					HRSleep(40);
+					HRSleep(10);
 			}
 			if(!checkFinished) {
 				_OutputDebugString(L"CPT%dManager::SetCh: TSID:%04x was not found on TMCC!\n",PT_VER,dwTSID) ;
@@ -505,7 +517,7 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 				PT::Device::TmccT tmcc;
 				ZeroMemory(&tmcc,sizeof(tmcc));
 				//std::fill_n(tmcc.Id,8,0xffff) ;
-				HRSleep(40);
+				if(t) HRSleep(40);
 				status enStatus = m_EnumDev[iDevID]->pcDevice->GetTmccT(iTuner, &tmcc);
 				if (enStatus == PT::STATUS_OK) {
 					hasStream = TRUE ; break;

@@ -135,8 +135,8 @@ static void sleep_(DWORD msec, DWORD usec)
 #endif
 
 static BOOL s_bHighResolutionSleepMode = FALSE;
-void SetHRSleepMode(BOOL useHighResoluction)
-{ s_bHighResolutionSleepMode = useHighResoluction ; }
+void SetHRSleepMode(BOOL useHighResolution)
+{ s_bHighResolutionSleepMode = useHighResolution ; }
 
 static bool doTimerSleep(HANDLE hTimer, const LARGE_INTEGER &time)
 {
@@ -168,7 +168,7 @@ void HRSleep(DWORD msec, DWORD usec)
 
 #else
 
-void SetHRSleepMode(BOOL useHighResoluction) {}
+void SetHRSleepMode(BOOL) {}
 
 void HRSleep(DWORD msec, DWORD usec) { sleep_(msec,usec); }
 

@@ -35,7 +35,7 @@ HANDLE _CreateFile2( LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMod
 
   // Sleep with High Resolution Timer
 
-void SetHRSleepMode(BOOL useHighResoluction) ;
+void SetHRSleepMode(BOOL useHighResolution) ;
 void HRSleep(DWORD msec, DWORD usec=0) ;
 
 void _OutputDebugString(const TCHAR *pOutputString, ...);
