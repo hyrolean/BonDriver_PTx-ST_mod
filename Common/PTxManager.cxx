@@ -324,35 +324,32 @@ BOOL CPTxManager::SetFreq(int iID, unsigned long ulCh)
 	sint32 offset = (ulCh >> 16) & 0xffff;
 	if (offset >= 32768) offset -= 65536;
 
-	status enStatus;
-
-#if 0
-	uint32 cur_ch ;
-	sint32 cur_offset ;
-
+	status enStatus = PT::STATUS_GENERAL_ERROR ;
+	for (DWORD t=0,s=dur(); t<m_dwMaxDurFREQ; t=dur(s)) {
+		if(t) HRSleep(enStatus==PT::STATUS_OK?10:40);
+		if( enStatus!=PT::STATUS_OK )
 #if PT_VER==1 || PT_VER==2
-		enStatus = m_EnumDev[iDevID]->pcDevice->GetFrequency(iTuner, enISDB, &cur_ch, &cur_offset);
+			enStatus = m_EnumDev[iDevID]->pcDevice->SetFrequency(iTuner, enISDB, ch, offset);
 #elif PT_VER==3
-		enStatus = m_EnumDev[iDevID]->pcDevice->GetFrequency(enISDB, iTuner, &cur_ch, &cur_offset);
+			enStatus = m_EnumDev[iDevID]->pcDevice->SetFrequency(enISDB, iTuner, ch, offset);
 #endif
-
-	if(enStatus == PT::STATUS_OK) {
-		if(cur_ch==ch && cur_offset==offset)
-			return TRUE ;
-	}
-#endif
-
+		if( enStatus == PT::STATUS_OK ) {
+			uint32 cur_ch ;
+			sint32 cur_offset ;
+			status enCurStatus ;
 #if PT_VER==1 || PT_VER==2
-		enStatus = m_EnumDev[iDevID]->pcDevice->SetFrequency(iTuner, enISDB, ch, offset);
+			enCurStatus = m_EnumDev[iDevID]->pcDevice->GetFrequency(iTuner, enISDB, &cur_ch, &cur_offset);
 #elif PT_VER==3
-		enStatus = m_EnumDev[iDevID]->pcDevice->SetFrequency(enISDB, iTuner, ch, offset);
+			enCurStatus = m_EnumDev[iDevID]->pcDevice->GetFrequency(enISDB, iTuner, &cur_ch, &cur_offset);
 #endif
-
-	if( enStatus != PT::STATUS_OK ) {
-		return FALSE ;
+			if(enCurStatus == PT::STATUS_OK) {
+				if(cur_ch==ch && cur_offset==offset)
+					return TRUE ;
+			}
+		}
 	}
 
-	return TRUE ;
+	return FALSE ;
 }
 
 BOOL CPTxManager::GetIdListS(int iID, PTTSIDLIST* pPtTSIDList)
@@ -409,17 +406,7 @@ BOOL CPTxManager::SetIdS(int iID, DWORD dwTSID)
 
 	DWORD dwGetID=0xffff;
 	BOOL bRes = FALSE ;
-#if 0
-	for (DWORD t=0,s=dur(),n=0; t<m_dwMaxDurTSID ; t=dur(s)) {
-		if(t) HRSleep(40);
-		status enStatus = m_EnumDev[iDevID]->pcDevice->SetIdS(iTuner, dwTSID);
-		if( enStatus == PT::STATUS_OK ) { if(++n>=2) break ; }
-	}
-	for (DWORD t=0,s=dur(); t<m_dwMaxDurTSID && dwTSID != dwGetID ; t=dur(s)) {
-		if(t) HRSleep(10);
-		if(GetIdS(iID, &dwGetID)) bRes=TRUE;
-	}
-#else
+
 	status enStatus = PT::STATUS_GENERAL_ERROR ;
 	for (DWORD t=0,s=dur(); t<m_dwMaxDurTSID && dwTSID != dwGetID ; t=dur(s)) {
 		if(t) HRSleep(enStatus==PT::STATUS_OK?10:40);
@@ -429,9 +416,8 @@ BOOL CPTxManager::SetIdS(int iID, DWORD dwTSID)
 			if(GetIdS(iID, &dwGetID)) bRes=TRUE;
 		}
 	}
-#endif
-	return bRes && (dwTSID==dwGetID) ? TRUE : FALSE ;
 
+	return (dwTSID==dwGetID) ? bRes : FALSE ;
 }
 
 BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream)
@@ -456,19 +442,10 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 		}
 
 		BOOL bRes=FALSE;
-		for (DWORD t=0,s=dur(),n=0; t<m_dwMaxDurFREQ; t=dur(s)) {
-
-			bRes = SetFreq(iID, ulCh);
-			if( bRes ) {
-				if(++n>=2) {
-					_OutputDebugString(L"CPT%dManager::SetFreq: Device::SetFrequency: ISDB:%d tuner:%d ch:%d\n",PT_VER,enISDB,iTuner,ch);
-					break ;
-				}
-			}
-			HRSleep(n>=1?50:30);
-		}
-
-		if( !bRes ) {
+		bRes = SetFreq(iID, ulCh);
+		if( bRes ) {
+			_OutputDebugString(L"CPT%dManager::SetFreq: Device::SetFrequency: ISDB:%d tuner:%d ch:%d\n",PT_VER,enISDB,iTuner,ch);
+		}else {
 			_OutputDebugString(L"CPT%dManager::SetFreq: Device::SetFrequency failure!\n",PT_VER) ;
 			break ;
 		}
