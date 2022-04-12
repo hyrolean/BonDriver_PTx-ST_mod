@@ -9,7 +9,7 @@ PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用�
     |-- Win32 (32bit版のモジュール一式)
     |   |-- BonDriver_PTx-S.dll (BS/CS用のBonDriver)
     |   |-- BonDriver_PTx-T.dll (地デジ用のBonDriver)
-    |   `-- PTxCtrl.exe
+    |   `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル)
     `-- x64 (64bit版のモジュール一式)
         |-- BonDriver_PTx-S.dll (BS/CS用のBonDriver)
         |-- BonDriver_PTx-T.dll (地デジ用のBonDriver)
