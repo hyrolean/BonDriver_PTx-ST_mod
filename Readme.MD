@@ -3,7 +3,19 @@
 PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用のハイブリッド複合型BonDriverです。複数プロセスから扱えます。
 
 ## ●ファイル構成
-
+  ```
+    BonDriver_PTx-ST_mod
+    |-- BonDriver_PTx-ST.ini (設定ファイル)
+    |-- Win32 (32bit版のモジュール一式)
+    |   |-- BonDriver_PTx-S.dll (BS/CS用のBonDriver)
+    |   |-- BonDriver_PTx-T.dll (地デジ用のBonDriver)
+    |   `-- PTxCtrl.exe
+    `-- x64 (64bit版のモジュール一式)
+        |-- BonDriver_PTx-S.dll (BS/CS用のBonDriver)
+        |-- BonDriver_PTx-T.dll (地デジ用のBonDriver)
+        `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル)
+  ```
+  
 ## ●使い方
 
   PT3 SDKバージョン0.9がインストールされている環境と、PT SDKバージョン4.0がインストールされている環境のどちらか一方が最低限必要。
