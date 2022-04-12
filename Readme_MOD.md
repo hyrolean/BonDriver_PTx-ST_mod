@@ -2,6 +2,19 @@
 
 ## ●オリジナルのBonDriver_PT3(人柱版4)およびBonDriver_PT-ST(人柱版3)との使用する上での相違点
 
+### ■ ハイレゾリューションタイマー導入によるストリーム転送とチャンネルスキャンの高速化。
+
+  Windows8以降でサポートされた高精度割込みタイマーを導入することにより、チャンネルスキャンのもたつきや、ストリーム転送のラグを極限まで抑えることを可能としました。
+  
+  高精度割込みタイマーを有効にするには、BonDriver_PTx-ST.ini の以下の項目を"1"に変更してください。
+  ```
+  [SET]
+  ; UseHRTimer=0 を UseHRTimer=1 に変更
+  UseHRTimer=1
+  ```
+- [mod7 BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS+SparePTw+UseHRTimer fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod7)
+(Described by 2022/04/14 LVhJPic0JSk5LiQ1ITskKVk9UGBg)  
+  
 ### ■ PTxの代替としてのPTwチューナー差し替えの簡略化。
 
   以下の工程を追うことにより、PTwのBonDriverをPTxのBonDriverで簡単に差し替えすることが出来るようになりました。
