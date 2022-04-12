@@ -32,7 +32,6 @@
 *.app
 
 # Dummy files
-Thumbs.db
 *.~*
 *.ec?
 *.BAT
