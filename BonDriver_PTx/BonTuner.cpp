@@ -142,7 +142,6 @@ CBonTuner::CBonTuner()
 			PathFileExists((m_strDirPath+L"PT3Ctrl.exe").c_str()) ;
 		m_bXSparePTw = bypassPTw==0 ? FALSE:
 			PathFileExists((m_strDirPath+L"PTwCtrl.exe").c_str()) ;
-		SetHRSleepMode(GetPrivateProfileIntW(L"SET", L"xUseHRTimer", 0, strIni.c_str()));
 
 		parse_fname(L"PTx");
 
@@ -177,6 +176,7 @@ CBonTuner::CBonTuner()
 	m_dwSetChDelay = GetPrivateProfileIntW(L"SET", L"SetChDelay", 0, strIni.c_str());
 	m_dwRetryDur = GetPrivateProfileIntW(L"SET", L"RetryDur", 3000, strIni.c_str());
 	m_dwStartBuff = GetPrivateProfileIntW(L"SET", L"StartBuff", 8, strIni.c_str());
+	SetHRSleepMode(GetPrivateProfileIntW(L"SET", L"UseHRTimer", 0, strIni.c_str()));
 
 	wstring strChSet;
 

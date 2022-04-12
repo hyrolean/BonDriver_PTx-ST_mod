@@ -35,6 +35,7 @@
 *.~*
 *.ec?
 *.BAT
+Thumbs.db
 
 # VC++ files
 .vs/
