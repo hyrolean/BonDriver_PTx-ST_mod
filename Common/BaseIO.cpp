@@ -213,7 +213,7 @@ UINT CBaseIO::MemStreamingThreadProcMain(DWORD dwID)
 			tx(Buff(dwID), MemStreamer(dwID));
 
 		if (obj!=nullptr||!m_fDataCarry[dwID])
-			Sleep(MemStreamer(dwID) ? 10 : CmdWait);
+			HRSleep(MemStreamer(dwID) ? 10 : CmdWait);
 	}
 
 	return 0;

@@ -7,6 +7,10 @@
 #include "../Common/ServiceUtil.h"
 #include "PTxCtrl.h"
 
+#ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
+#define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
+#endif
+
 // サービス実行中にクライアントが居なくなったらSDKを閉じてメモリを開放するかどうか
 BOOL g_bXCompactService = FALSE ;
 
@@ -44,6 +48,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	strIni += L"\\BonDriver_PTx-ST.ini";
 	g_bXCompactService = GetPrivateProfileInt(L"SET", L"xCompactService", 0, strIni.c_str());
+	SetHRSleepMode(GetPrivateProfileInt(L"SET", L"UseHRTimer", 0, strIni.c_str()));
 
 	if( _tcslen(lpCmdLine) > 0 ){
 		if( lpCmdLine[0] == '-' || lpCmdLine[0] == '/' ){
@@ -254,31 +259,32 @@ BOOL CPTxCtrlCmdServiceOperator::ResActivatePt(DWORD PtVer)
 		return FALSE;
 	}
 
+	BOOL Result = FALSE ;
+
 	if( PtActivated &(1<<(PtVer-1)) ) {
 		DBGOUT("PTxCtrl: PT%d is Already Activated.\n",PtVer);
-		LastActivated = GetTickCount() ;
-		return TRUE;
-	}
-
-	if(PtVer==3) {
+		Result = TRUE;
+	}else if(PtVer==3) {
 		if(g_cMain3.Init(PtService, Pt3Manager)) {
 			PtPipeServer3 = g_cMain3.MakePipeServer() ;
 			PtActivated |= 1<<2 ;
 			DBGOUT("PTxCtrl: PT3 was Re-Activated.\n");
-			LastActivated = GetTickCount() ;
-			return TRUE ;
+			Result = TRUE ;
 		}
 	}else if(PtVer==1) {
 		if(g_cMain1.Init(PtService, Pt1Manager)) {
 			PtPipeServer1 = g_cMain1.MakePipeServer() ;
 			PtActivated |= 1 ;
 			DBGOUT("PTxCtrl: PT1 was Re-Activated.\n");
-			LastActivated = GetTickCount() ;
-			return TRUE ;
+			Result = TRUE ;
 		}
 	}
 
-	return FALSE;
+	if(Result) {
+		LastActivated = GetTickCount() ;
+	}
+
+	return Result;
 }
 
 void CPTxCtrlCmdServiceOperator::Main()

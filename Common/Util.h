@@ -33,8 +33,12 @@ HANDLE _CreateNamedPipe( LPCTSTR lpName, DWORD dwOpenMode, DWORD dwPipeMode, DWO
 BOOL _CreateDirectory( LPCTSTR lpPathName );
 HANDLE _CreateFile2( LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile );
 
-void _OutputDebugString(const TCHAR *pOutputString, ...);
+  // Sleep with High Resolution Timer
 
+void SetHRSleepMode(BOOL useHighResolution) ;
+void HRSleep(DWORD msec, DWORD usec=0) ;
+
+void _OutputDebugString(const TCHAR *pOutputString, ...);
 
 #ifdef _DEBUG
 #include <stdio.h>

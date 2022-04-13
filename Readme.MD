@@ -1,181 +1,162 @@
 # BonDriver_PTx-ST MOD
 
-## ♦ 一番簡単な導入例
+PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用のハイブリッド複合型BonDriverです。複数プロセスから扱えます。
 
-  以下のファイルを各アプリケーションのBonDriverフォルダに配置すれば一応動作します。
+## ●ファイル構成
   ```
-  BonDriver_PTx-S.dll ← BonDriver_PTx.dllをリネームしたものを配置してください
-  BonDriver_PTx-T.dll ← BonDriver_PTx.dllをリネームしたものを配置してください
-  BonDriver_PTx-ST.ini ← 設定ファイル
-  PTxCtrl.exe ← PT1/PT2/PT3 自動判別PT制御実行ファイル
+    BonDriver_PTx-ST_mod
+    |-- BonDriver_PTx-ST.ini (設定ファイル)
+    |-- Win32 (32bit版のモジュール一式)
+    |   |-- BonDriver_PTx-S.dll (BS/CS用のBonDriver)
+    |   |-- BonDriver_PTx-T.dll (地デジ用のBonDriver)
+    |   `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル)
+    `-- x64 (64bit版のモジュール一式)
+        |-- BonDriver_PTx-S.dll (BS/CS用のBonDriver)
+        |-- BonDriver_PTx-T.dll (地デジ用のBonDriver)
+        `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル)
   ```
-  (***※チャンネルファイル配置の必要はありません。***)
-
-  より詳しい使い方は、以下の相違点(更新歴の新しい順)を追ってみてください。
-
-## ♦ オリジナルのBonDriver_PT3(人柱版4)との使用する上での相違点
-
-### ■ PTxの代替としてのPTwチューナー差し替えの簡略化。
-
-  以下の工程を追うことにより、PTwのBonDriverをPTxのBonDriverで簡単に差し替えすることが出来るようになりました。
   
+## ●使い方
+
+  PT3 SDKバージョン0.9がインストールされている環境と、PT SDKバージョン4.0がインストールされている環境のどちらか一方が最低限必要。
+  SDKは、最低限、どちらか一方がインストールされていれば、支障なく動作すると思います。
+  PT1/PT2とPT3両方を同一PCで利用する場合は、両方のSDKをインストールしておいてください。
   
-  以下のファイル群をアプリ側のBonDriverフォルダに配置…
+  各種アプリのBonDriver配置場所に下記に表記されているモジュール一式
   ```
-  BonDriver_PTx-S.dll ← BS/CS110 複合チューナー S側ID自動判別 (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-T.dll ← 地デジ 複合チューナー T側ID自動判別 (BonDriver_PTx.dllをリネームしたもの)
+  PTxCtrl.exe
+  BonDriver_PTx-S.dll
+  BonDriver_PTx-T.dll
   BonDriver_PTx-ST.ini
-  PTxCtrl.exe ← PT1/PT2/PT3 自動判別PT制御実行ファイル(※pt2wdmだけ使用の場合は無くても可)
-  PTwCtrl.exe ← pt2wdm 制御実行ファイル (PTwCtrl.vcxprojをコンパイルして出来上がったファイル)
   ```
-  そして、BonDriver_PTx-ST.ini ファイルの以下の部分を下記のように修正…
+  を置いてください。
+  
+  1DLLで複数チューナーを扱います。（凡、HDUS BonDriver形式）
+  PTxCtrl.exeはDLLから起動するので人為的に起動する必要はありません。
+  もしアプリが強制終了してPTxCtrl.exeがプロセスに残った場合はタスクマネージャーから終了させて下さい。（一応自動終了の仕組みは入れていますが、1分以上残っているようなら終了してください。）
+
+  ファイル名で個別チューナーを設定することもできます。
+  「BonDriver_PTx-S*.dll」、「BonDriver_PTx-T*.dll」の形式で\*部分を0～∞まで
+  0が1枚目のS1かT1、1が1枚目のS2かT2、2が2枚目のS1かT1、3が2枚目のS2かT2・・・
+  デフォルトのファイル名のままなら空きチューナーを探して使用します。
+  
+  表記例
   ```
-  [SET]
-  ; xSparePTw=0 を xSparePTw=1 に変更
-  xSparePTw=1
+  BonDriver_PTx-S0.dll ← BS/CS110 複合チューナーの最初のチューナーのS1端子のチューナー
+  BonDriver_PTx-T0.dll ← 地デジ 複合チューナーの最初のチューナーのT1端子のチューナー
+  BonDriver_PTx-S1.dll ← BS/CS110 複合チューナーの最初のチューナーのS2端子のチューナー
+  BonDriver_PTx-T1.dll ← 地デジ 複合チューナーの最初のチューナーのT2端子のチューナー
+  BonDriver_PTx-S2.dll ← BS/CS110 複合チューナーの二枚目のチューナーのS1端子のチューナー
+  BonDriver_PTx-T2.dll ← 地デジ 複合チューナーの二枚目のチューナーのT1端子のチューナー
+  BonDriver_PTx-S3.dll ← BS/CS110 複合チューナーの二枚目のチューナーのS2端子のチューナー
+  BonDriver_PTx-T3.dll ← 地デジ 複合チューナーの二枚目のチューナーのT2端子のチューナー
+  BonDriver_PTx-S4.dll ← BS/CS110 複合チューナーの三枚目のチューナーのS1端子のチューナー
+  BonDriver_PTx-T4.dll ← 地デジ 複合チューナーの三枚目のチューナーのT1端子のチューナー
+  BonDriver_PTx-S5.dll ← BS/CS110 複合チューナーの三枚目のチューナーのS2端子のチューナー
+  BonDriver_PTx-T5.dll ← 地デジ 複合チューナーの三枚目のチューナーのT2端子のチューナー
   ```
-  すると、現在使用しているデバイスドライバが EARTHSOFT 純正であるか pt2wdm であるかに関わらず、適切なデバイスを自動判別して任意のチューナーを開くことが出来るようになります。
-  EARTHSOFT純正ドライバからpt2wdmのドライバに対応したBonDriverに挿げ替える作業は、実質上記iniファイルの一か所を修正する作業だけで済むため、BonDriverの名前変更などの煩わしい一連の作業を省略できます。
+  ※PT1/PT2とPT3両方を同一PCで利用しているケースで、PT1/2もしくは、PT3どちらを先に探しに行く順番は、BonDriver_PTx-ST.ini の xFirstPT3=1 のときにPT3を先に探しに行きます。 逆に、xFirstPT3=0 の場合は、PT1/PT2側が先行されます。  
 
-- [mod6.1 BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS+SparePTw fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod6.1)(***※[PTwCtrl.exe](https://github.com/hyrolean/BonDriver_PTx-ST_mod/tree/master/PTwCtrl)の構築が別途必要***)
-    (Described by 2022/03/11 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+## ● 設定
 
-### ■ サテライト側の.ChSet.txtファイルを自動生成するプログラム PTxScanS.exe を追加。
+  BonDriver_PTx-ST.iniを変更することで以下の項目が設定できます。
+  ファイル名で個別チューナー設定を行っても設定は共通です。
+  
+  - LNB電源の使用／未使用(UseLNB)
+  - DMA転送バッファのサイズ指定(DMABuff)
+  - PT1/2、PT3の検索順序の設定(xFirstPT3)
+  - PT1/2のバージョン設定(PT1Ver)
 
-  各々のBonDriverが存在するディレクトリにPTxScanS.exeを配置して実行し、指示に従うだけで容易にサテライト側の.ChSet.txtファイルを自動生成することを可能とする機能を追加しました。
+  ※他にも色々設定する項目がありますが、長くなってしまいますので割愛します。BonDriver_PTx-ST.iniのコメント欄に個々の項目についての説明が記述してありますので参照してみてください。
+  
+  PTxCtrl.exeをサービスとして登録することもできます。
+  コマンドラインオプション「-install」で登録、「-remove」で登録解除。
+  
+## ●チャンネル設定
+
+  チャンネル定義をtextファイルにしています(BonDriver_PTx-S.ChSet.txt/BonDriver_PTx-T.ChSet.txt)。
+  不必要なチューナー空間やチャンネルがある場合、行の先頭に「;」をつけて無効化してください。
+  ただし、BonDriverとしてのチューナ空間、チャンネルは、値が0からの連番になる必要があるため、連番にならないような設定になる場合、0からの連番に変更する必要があります。（チューナー空間側で発生するとチャンネル側も変更の必要あります）
+  編集が必要になる場合は、Excelでタブ区切りで読み込むと行いやすいと思います。
+  ファイル名で個別チューナー設定を行っても設定は共通です。
+  地デジはデフォルトUHFのみ有効にしているため、CATVが必要なら変更してください。
+
+PTxとしてのチャンネルは以下のものが設定できます。
+EARTH_PT.h/EARTH_PT3.hより抜粋
+```
+// (ISDB-S)
+// PLL 周波数ステップが 1MHz のため、実際に設定される周波数は f' になります。
+// +----+------+---------+---------+ +----+------+---------+---------+ +----+------+---------+---------+
+// | ch | TP # | f (MHz) | f'(MHz) | | ch | TP # | f (MHz) | f'(MHz) | | ch | TP # | f (MHz) | f'(MHz) |
+// +----+------+---------+---------+ +----+------+---------+---------+ +----+------+---------+---------+
+// |  0 | BS 1 | 1049.48 | 1049.00 | | 12 | ND 2 | 1613.00 | (同左)  | | 24 | ND 1 | 1593.00 | (同左)  |
+// |  1 | BS 3 | 1087.84 | 1088.00 | | 13 | ND 4 | 1653.00 | (同左)  | | 25 | ND 3 | 1633.00 | (同左)  |
+// |  2 | BS 5 | 1126.20 | 1126.00 | | 14 | ND 6 | 1693.00 | (同左)  | | 26 | ND 5 | 1673.00 | (同左)  |
+// |  3 | BS 7 | 1164.56 | 1165.00 | | 15 | ND 8 | 1733.00 | (同左)  | | 27 | ND 7 | 1713.00 | (同左)  |
+// |  4 | BS 9 | 1202.92 | 1203.00 | | 16 | ND10 | 1773.00 | (同左)  | | 28 | ND 9 | 1753.00 | (同左)  |
+// |  5 | BS11 | 1241.28 | 1241.00 | | 17 | ND12 | 1813.00 | (同左)  | | 29 | ND11 | 1793.00 | (同左)  |
+// |  6 | BS13 | 1279.64 | 1280.00 | | 18 | ND14 | 1853.00 | (同左)  | | 30 | ND13 | 1833.00 | (同左)  |
+// |  7 | BS15 | 1318.00 | (同左)  | | 19 | ND16 | 1893.00 | (同左)  | | 31 | ND15 | 1873.00 | (同左)  |
+// |  8 | BS17 | 1356.36 | 1356.00 | | 20 | ND18 | 1933.00 | (同左)  | | 32 | ND17 | 1913.00 | (同左)  |
+// |  9 | BS19 | 1394.72 | 1395.00 | | 21 | ND20 | 1973.00 | (同左)  | | 33 | ND19 | 1953.00 | (同左)  |
+// | 10 | BS21 | 1433.08 | 1433.00 | | 22 | ND22 | 2013.00 | (同左)  | | 34 | ND21 | 1993.00 | (同左)  |
+// | 11 | BS23 | 1471.44 | 1471.00 | | 23 | ND24 | 2053.00 | (同左)  | | 35 | ND23 | 2033.00 | (同左)  |
+// +----+------+---------+---------+ +----+------+---------+---------+ +----+------+---------+---------+
+// 
+// (ISDB-T)
+// +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+
+// | ch. | Ch. | f (MHz) | | ch. | Ch. | f (MHz) | | ch. | Ch. | f (MHz) | | ch. | Ch. | f (MHz) | | ch. | Ch. | f (MHz) |
+// +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+
+// |   0 |   1 |  93+1/7 | |  23 | C24 | 231+1/7 | |  46 | C47 | 369+1/7 | |  69 |  19 | 509+1/7 | |  92 |  42 | 647+1/7 |
+// |   1 |   2 |  99+1/7 | |  24 | C25 | 237+1/7 | |  47 | C48 | 375+1/7 | |  70 |  20 | 515+1/7 | |  93 |  43 | 653+1/7 |
+// |   2 |   3 | 105+1/7 | |  25 | C26 | 243+1/7 | |  48 | C49 | 381+1/7 | |  71 |  21 | 521+1/7 | |  94 |  44 | 659+1/7 |
+// |   3 | C13 | 111+1/7 | |  26 | C27 | 249+1/7 | |  49 | C50 | 387+1/7 | |  72 |  22 | 527+1/7 | |  95 |  45 | 665+1/7 |
+// |   4 | C14 | 117+1/7 | |  27 | C28 | 255+1/7 | |  50 | C51 | 393+1/7 | |  73 |  23 | 533+1/7 | |  96 |  46 | 671+1/7 |
+// |   5 | C15 | 123+1/7 | |  28 | C29 | 261+1/7 | |  51 | C52 | 399+1/7 | |  74 |  24 | 539+1/7 | |  97 |  47 | 677+1/7 |
+// |   6 | C16 | 129+1/7 | |  29 | C30 | 267+1/7 | |  52 | C53 | 405+1/7 | |  75 |  25 | 545+1/7 | |  98 |  48 | 683+1/7 |
+// |   7 | C17 | 135+1/7 | |  30 | C31 | 273+1/7 | |  53 | C54 | 411+1/7 | |  76 |  26 | 551+1/7 | |  99 |  49 | 689+1/7 |
+// |   8 | C18 | 141+1/7 | |  31 | C32 | 279+1/7 | |  54 | C55 | 417+1/7 | |  77 |  27 | 557+1/7 | | 100 |  50 | 695+1/7 |
+// |   9 | C19 | 147+1/7 | |  32 | C33 | 285+1/7 | |  55 | C56 | 423+1/7 | |  78 |  28 | 563+1/7 | | 101 |  51 | 701+1/7 |
+// |  10 | C20 | 153+1/7 | |  33 | C34 | 291+1/7 | |  56 | C57 | 429+1/7 | |  79 |  29 | 569+1/7 | | 102 |  52 | 707+1/7 |
+// |  11 | C21 | 159+1/7 | |  34 | C35 | 297+1/7 | |  57 | C58 | 435+1/7 | |  80 |  30 | 575+1/7 | | 103 |  53 | 713+1/7 |
+// |  12 | C22 | 167+1/7 | |  35 | C36 | 303+1/7 | |  58 | C59 | 441+1/7 | |  81 |  31 | 581+1/7 | | 104 |  54 | 719+1/7 |
+// |  13 |   4 | 173+1/7 | |  36 | C37 | 309+1/7 | |  59 | C60 | 447+1/7 | |  82 |  32 | 587+1/7 | | 105 |  55 | 725+1/7 |
+// |  14 |   5 | 179+1/7 | |  37 | C38 | 315+1/7 | |  60 | C61 | 453+1/7 | |  83 |  33 | 593+1/7 | | 106 |  56 | 731+1/7 |
+// |  15 |   6 | 185+1/7 | |  38 | C39 | 321+1/7 | |  61 | C62 | 459+1/7 | |  84 |  34 | 599+1/7 | | 107 |  57 | 737+1/7 |
+// |  16 |   7 | 191+1/7 | |  39 | C40 | 327+1/7 | |  62 | C63 | 465+1/7 | |  85 |  35 | 605+1/7 | | 108 |  58 | 743+1/7 |
+// |  17 |   8 | 195+1/7 | |  40 | C41 | 333+1/7 | |  63 |  13 | 473+1/7 | |  86 |  36 | 611+1/7 | | 109 |  59 | 749+1/7 |
+// |  18 |   9 | 201+1/7 | |  41 | C42 | 339+1/7 | |  64 |  14 | 479+1/7 | |  87 |  37 | 617+1/7 | | 110 |  60 | 755+1/7 |
+// |  19 |  10 | 207+1/7 | |  42 | C43 | 345+1/7 | |  65 |  15 | 485+1/7 | |  88 |  38 | 623+1/7 | | 111 |  61 | 761+1/7 |
+// |  20 |  11 | 213+1/7 | |  43 | C44 | 351+1/7 | |  66 |  16 | 491+1/7 | |  89 |  39 | 629+1/7 | | 112 |  62 | 767+1/7 |
+// |  21 |  12 | 219+1/7 | |  44 | C45 | 357+1/7 | |  67 |  17 | 497+1/7 | |  90 |  40 | 635+1/7 | +-----+-----+---------+
+// |  22 | C23 | 225+1/7 | |  45 | C46 | 363+1/7 | |  68 |  18 | 503+1/7 | |  91 |  41 | 641+1/7 |
+// +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+
+```
+
+  ※チャンネル定義をtextファイル(.ChSet.txt)にしなくても、BonDriver_PTx-ST_mod は、チャンネル情報をBonDriver_PTx-ST.iniの\[DefSpace\]セクションに記述することによって既定のチャンネル情報として扱うことが可能になっています。周波数の微調整などが必要ない限り、チャンネルファイルを記述する必要はありません。BonDriver_PTx-ST_mod では、チャンネル情報(.ChSet.txt)ファイルが記述されている場合は、既定のチャンネル情報を破棄して記述されているチャンネル情報の方を優先して取り扱いますので、**いままでのように無駄にチャンネルファイル(BonDriver_PTx-S.ChSet.txt/BonDriver_PTx-T.ChSet.txt)を配置しているとBonDriver_PTx-ST.iniで記述してある既定のチャンネル情報が無効になってしまう**ので気をつけてください。
+  
+  **※EDCBでのチャンネルのスキャン時に抜けが発生する場合は、下記のようにEDCBのディレクトリ上に存在する設定ファイルBonCtrl.iniのServiceChkTimeOutの値を15くらいに上げて再スキャンしてみてください。**
+  
   ```
-  [PTxScanS.exe配置例]
-  BonDriver_PTx-S0.dll ← BS/CS110 複合チューナーの最初のチューナーのS1端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-S1.dll ← BS/CS110 複合チューナーの最初のチューナーのS2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-ST.ini
-  PTxCtrl.exe ← PT1/PT2/PT3 自動判別PT制御実行ファイル
-  PTxScanS.exe ← BonDriver_PTx-S?.dll と同一ディレクトリに配置して実行すると、.ChSet.txtファイルを自動生成する
+  ;チャンネルスキャン時の動作設定
+  [CHSCAN]
+  ServiceChkTimeOut=15
   ```
-  ※ちなみに、スキャン結果を出力したファイルの名前をBonDriver_PTx-S.ChSet.txtに名前変更すると、すべてのサテライト用BonDriverで利用できるチャンネル設定ファイルとして扱うことが可能です。
+  
+## ●64bitOSへの対応
 
-  - [mod5.1 BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod5.1)
-    (Described by 2021/05/10 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+ x64フォルダにあるモジュールは64bitでビルドしたモジュールになっています。
+ 64bit版を使用するにはアプリ側も64bitでビルドされている必要があります。
+ 32bitのモジュールが１つでも必要な場合は使用できません。
 
-### ■ PTCtrl.exe と PT3Ctrl.exe を PTxCtrl.exe に統合しました。
+## ●ソースとモジュールの取り扱いについて
 
-  PT制御実行ファイルを PTxCtrl.exe 一本に統合しました。
-  PT1/PT2とPT3との同時運用には、いままでPTCtrl.exeとPT3Ctrl.exe両方の実行ファイルが必要でしたが、PTxCtrl.exeに両方の機能をまとめることにより、実質PTxCtrl.exe一本のみで運用することを可能としました。
-  EDCBを利用する場合、最低以下の4ファイルをEDCBのBonDriverディレクトリに配置するだけでセットアップ完了となります。(PT3、PT1/PT2、両方のSDKのインストールは必要なく、最低どちらか一方のSDKをインストールしておくだけでもPTxCtrl.exeは問題なく動作します。)
-  ```
-  [EPGDataCap_BonのBonDriverフォルダ内の一例]
-  BonDriver_PTx-S.dll ← BS/CS110 複合チューナー S側ID自動判別 (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-T.dll ← 地デジ 複合チューナー T側ID自動判別 (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-ST.ini
-  PTxCtrl.exe ← PT1/PT2/PT3 自動判別PT制御実行ファイル
-  ```
+  特にGPLとかにはしないので自由に改変してもらって構わないです。
+  改変して公開する場合は改変部分のソースぐらいは一緒に公開してください。
+  （強制ではないので別に公開しなくてもいいです）
+  フリーソフトに組み込む場合は特に制限は設けません。
+  このdll、exeを使用したことによって発生した問題について保証は一切行いません。
+  商用、シェアウェアなどに組み込むのは不可です。
+  再配布を行う場合は配布者個人の責任で行ってください。
 
-  - [mod4 BSAlmighty+DeltaHz+DefSpace+PTx fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod4)
-    (Described by 2021/04/05 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-
-### ■ BonDriver_PT-STとBonDriver_PT3-STを統合しました。
-
-  BonDriverを統合し、IBonDriver3(Bonドライバインタフェース3)にも対応しました。
-  今回、BonDriverを統合したことにより、たとえば、PT2とPT3をミックスして使っているような違うチューナーの種類をBonDriverで分別することによって発生していた煩わしいコストを削減できます。
-
-  IBonDriver3に対応したことにより、たとえば、EDCBを利用する場合、最低以下の5ファイルをEDCBのBonDriverディレクトリに配置し、チャンネルスキャンした後に、EpgTimerの設定画面|基本設定|チューナー|の各々の**チューナー数**の項目を運用しているPT1/2/3の種類に関わらず、運用しているPTx全個体数(PT1/2/3を嵌めているPCIカード数)の2倍に調整すればインストール完了です。
-  ```
-  [EPGDataCap_BonのBonDriverフォルダ内の一例]
-  BonDriver_PTx-S.dll ← BS/CS110 複合チューナー S側ID自動判別 (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-T.dll ← 地デジ 複合チューナー T側ID自動判別 (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-ST.ini
-  PTCtrl.exe ← PT1/PT2 を最低でも一枚は運用している場合に配置。運用してない場合は配置不要。
-  PT3Ctrl.exe ← PT3 を最低でも一枚は運用している場合に配置。運用してない場合は配置不要。
-  ```
-  あとは、順次使用するチューナーを自動判別してくれます。
-  PT1/PT2/PT3などのチューナーの種類を意識する必要はなくなります。
-
-  また、いままで通りの連番や固有名でも以前と変わりなくそのまま運用可能です。
-  ```
-  BonDriver_PT-S0.dll ← BS/CS110 PT1/PT2の最初のチューナーのS1端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PT-T1.dll ← 地デジ PT1/PT2の最初のチューナーのT2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PT3-S2.dll ← BS/CS110 PT3の二枚目のチューナーのS側1番目のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PT3-T3.dll ← 地デジ PT3の二枚目のチューナーのT側2番目のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PT3-S.dll ← BS/CS110 PT3のS側ID自動判別チューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PT-T.dll ← 地デジ PT1/PT2のT側ID自動判別チューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PT-ST.ini ← PT1/PT2用設定ファイル (BonDriver_PTx-ST.iniをリネームしたもの)
-  BonDriver_PT3-ST.ini ← PT3用設定ファイル (BonDriver_PTx-ST.iniをリネームしたもの)
-  ```
-
-  PTxで連番を利用する場合は以下の通りです。
-  ```
-  BonDriver_PTx-S0.dll ← BS/CS110 複合チューナーの最初のチューナーのS1端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-T0.dll ← 地デジ 複合チューナーの最初のチューナーのT1端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-S1.dll ← BS/CS110 複合チューナーの最初のチューナーのS2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-T1.dll ← 地デジ 複合チューナーの最初のチューナーのT2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-S2.dll ← BS/CS110 複合チューナーの二枚目のチューナーのS1端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-T2.dll ← 地デジ 複合チューナーの二枚目のチューナーのT1端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-S3.dll ← BS/CS110 複合チューナーの二枚目のチューナーのS2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-T3.dll ← 地デジ 複合チューナーの二枚目のチューナーのT2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-S4.dll ← BS/CS110 複合チューナーの三枚目のチューナーのS1端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-T4.dll ← 地デジ 複合チューナーの三枚目のチューナーのT1端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-S5.dll ← BS/CS110 複合チューナーの三枚目のチューナーのS2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  BonDriver_PTx-T5.dll ← 地デジ 複合チューナーの三枚目のチューナーのT2端子のチューナー (BonDriver_PTx.dllをリネームしたもの)
-  ```
-
-  - [mod3.4 BSAlmighty+DeltaHz+DefSpace+PTx fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod3.4)
-    (Described by 2021/03/13 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-
-    **※PTx複合チューナーが PT3、PT1/PT2、どちらを優先的にチューナーを開くかは、BonDriver_PTx-ST.ini の xFirstPT3 項目の値を変えることによって挙動を変更出来ます。**
-
-### ■ チャンネルファイル.ChSet.txtファイルに -/+ を値欄に記述することにより、直近に登録したチャンネルの値を参照できるようになりました。
-
-  ```
-  - … 直近に登録したチャンネルの値と同値
-  + … 直近に登録したチャンネルの値に+1加算したもの
-  ```
-  この機能を上手く使いこなすことにより、チャンネルファイル.ChSet.txtを編集する際の通し番号を記述することにより発生する煩わしいコストを削減出来ます。
-  - [mod2 BSAlmighty+DeltaHz+DefSpace fixes](https://github.com/hyrolean/BonDriver_PT3-ST_mod/releases/tag/mod2)
-    (Described by 2021/02/12 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-
-### ■ 既定のチャンネル情報を編集することにより、チャンネル情報構築の簡略化に対応。
-
-  チャンネルファイル.ChSet.txtが読み込まれなかった場合は、BonDriver_PT3-ST.iniのDefSpaceセクションの記述内容に応じてチャンネル情報を自動構築します。
-  特殊な受信環境でなければ、.ChSet.txtファイルの複雑怪奇な編集作業を実質まったく行う必要がなくなり、チャンネル情報書き換えによる煩わしいコストを省けます。
-  - [mod2α2 BSAlmighty+DeltaHz+DefSpace fixes](https://github.com/hyrolean/BonDriver_PT3-ST_mod/releases/tag/mod2_alpha2)
-    (Described by 2021/02/04 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-
-    **※既定のチャンネル情報を有効にするには、いままで利用していた.ChSet.txtファイルを抹消し、代替に添付のBonDriver_PT3-ST.iniファイルをBonDriverと同じフォルダに置いてDefSpaceセクションをチューナー環境に応じて適切に編集してみて下さい。**
-
-### ■ ヘタってきたチューナー用に周波数を微調整する機能を追加しました。
-
-  チャンネルファイルの"PTxとしてのチャンネル"部分にch番号±δで調整できます。
-  (単位は、1/7MHz。実際の周波数より2MHz上方修正する場合は、ch番号+14と書く。)
-  たとえば、CATVのC37チャンネルの周波数を1/7MHz下方修正する場合は、添付のBonDriver_PT3-T.ChSet.txtの81行目を下記の様に記述することにより、
-  ```
-  C37Ch	1	24	36-1	0
-  ```
-  実際のC37チャンネルの周波数より1/7MHz下方(-143kHz)修正されます。
-  - [mod BSAlmighty+DeltaHz fixes](https://github.com/hyrolean/BonDriver_PT3-ST_mod/releases/tag/mod)
-    (Described by 2020/01/08 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-
-### ■ BonDriverのdllファイル名と同じ名前の拡張子.ChSet.txtファイルが存在する場合、そちらを先に優先してチャンネルファイルとして読み込む仕様に変更しました。
-
-  たとえば、
-  ```
-  BonDriver_PT3-T.ChSet.txt
-  BonDriver_PT3-T1.ChSet.txt
-  BonDriver_PT3-T1.dll
-  ```
-  の３ファイルが同一フォルダ上に存在する状態でBonDriver_PT3-T1.dllがアプリケーション側から読み込まれた場合は、BonDriver_PT3-T.ChSet.txtは読み込まれずに代
-  替にBonDriver_PT3-T1.ChSet.txtがチャンネルファイルとして読み込まれます。
-  ヘタったチューナーの周波数を微調整したい場合や、地上波とCATVに分けたい場合などに個別のチャンネルファイルとして取扱う目的で利用できるようになります。
-  - [mod BSAlmighty+DeltaHz fixes](https://github.com/hyrolean/BonDriver_PT3-ST_mod/releases/tag/mod)
-    (Described by 2020/01/08 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-
-### ■ BonDriver_PT3-S.ChSet.txtのTSID項目に0～7の値を指定するとチューナーからTSIDを抜き取って下位3ビットがその値と一致するTSIDを持つストリームを自動選択します。
-
-  トランスポンダの再編などによりチャンネル情報が変更された場合にチャンネルファイルのTSIDを実質一々書き換える必要がなくなりアプリケーション側のチャンネルスキャンだけで事が足りるようになります。
-  - [mod BSAlmighty+DeltaHz fixes](https://github.com/hyrolean/BonDriver_PT3-ST_mod/releases/tag/mod)
-    (Described by 2020/01/07 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-
-    **※機能を有効にするには、添付のBonDriver_PT3-S.ChSet.txtを差し替えてください。また、添付のBonDriver_PT3-S.ChSet.txtを差し替えた結果、EDCBでのチャンネルのスキャン時に抜けが発生する場合は、下記のようにEDCBのディレクトリ上に存在する設定ファイルBonCtrl.iniのServiceChkTimeOutの値を15くらいに上げて再スキャンしてみてください。**
-    ```
-    ;チャンネルスキャン時の動作設定
-    [CHSCAN]
-    ServiceChkTimeOut=15
-    ```
+ *EpgDataCap_Bon (mod by hyrolean)*

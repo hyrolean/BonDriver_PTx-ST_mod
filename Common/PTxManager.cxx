@@ -56,9 +56,12 @@ CPTxManager::CPTxManager(void)
 	}
 	m_bMemStreaming = GetPrivateProfileInt(L"SET", L"StreamingMethod", 0, strIni.c_str());
 
+	SetHRSleepMode(GetPrivateProfileInt(L"SET", L"UseHRTimer", 0, strIni.c_str()));
+
 	m_dwMaxDurFREQ = GetPrivateProfileInt(L"SET", L"MAXDUR_FREQ", 1000, strIni.c_str() ); //周波数調整に費やす最大時間(msec)
-	m_dwMaxDurTMCC = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC", 1500, strIni.c_str() ); //TMCC取得に費やす最大時間(msec)
-	m_dwMaxDurTSID = GetPrivateProfileInt(L"SET", L"MAXDUR_TSID", 3000, strIni.c_str() ); //TSID設定に費やす最大時間(msec)
+	m_dwMaxDurTMCC = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC", 1000, strIni.c_str() ); //TMCC取得に費やす最大時間(msec)
+	m_dwMaxDurTMCC_S = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC_S", m_dwMaxDurTMCC, strIni.c_str() ); //TMCC(S側)取得に費やす最大時間(msec)
+	m_dwMaxDurTSID = GetPrivateProfileInt(L"SET", L"MAXDUR_TSID", 1000, strIni.c_str() ); //TSID設定に費やす最大時間(msec)
 }
 
 BOOL CPTxManager::LoadSDK()
@@ -323,18 +326,32 @@ BOOL CPTxManager::SetFreq(int iID, unsigned long ulCh)
 	sint32 offset = (ulCh >> 16) & 0xffff;
 	if (offset >= 32768) offset -= 65536;
 
-	status enStatus;
+	status enStatus = PT::STATUS_GENERAL_ERROR ;
+	for (DWORD t=0,s=dur(); t<m_dwMaxDurFREQ; t=dur(s)) {
+		if(t) HRSleep(enStatus==PT::STATUS_OK?10:40);
+		if( enStatus!=PT::STATUS_OK )
 #if PT_VER==1 || PT_VER==2
-		enStatus = m_EnumDev[iDevID]->pcDevice->SetFrequency(iTuner, enISDB, ch, offset);
+			enStatus = m_EnumDev[iDevID]->pcDevice->SetFrequency(iTuner, enISDB, ch, offset);
 #elif PT_VER==3
-		enStatus = m_EnumDev[iDevID]->pcDevice->SetFrequency(enISDB, iTuner, ch, offset);
+			enStatus = m_EnumDev[iDevID]->pcDevice->SetFrequency(enISDB, iTuner, ch, offset);
 #endif
-
-	if( enStatus != PT::STATUS_OK ) {
-		return FALSE ;
+		if( enStatus == PT::STATUS_OK ) {
+			uint32 cur_ch ;
+			sint32 cur_offset ;
+			status enCurStatus ;
+#if PT_VER==1 || PT_VER==2
+			enCurStatus = m_EnumDev[iDevID]->pcDevice->GetFrequency(iTuner, enISDB, &cur_ch, &cur_offset);
+#elif PT_VER==3
+			enCurStatus = m_EnumDev[iDevID]->pcDevice->GetFrequency(enISDB, iTuner, &cur_ch, &cur_offset);
+#endif
+			if(enCurStatus == PT::STATUS_OK) {
+				if(cur_ch==ch && cur_offset==offset)
+					return TRUE ;
+			}
+		}
 	}
 
-	return TRUE ;
+	return FALSE ;
 }
 
 BOOL CPTxManager::GetIdListS(int iID, PTTSIDLIST* pPtTSIDList)
@@ -353,9 +370,8 @@ BOOL CPTxManager::GetIdListS(int iID, PTTSIDLIST* pPtTSIDList)
 		return FALSE ;
 	}
 
-	for(uint32 i=0;i<8;i++) {
-		pPtTSIDList->dwId[i] = (DWORD) tmcc.Id[i] ;
-	}
+	PDWORD pdwId = &pPtTSIDList->dwId[0];
+	std::copy(&tmcc.Id[0], &tmcc.Id[8], pdwId);
 
 	return TRUE ;
 }
@@ -391,23 +407,21 @@ BOOL CPTxManager::SetIdS(int iID, DWORD dwTSID)
 	}
 
 	DWORD dwGetID=0xffff;
-	Sleep(50);
-	for (DWORD t=0,s=dur(),n=0; t<m_dwMaxDurTSID ; t=dur(s)) {
-		status enStatus = m_EnumDev[iDevID]->pcDevice->SetIdS(iTuner, dwTSID);
-		if( enStatus == PT::STATUS_OK ) { if(++n>=2) break ; }
-		Sleep(50);
-	}
-	Sleep(10);
 	BOOL bRes = FALSE ;
-	for (DWORD t=0,s=dur(); t<m_dwMaxDurTSID && dwTSID != dwGetID ; t=dur(s)) {
-		if(GetIdS(iID, &dwGetID)) bRes=TRUE;
-		Sleep(10);
-	}
-	return bRes && (dwTSID==dwGetID) ? TRUE : FALSE ;
 
+	status enStatus = PT::STATUS_GENERAL_ERROR ;
+	for (DWORD t=0,s=dur(); t<m_dwMaxDurTSID && dwTSID != dwGetID ; t=dur(s)) {
+		if(t) HRSleep(enStatus==PT::STATUS_OK?10:40);
+		if( enStatus != PT::STATUS_OK )
+			enStatus = m_EnumDev[iDevID]->pcDevice->SetIdS(iTuner, dwTSID);
+		if( enStatus == PT::STATUS_OK ) {
+			if(GetIdS(iID, &dwGetID)) bRes=TRUE;
+		}
+	}
+
+	return (dwTSID==dwGetID) ? bRes : FALSE ;
 }
 
-// MARK : BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream)
 BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStream)
 {
 	uint32 ch = ulCh & 0xffff;
@@ -430,27 +444,17 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 		}
 
 		BOOL bRes=FALSE;
-		for (DWORD t=0,s=dur(),n=0; t<m_dwMaxDurFREQ; t=dur(s)) {
-
-			bRes = SetFreq(iID, ulCh);
-			if( bRes ) {
-				if(++n>=2) {
-					_OutputDebugString(L"CPT%dManager::SetFreq: Device::SetFrequency: ISDB:%d tuner:%d ch:%d\n",PT_VER,enISDB,iTuner,ch);
-					break ;
-				}
-			}
-			Sleep(50);
-		}
-
-		if( !bRes ) {
+		bRes = SetFreq(iID, ulCh);
+		if( bRes ) {
+			_OutputDebugString(L"CPT%dManager::SetFreq: Device::SetFrequency: ISDB:%d tuner:%d ch:%d\n",PT_VER,enISDB,iTuner,ch);
+		}else {
 			_OutputDebugString(L"CPT%dManager::SetFreq: Device::SetFrequency failure!\n",PT_VER) ;
 			break ;
 		}
 
 		if( enISDB == PT::Device::ISDB_S ){
 			bool checkOnly = (dwTSID&~7UL)!=0 ,checkFinished=false ;
-			Sleep(50);
-			for (DWORD t=0,s=dur(); t<m_dwMaxDurTMCC; t=dur(s)) {
+			for (DWORD t=0,s=dur(); !checkFinished && t<m_dwMaxDurTMCC_S; t=dur(s)) {
 				PTTSIDLIST PtTSIDList = {0};
 				bRes = GetIdListS(iID, &PtTSIDList);
 				if (bRes) {
@@ -466,20 +470,21 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 								//dwTSIDに0～7が指定された場合は、TSIDをチューナーから取得して
 								//下位３ビットと一致するものに書き換える
 								// mod by 2020 LVhJPic0JSk5LiQ1ITskKVk9UGBg
-								dwTSID = id ;
+								dwTSID = id ;  checkFinished = true ;
 								_OutputDebugString(L"CPT%dManager::SetCh: replaced TSID=%d\n",PT_VER,id) ;
 								break;
 							}
 						}
 					}
-				}
-				Sleep(50);
+					HRSleep(0,500);
+				}else
+					HRSleep(10);
 			}
-			if(checkOnly&&!checkFinished) {
+			if(!checkFinished) {
 				_OutputDebugString(L"CPT%dManager::SetCh: TSID:%04x was not found on TMCC!\n",PT_VER,dwTSID) ;
 				break;
 			}
-			if(dwTSID&~7UL) {
+			else {
 				if(!SetIdS(iID, dwTSID)) {
 					_OutputDebugString(L"CPT%dManager::SetCh: SetIdS failure!\n",PT_VER) ;
 					break;
@@ -487,16 +492,15 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 				hasStream = TRUE ;
 			}
 		}else {
-			Sleep(50);
 			for (DWORD t=0,s=dur(); t<m_dwMaxDurTMCC; t=dur(s)) {
 				PT::Device::TmccT tmcc;
 				ZeroMemory(&tmcc,sizeof(tmcc));
 				//std::fill_n(tmcc.Id,8,0xffff) ;
+				if(t) HRSleep(40);
 				status enStatus = m_EnumDev[iDevID]->pcDevice->GetTmccT(iTuner, &tmcc);
 				if (enStatus == PT::STATUS_OK) {
 					hasStream = TRUE ; break;
 				}
-				Sleep(50);
 			}
 		}
 
@@ -642,7 +646,7 @@ int CPTxManager::OpenTuner2(BOOL bSate, int iTunerID)
 			OutputDebugStringA(log);
 			// PT::STATUS_DEVICE_IS_ALREADY_OPEN_ERRORの場合は考慮しない
 			m_EnumDev[iDevID]->pcDevice->Close();
-			Sleep(10);	// 保険
+			HRSleep(10);	// 保険
 		}
 		if( enStatus != PT::STATUS_OK ){
 			m_EnumDev[iDevID]->pcDevice->Delete();
@@ -660,7 +664,7 @@ int CPTxManager::OpenTuner2(BOOL bSate, int iTunerID)
 			OutputDebugStringA(log);
 			return -1;
 		}
-		Sleep(20);
+		HRSleep(20);
 		enStatus = m_EnumDev[iDevID]->pcDevice->SetTunerPowerReset(PT::Device::TUNER_POWER_ON_RESET_DISABLE);
 		if( enStatus != PT::STATUS_OK ){
 			m_EnumDev[iDevID]->pcDevice->Close();
@@ -670,7 +674,7 @@ int CPTxManager::OpenTuner2(BOOL bSate, int iTunerID)
 			OutputDebugStringA(log);
 			return -1;
 		}
-		Sleep(1);
+		HRSleep(1);
 		for( uint32 i=0; i<2; i++ ){
 			enStatus = m_EnumDev[iDevID]->pcDevice->InitTuner(i);
 			if( enStatus != PT::STATUS_OK ){
@@ -746,7 +750,7 @@ int CPTxManager::OpenTuner2(BOOL bSate, int iTunerID)
 			m_EnumDev[iDevID]->bUseT1 = TRUE;
 		}
 #if PT_VER==1 || PT_VER==2
-		Sleep(10);	// PT1/2のT側はこの後の選局までが早すぎるとエラーになる場合があるので
+		HRSleep(10);	// PT1/2のT側はこの後の選局までが早すぎるとエラーになる場合があるので
 #endif
 	}else{
 		if( iTuner == 0 ){

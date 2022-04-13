@@ -646,7 +646,7 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 			avg.pop_back();
 		}
 		if(DWORD wait = avg.size()>0 ? DWORD(sleepy/avg.size()) : 0)
-			WaitForSingleObject(pSys->m_hWakeupEvent, wait)==WAIT_TIMEOUT || pSys->m_bThTerm || !SleepEx(10, TRUE) ;
+			WaitForSingleObject(pSys->m_hWakeupEvent, wait)==WAIT_TIMEOUT || pSys->m_bThTerm || (HRSleep(10),1) ;
 	}
 
 	return 0;

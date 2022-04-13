@@ -50,7 +50,7 @@ protected:
 	BOOL m_bMemStreaming;
 
 	DWORD m_dwMaxDurFREQ;
-	DWORD m_dwMaxDurTMCC;
+	DWORD m_dwMaxDurTMCC, m_dwMaxDurTMCC_S;
 	DWORD m_dwMaxDurTSID;
 
 	virtual void FreeSDK() {}

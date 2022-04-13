@@ -139,7 +139,7 @@ DWORD CSharedCmdOperator::WaitForCmd(DWORD timeout)
 	for(DWORD s=e ; dur(s,e)<=timeout ; e = dur()) {
 		HANDLE event = OpenEvent(EVENT_ALL_ACCESS,FALSE,NamListen.c_str());
 		if(event&&event!=INVALID_HANDLE_VALUE) { hListen=event; break; }
-		Sleep(10);
+		HRSleep(10);
 	}
 	if(!hListen) {
 		res = WAIT_TIMEOUT;

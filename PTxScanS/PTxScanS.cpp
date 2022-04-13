@@ -18,7 +18,7 @@ using namespace std;
 // ü”g”’²®‚É”ï‚â‚·Å‘åŠÔ(ms)
 DWORD MAXDUR_FREQ=1000;
 // TMCCæ“¾‚É”ï‚â‚·Å‘åŠÔ(ms)
-DWORD MAXDUR_TMCC=1500;
+DWORD MAXDUR_TMCC=1000;
 
 using str_vector = vector<string> ;
 using tsid_vector = vector<DWORD> ;
@@ -538,6 +538,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	iniFile += "BonDriver_PTx-ST.ini";
 	MAXDUR_FREQ = GetPrivateProfileIntA("SET", "MAXDUR_FREQ", MAXDUR_FREQ, iniFile.c_str() ); //ü”g”’²®‚É”ï‚â‚·Å‘åŠÔ(msec)
 	MAXDUR_TMCC = GetPrivateProfileIntA("SET", "MAXDUR_TMCC", MAXDUR_TMCC, iniFile.c_str() ); //TMCCæ“¾‚É”ï‚â‚·Å‘åŠÔ(msec)
+	MAXDUR_TMCC = GetPrivateProfileIntA("SET", "MAXDUR_TMCC_S", MAXDUR_TMCC, iniFile.c_str() ); //TMCC(S‘¤)æ“¾‚É”ï‚â‚·Å‘åŠÔ(msec)
 
 	int err=1;
 	for(int i=1;i<argc;i++) { // param analyzer
