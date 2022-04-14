@@ -12,7 +12,7 @@
   ; UseHRTimer=0 を UseHRTimer=1 に変更
   UseHRTimer=1
   ```
-- [mod7 BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS+SparePTw+UseHRTimer fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod7)
+- [mod7.1 BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS+SparePTw+UseHRTimer fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod7.1)
 (Described by 2022/04/14 LVhJPic0JSk5LiQ1ITskKVk9UGBg)  
   
 ### ■ PTxの代替としてのPTwチューナー差し替えの簡略化。
