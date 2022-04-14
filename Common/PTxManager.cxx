@@ -336,13 +336,15 @@ BOOL CPTxManager::SetFreq(int iID, unsigned long ulCh)
 			enStatus = m_EnumDev[iDevID]->pcDevice->SetFrequency(enISDB, iTuner, ch, offset);
 #endif
 		if( enStatus == PT::STATUS_OK ) {
-			uint32 cur_ch ;
-			sint32 cur_offset ;
-			status enCurStatus ;
+			uint32 cur_ch = ch ;
+			sint32 cur_offset = offset ;
+			status enCurStatus = PT::STATUS_OK ;
+#if 0 // no check
 #if PT_VER==1 || PT_VER==2
 			enCurStatus = m_EnumDev[iDevID]->pcDevice->GetFrequency(iTuner, enISDB, &cur_ch, &cur_offset);
 #elif PT_VER==3
 			enCurStatus = m_EnumDev[iDevID]->pcDevice->GetFrequency(enISDB, iTuner, &cur_ch, &cur_offset);
+#endif
 #endif
 			if(enCurStatus == PT::STATUS_OK) {
 				if(cur_ch==ch && cur_offset==offset)
