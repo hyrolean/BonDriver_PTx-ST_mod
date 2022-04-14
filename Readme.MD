@@ -55,7 +55,7 @@ PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用�
   BonDriver_PTx-S5.dll ← BS/CS110 複合チューナーの三枚目のチューナーのS2端子のチューナー
   BonDriver_PTx-T5.dll ← 地デジ 複合チューナーの三枚目のチューナーのT2端子のチューナー
   ```
-  ※PT1/PT2とPT3両方を同一PCで利用しているケースで、PT1/2もしくは、PT3どちらを先に探しに行く順番は、BonDriver_PTx-ST.ini の xFirstPT3=1 のときにPT3を先に探しに行きます。 逆に、xFirstPT3=0 の場合は、PT1/PT2側が先行されます。  
+  ※PT1/PT2とPT3両方を同一PCで利用しているケースで、PT1/2もしくは、PT3どちらを先に探しに行くかの順序は、BonDriver_PTx-ST.ini の xFirstPT3=1 のときにPT3を先に探しに行きます。 逆に、xFirstPT3=0 の場合は、PT1/PT2側が先行されます。  
 
 ## ● 設定
 
