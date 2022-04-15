@@ -57,7 +57,7 @@ PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用�
   BonDriver_PTx-S5.dll ← BS/CS110 複合チューナーの三枚目のチューナーのS2端子のチューナー
   BonDriver_PTx-T5.dll ← 地デジ 複合チューナーの三枚目のチューナーのT2端子のチューナー
   ```
-  ※PT1/PT2とPT3両方を同一PCで利用しているケースで、PT1/2もしくは、PT3どちらを先に探しに行くかの順序は、BonDriver_PTx-ST.ini の xFirstPT3=1 のときにPT3を先に探しに行きます。 逆に、xFirstPT3=0 の場合は、PT1/PT2側が先行されます。  
+  *※PT1/PT2とPT3両方を同一PCで利用しているケースで、PT1/2もしくは、PT3どちらを先に探しに行くかの順序は、BonDriver_PTx-ST.ini の xFirstPT3=1 のときにPT3を先に探しに行きます。 逆に、xFirstPT3=0 の場合は、PT1/PT2側が先行されます。*
 
 ## ● 設定
 
@@ -69,7 +69,7 @@ PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用�
   - PT1/2、PT3の検索順序の設定(xFirstPT3)
   - PT1/2のバージョン設定(PT1Ver)
 
-  ※他にも色々設定する項目がありますが、長くなってしまいますので割愛します。BonDriver_PTx-ST.iniのコメント欄に個々の項目についての説明が記述してありますので参照してみてください。
+  *※他にも色々設定する項目がありますが、長くなってしまいますので割愛します。BonDriver_PTx-ST.iniのコメント欄に個々の項目についての説明が記述してありますので参照してみてください。*
   
   PTxCtrl.exeをサービスとして登録することもできます。
   コマンドラインオプション「-install」で登録、「-remove」で登録解除。
@@ -135,9 +135,9 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
 // +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+
 ```
 
-  ※チャンネル定義をtextファイル(.ChSet.txt)にしなくても、BonDriver_PTx-ST_mod は、チャンネル情報をBonDriver_PTx-ST.iniの\[DefSpace\]セクションに記述することによって既定のチャンネル情報として扱うことが可能になっています。周波数の微調整などが必要ない限り、チャンネルファイルを記述する必要はありません。BonDriver_PTx-ST_mod では、チャンネル情報(.ChSet.txt)ファイルが記述されている場合は、既定のチャンネル情報を破棄して記述されているチャンネル情報の方を優先して取り扱いますので、**いままでのように無駄にチャンネルファイル(BonDriver_PTx-S.ChSet.txt/BonDriver_PTx-T.ChSet.txt)を配置しているとBonDriver_PTx-ST.iniで記述してある既定のチャンネル情報が無効になってしまう**ので気をつけてください。
+  *※チャンネル定義をtextファイル(.ChSet.txt)にしなくても、BonDriver_PTx-ST_mod は、チャンネル情報をBonDriver_PTx-ST.iniの\[DefSpace\]セクションに記述することによって既定のチャンネル情報として扱うことが可能になっています。周波数の微調整などが必要ない限り、チャンネルファイルを記述する必要はありません。BonDriver_PTx-ST_mod では、チャンネル情報(.ChSet.txt)ファイルが記述されている場合は、既定のチャンネル情報を破棄して記述されているチャンネル情報の方を優先して取り扱いますので、**いままでのように無駄にチャンネルファイル(BonDriver_PTx-S.ChSet.txt/BonDriver_PTx-T.ChSet.txt)を配置しているとBonDriver_PTx-ST.iniで記述してある既定のチャンネル情報が無効になってしまう**ので気をつけてください。*
   
-  **※EDCBでのチャンネルのスキャン時に抜けが発生する場合は、下記のようにEDCBのディレクトリ上に存在する設定ファイルBonCtrl.iniのServiceChkTimeOutの値を15くらいに上げて再スキャンしてみてください。**
+  *※[EDCB](https://github.com/epgdatacapbon/EDCB)でのチャンネルのスキャン時に抜けが発生する場合は、下記のようにEDCBのディレクトリ上に存在する設定ファイルBonCtrl.iniのServiceChkTimeOutの値を15くらいに上げて再スキャンしてみてください。*
   
   ```
   ;チャンネルスキャン時の動作設定
@@ -162,6 +162,6 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
   再配布を行う場合は配布者個人の責任で行ってください。
 
 
-  ※mod版の更新履歴については、[こちら](./Readme_MOD.md)からご参照ください。
+  *※mod版の更新履歴については、[こちら](./Readme_MOD.md)からご参照ください。*
   
- *EpgDataCap_Bon (mod by hyrolean)*
+ **EpgDataCap_Bon (mod by hyrolean)**
