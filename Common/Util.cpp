@@ -132,9 +132,9 @@ static void sleep_(DWORD msec, DWORD usec)
 #define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
 #endif
 
-static BOOL s_bHighResolutionSleepMode = FALSE;
-void SetHRSleepMode(BOOL useHighResolution)
-{ s_bHighResolutionSleepMode = useHighResolution ; }
+static BOOL s_bHighResolutionTimerMode = FALSE;
+void SetHRTimerMode(BOOL useHighResolution)
+{ s_bHighResolutionTimerMode = useHighResolution ; }
 
 static DWORD doTimerSleep(HANDLE hTimer, const LARGE_INTEGER &time, HANDLE hObj=NULL)
 {
@@ -152,7 +152,7 @@ static DWORD doTimerSleep(HANDLE hTimer, const LARGE_INTEGER &time, HANDLE hObj=
 
 void HRSleep(DWORD msec, DWORD usec)
 {
-	if(!s_bHighResolutionSleepMode&&!usec)
+	if(!s_bHighResolutionTimerMode&&!usec)
 	{ sleep_(msec,usec); return; }
 
 	HANDLE hTimer =
@@ -184,9 +184,12 @@ DWORD HRWaitForSingleObject(HANDLE hObj, DWORD msec, DWORD usec)
 		return WAIT_TIMEOUT;
 	}
 
+	if(msec==INFINITE||(!s_bHighResolutionTimerMode&&!usec))
+		return WaitForSingleObject(hObj,msec);
+
 	HANDLE hTimer =
 #if _WIN_VER >= 0x0600
-		s_bHighResolutionSleepMode ?
+		s_bHighResolutionTimerMode ?
 			CreateWaitableTimerEx(NULL, NULL,
 				CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS):
 			CreateWaitableTimer(NULL, FALSE, NULL);

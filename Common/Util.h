@@ -33,9 +33,9 @@ HANDLE _CreateNamedPipe( LPCTSTR lpName, DWORD dwOpenMode, DWORD dwPipeMode, DWO
 BOOL _CreateDirectory( LPCTSTR lpPathName );
 HANDLE _CreateFile2( LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile );
 
-  // Sleep with High Resolution Timer
+  // High Resolution Timer functions
 
-void SetHRSleepMode(BOOL useHighResolution) ;
+void SetHRTimerMode(BOOL useHighResolution) ;
 void HRSleep(DWORD msec, DWORD usec=0) ;
 DWORD HRWaitForSingleObject(HANDLE hObj, DWORD msec, DWORD usec=0);
 

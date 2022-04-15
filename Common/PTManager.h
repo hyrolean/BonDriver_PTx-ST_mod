@@ -53,6 +53,9 @@ protected:
 	DWORD m_dwMaxDurTMCC, m_dwMaxDurTMCC_S;
 	DWORD m_dwMaxDurTSID;
 
+	BOOL m_bNoCheckFREQ;
+	BOOL m_bNoCheckTSID;
+
 	virtual void FreeSDK() {}
 };
 

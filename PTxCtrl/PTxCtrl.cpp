@@ -48,7 +48,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	strIni += L"\\BonDriver_PTx-ST.ini";
 	g_bXCompactService = GetPrivateProfileInt(L"SET", L"xCompactService", 0, strIni.c_str());
-	SetHRSleepMode(GetPrivateProfileInt(L"SET", L"UseHRTimer", 0, strIni.c_str()));
+	SetHRTimerMode(GetPrivateProfileInt(L"SET", L"UseHRTimer", 0, strIni.c_str()));
 
 	if( _tcslen(lpCmdLine) > 0 ){
 		if( lpCmdLine[0] == '-' || lpCmdLine[0] == '/' ){

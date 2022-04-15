@@ -23,6 +23,7 @@ enum PTXWDMCMD : DWORD {
 	PTXWDMCMD_IS_STREAM_ENABLED,
 	PTXWDMCMD_SET_CHANNEL,
 	PTXWDMCMD_SET_FREQ,
+	PTXWDMCMD_CUR_FREQ,
 	PTXWDMCMD_GET_IDLIST_S,
 	PTXWDMCMD_GET_ID_S,
 	PTXWDMCMD_SET_ID_S,
@@ -42,6 +43,7 @@ struct SERVER_SETTINGS {
   int StreamerThreadPriority;
   DWORD MAXDUR_FREQ;
   DWORD MAXDUR_TMCC;
+  DWORD MAXDUR_TMCC_S;
   DWORD MAXDUR_TSID;
   DWORD StreamerPacketSize;
   BOOL LNB11V:1;
@@ -82,6 +84,7 @@ public:
 	BOOL CmdIsStreamEnabled(BOOL &Enable, DWORD timeout=PTXWDMCMDTIMEOUT);
 	BOOL CmdSetChannel(BOOL &Tuned, DWORD Freq, DWORD TSID, DWORD Stream, DWORD timeout=PTXWDMCMDTIMEOUT);
 	BOOL CmdSetFreq(DWORD Freq, DWORD timeout=PTXWDMCMDTIMEOUT);
+	BOOL CmdCurFreq(DWORD &Freq, DWORD timeout=PTXWDMCMDTIMEOUT);
 	BOOL CmdGetIdListS(TSIDLIST &TSIDList, DWORD timeout=PTXWDMCMDTIMEOUT);
 	BOOL CmdGetIdS(DWORD &TSID, DWORD timeout=PTXWDMCMDTIMEOUT);
 	BOOL CmdSetIdS(DWORD TSID, DWORD timeout=PTXWDMCMDTIMEOUT);
@@ -100,6 +103,7 @@ protected:
 	virtual BOOL ResIsStreamEnabled(BOOL &Enable)	{ return FALSE ; }
 	virtual BOOL ResSetChannel(BOOL &Tuned, DWORD Freq, DWORD TSID, DWORD Stream)	{ return FALSE ; }
 	virtual BOOL ResSetFreq(DWORD Freq)	{ return FALSE ; }
+	virtual BOOL ResCurFreq(DWORD &Freq)	{ return FALSE ; }
 	virtual BOOL ResGetIdListS(TSIDLIST &TSIDList)	{ return FALSE ; }
 	virtual BOOL ResGetIdS(DWORD &TSID)	{ return FALSE ; }
 	virtual BOOL ResSetIdS(DWORD TSID)	{ return FALSE ; }

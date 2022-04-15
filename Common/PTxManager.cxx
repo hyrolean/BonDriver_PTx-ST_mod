@@ -56,12 +56,15 @@ CPTxManager::CPTxManager(void)
 	}
 	m_bMemStreaming = GetPrivateProfileInt(L"SET", L"StreamingMethod", 0, strIni.c_str());
 
-	SetHRSleepMode(GetPrivateProfileInt(L"SET", L"UseHRTimer", 0, strIni.c_str()));
+	SetHRTimerMode(GetPrivateProfileInt(L"SET", L"UseHRTimer", 0, strIni.c_str()));
 
 	m_dwMaxDurFREQ = GetPrivateProfileInt(L"SET", L"MAXDUR_FREQ", 1000, strIni.c_str() ); //Žü”g”’²®‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
 	m_dwMaxDurTMCC = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC", 1000, strIni.c_str() ); //TMCCŽæ“¾‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
 	m_dwMaxDurTMCC_S = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC_S", m_dwMaxDurTMCC, strIni.c_str() ); //TMCC(S‘¤)Žæ“¾‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
 	m_dwMaxDurTSID = GetPrivateProfileInt(L"SET", L"MAXDUR_TSID", 1000, strIni.c_str() ); //TSIDÝ’è‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
+
+	m_bNoCheckFREQ = GetPrivateProfileInt(L"SET", L"NoCheckFREQ", 1, strIni.c_str());
+	m_bNoCheckTSID = GetPrivateProfileInt(L"SET", L"NoCheckTSID", 0, strIni.c_str());
 }
 
 BOOL CPTxManager::LoadSDK()
@@ -336,9 +339,7 @@ BOOL CPTxManager::SetFreq(int iID, unsigned long ulCh)
 			enStatus = m_EnumDev[iDevID]->pcDevice->SetFrequency(enISDB, iTuner, ch, offset);
 #endif
 		if( enStatus == PT::STATUS_OK ) {
-#if 1 // no check
-			return TRUE;
-#else
+			if(m_bNoCheckFREQ) return TRUE; // no check
 			uint32 cur_ch = ch ;
 			sint32 cur_offset = offset ;
 			status enCurStatus = PT::STATUS_OK ;
@@ -351,7 +352,6 @@ BOOL CPTxManager::SetFreq(int iID, unsigned long ulCh)
 				if(cur_ch==ch && cur_offset==offset)
 					return TRUE ;
 			}
-#endif
 		}
 	}
 
@@ -457,7 +457,7 @@ BOOL CPTxManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 		}
 
 		if( enISDB == PT::Device::ISDB_S ){
-			bool checkOnly = (dwTSID&~7UL)!=0 ,checkFinished=false ;
+			bool checkOnly = (dwTSID&~7UL)!=0 ,checkFinished = checkOnly&&m_bNoCheckTSID ;
 			for (DWORD t=0,s=dur(); !checkFinished && t<m_dwMaxDurTMCC_S; t=dur(s)) {
 				PTTSIDLIST PtTSIDList = {0};
 				bRes = GetIdListS(iID, &PtTSIDList);

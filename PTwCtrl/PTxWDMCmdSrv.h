@@ -44,6 +44,7 @@ protected:
 	BOOL ResIsStreamEnabled(BOOL &Enable);
 	BOOL ResSetChannel(BOOL &Tuned, DWORD Freq, DWORD TSID, DWORD Stream);
 	BOOL ResSetFreq(DWORD Freq);
+	BOOL ResCurFreq(DWORD &Freq);
 	BOOL ResGetIdListS(TSIDLIST &TSIDList);
 	BOOL ResGetIdS(DWORD &TSID);
 	BOOL ResSetIdS(DWORD TSID);
