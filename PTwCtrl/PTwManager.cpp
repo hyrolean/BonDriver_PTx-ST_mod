@@ -50,7 +50,7 @@ CPTwManager::CPTwManager(void)
 	}
 	m_bMemStreaming = GetPrivateProfileInt(L"SET", L"StreamingMethod", 0, strIni.c_str());
 
-	SetHRSleepMode(GetPrivateProfileInt(L"SET", L"UseHRTimer", 0, strIni.c_str()));
+	SetHRTimerMode(GetPrivateProfileInt(L"SET", L"UseHRTimer", 0, strIni.c_str()));
 
 	m_dwMaxDurFREQ = GetPrivateProfileInt(L"SET", L"MAXDUR_FREQ", 1000, strIni.c_str() ); //Žü”g”’²®‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
 	m_dwMaxDurTMCC = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC", 1500, strIni.c_str() ); //TMCCŽæ“¾‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
@@ -307,7 +307,7 @@ BOOL CPTwManager::CloseTuner(int iID)
 	if(!client) return TRUE ; // already closed
 
 	BOOL bAbnormal = TRUE ;
-	if(WaitForSingleObject(hProcess,0)==WAIT_TIMEOUT) {
+	if(HRWaitForSingleObject(hProcess,0)==WAIT_TIMEOUT) {
 		if(m_bUseLNB) SetLnbPower(iID, FALSE);
 		if(client->CmdSetStreamEnable(FALSE)) {
 			if(client->CmdSetTunerSleep(TRUE)) {
@@ -320,7 +320,7 @@ BOOL CPTwManager::CloseTuner(int iID)
 				bAbnormal = FALSE ;
 		}
 		if(!bAbnormal) {
-			if(WaitForSingleObject(hProcess,PTXWDMCMDTIMEOUT)==WAIT_TIMEOUT)
+			if(HRWaitForSingleObject(hProcess,PTXWDMCMDTIMEOUT)==WAIT_TIMEOUT)
 				bAbnormal=TRUE;
 		}
 	}else bAbnormal=FALSE ;
@@ -577,7 +577,7 @@ BOOL CPTwManager::CloseChk()
 					hProcess=m_EnumDev[iDevID]->hProcessT[iTuner];
 				}
 				if(!client||!hProcess) continue;
-				if(WaitForSingleObject(hProcess,0)==WAIT_OBJECT_0) {
+				if(HRWaitForSingleObject(hProcess,0)==WAIT_OBJECT_0) {
 					int iID = iDevID<<16 | enISDB<<8 | iTuner ;
 					CloseTuner(iID);
 					continue;
@@ -615,10 +615,10 @@ bool CPTwManager::StopPrimaryAuxiliary()
 	if(!m_cpPrimaryOperator) return false /*primary AUX Op is not existed*/;
 	if(Thread == INVALID_HANDLE_VALUE) return true /*already inactivated*/;
 
-	if(::WaitForSingleObject(Thread,0)==WAIT_TIMEOUT)
+	if(::HRWaitForSingleObject(Thread,0)==WAIT_TIMEOUT)
 		m_cpPrimaryOperator->CmdTerminate();
 
-	if(::WaitForSingleObject(Thread,AuxiliaryMaxAlive*2) != WAIT_OBJECT_0) {
+	if(::HRWaitForSingleObject(Thread,AuxiliaryMaxAlive*2) != WAIT_OBJECT_0) {
 		::TerminateThread(Thread, 0);
 	}
 	CloseHandle(Thread);

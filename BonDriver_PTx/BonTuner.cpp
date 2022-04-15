@@ -176,7 +176,7 @@ CBonTuner::CBonTuner()
 	m_dwSetChDelay = GetPrivateProfileIntW(L"SET", L"SetChDelay", 0, strIni.c_str());
 	m_dwRetryDur = GetPrivateProfileIntW(L"SET", L"RetryDur", 3000, strIni.c_str());
 	m_dwStartBuff = GetPrivateProfileIntW(L"SET", L"StartBuff", 8, strIni.c_str());
-	SetHRSleepMode(GetPrivateProfileIntW(L"SET", L"UseHRTimer", 0, strIni.c_str()));
+	SetHRTimerMode(GetPrivateProfileIntW(L"SET", L"UseHRTimer", 0, strIni.c_str()));
 
 	wstring strChSet;
 
@@ -572,7 +572,7 @@ void CBonTuner::CloseTuner(void)
 		if( m_hThread != INVALID_HANDLE_VALUE ){
 			::SetEvent(m_hStopEvent);
 			// スレッド終了待ち
-			if ( ::WaitForSingleObject(m_hThread, 15000) == WAIT_TIMEOUT ){
+			if ( ::HRWaitForSingleObject(m_hThread, 15000) == WAIT_TIMEOUT ){
 				::TerminateThread(m_hThread, 0xffffffff);
 			}
 			CloseHandle(m_hThread);
@@ -645,7 +645,7 @@ const DWORD CBonTuner::WaitTsStream(const DWORD dwTimeOut)
 		return WAIT_ABANDONED;
 	}
 	// イベントがシグナル状態になるのを待つ
-	const DWORD dwRet = ::WaitForSingleObject(m_hOnStreamEvent, (dwTimeOut)? dwTimeOut : INFINITE);
+	const DWORD dwRet = ::HRWaitForSingleObject(m_hOnStreamEvent, (dwTimeOut)? dwTimeOut : INFINITE);
 
 	switch(dwRet){
 		case WAIT_ABANDONED :
@@ -810,7 +810,7 @@ UINT WINAPI CBonTuner::RecvThreadPipeIOProc(LPVOID pParam)
 
 	PTBUFFER_OBJECT *pPtBuffObj=nullptr;
 	for (;;) {
-		if (::WaitForSingleObject( pSys->m_hStopEvent, 0 ) != WAIT_TIMEOUT) {
+		if (::HRWaitForSingleObject( pSys->m_hStopEvent, 0 ) != WAIT_TIMEOUT) {
 			//中止
 			break;
 		}
@@ -865,7 +865,7 @@ UINT WINAPI CBonTuner::RecvThreadSharedMemProc(LPVOID pParam)
 	DWORD rem=0;
 	PTBUFFER_OBJECT *pPtBuffObj=nullptr;
 	for (;;) {
-		if (::WaitForSingleObject( pSys->m_hStopEvent, 0 ) != WAIT_TIMEOUT) {
+		if (::HRWaitForSingleObject( pSys->m_hStopEvent, 0 ) != WAIT_TIMEOUT) {
 			//中止
 			break;
 		}

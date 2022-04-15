@@ -216,7 +216,7 @@ protected:
 	void StopStreaming() {
 		if(!Op.PipeStreaming()&&Thread!=INVALID_HANDLE_VALUE) { // MemStreaming
 			ThTerm=TRUE;
-			if(::WaitForSingleObject(Thread,Timeout*2) != WAIT_OBJECT_0) {
+			if(::HRWaitForSingleObject(Thread,Timeout*2) != WAIT_OBJECT_0) {
 				::TerminateThread(Thread, 0);
 			}
 			CloseHandle(Thread);

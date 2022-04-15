@@ -8,7 +8,7 @@ static DWORD WaitConnect(LPCWSTR lpwszName, DWORD dwConnectTimeOut)
 		return CMD_ERR;
 	}
 	DWORD dwRet = CMD_SUCCESS;
-	if(WaitForSingleObject(hEvent, dwConnectTimeOut) != WAIT_OBJECT_0){
+	if(HRWaitForSingleObject(hEvent, dwConnectTimeOut) != WAIT_OBJECT_0){
 		dwRet = CMD_ERR_TIMEOUT;
 	}
 	CloseHandle(hEvent);

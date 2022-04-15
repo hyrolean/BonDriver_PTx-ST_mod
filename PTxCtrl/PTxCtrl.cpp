@@ -48,7 +48,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	strIni += L"\\BonDriver_PTx-ST.ini";
 	g_bXCompactService = GetPrivateProfileInt(L"SET", L"xCompactService", 0, strIni.c_str());
-	SetHRSleepMode(GetPrivateProfileInt(L"SET", L"UseHRTimer", 0, strIni.c_str()));
+	SetHRTimerMode(GetPrivateProfileInt(L"SET", L"UseHRTimer", 0, strIni.c_str()));
 
 	if( _tcslen(lpCmdLine) > 0 ){
 		if( lpCmdLine[0] == '-' || lpCmdLine[0] == '/' ){
@@ -69,7 +69,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		HANDLE h = ::OpenMutexW(SYNCHRONIZE, FALSE, PT0_GLOBAL_LOCK_MUTEX);
 		if (h != NULL) {
 			BOOL bErr = FALSE;
-			if (::WaitForSingleObject(h, 100) == WAIT_TIMEOUT) {
+			if (::HRWaitForSingleObject(h, 100) == WAIT_TIMEOUT) {
 				bErr = TRUE;
 			}
 			::ReleaseMutex(h);
@@ -84,7 +84,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			return -2;
 		}
 		// 別プロセスが終了処理中の場合は終了を待つ(最大1.5秒)
-		if (::WaitForSingleObject(g_hStartEnableEvent, g_bXCompactService?1000:1500) == WAIT_TIMEOUT) {
+		if (::HRWaitForSingleObject(g_hStartEnableEvent, g_bXCompactService?1000:1500) == WAIT_TIMEOUT) {
 			::CloseHandle(g_hStartEnableEvent);
 			return -3;
 		}
@@ -94,7 +94,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			::CloseHandle(g_hStartEnableEvent);
 			return -4;
 		}
-		if (::WaitForSingleObject(g_hMutex, 100) == WAIT_TIMEOUT) {
+		if (::HRWaitForSingleObject(g_hMutex, 100) == WAIT_TIMEOUT) {
 			// 別プロセスが実行中だった
 			::CloseHandle(g_hMutex);
 			::CloseHandle(g_hStartEnableEvent);
@@ -311,7 +311,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 			// 破棄処理
 
 			if(PtActivated&(1<<2)) { // PT3
-				if(WaitForSingleObject(g_cMain3.GetStopEvent(),0)==WAIT_OBJECT_0) {
+				if(HRWaitForSingleObject(g_cMain3.GetStopEvent(),0)==WAIT_OBJECT_0) {
 					if(!bRstStEnable) {
 						ResetEvent(g_hStartEnableEvent);
 						bRstStEnable=TRUE ;
@@ -328,7 +328,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 			}
 
 			if(PtActivated&1) { // PT1/PT2
-				if(WaitForSingleObject(g_cMain1.GetStopEvent(),0)==WAIT_OBJECT_0) {
+				if(HRWaitForSingleObject(g_cMain1.GetStopEvent(),0)==WAIT_OBJECT_0) {
 					if(!bRstStEnable) {
 						ResetEvent(g_hStartEnableEvent);
 						bRstStEnable=TRUE ;

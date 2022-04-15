@@ -33,7 +33,7 @@ CPTxWDMCmdOperator::~CPTxWDMCmdOperator()
 bool CPTxWDMCmdOperator::XferLock(DWORD timeout) const
 {
 	if(!HXferMutex) return false ;
-	return WaitForSingleObject(HXferMutex, timeout) == WAIT_OBJECT_0 ;
+	return HRWaitForSingleObject(HXferMutex, timeout) == WAIT_OBJECT_0 ;
 }
 //---------------------------------------------------------------------------
 bool CPTxWDMCmdOperator::XferUnlock() const

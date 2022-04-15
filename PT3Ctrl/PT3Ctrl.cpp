@@ -42,7 +42,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		HANDLE h = ::OpenMutexW(SYNCHRONIZE, FALSE, PT3_GLOBAL_LOCK_MUTEX);
 		if (h != NULL) {
 			BOOL bErr = FALSE;
-			if (::WaitForSingleObject(h, 100) == WAIT_TIMEOUT) {
+			if (::HRWaitForSingleObject(h, 100) == WAIT_TIMEOUT) {
 				bErr = TRUE;
 			}
 			::ReleaseMutex(h);
@@ -57,7 +57,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			return -2;
 		}
 		// 別プロセスが終了処理中の場合は終了を待つ(最大1秒)
-		if (::WaitForSingleObject(g_hStartEnableEvent, 1000) == WAIT_TIMEOUT) {
+		if (::HRWaitForSingleObject(g_hStartEnableEvent, 1000) == WAIT_TIMEOUT) {
 			::CloseHandle(g_hStartEnableEvent);
 			return -3;
 		}
@@ -67,7 +67,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			::CloseHandle(g_hStartEnableEvent);
 			return -4;
 		}
-		if (::WaitForSingleObject(g_hMutex, 100) == WAIT_TIMEOUT) {
+		if (::HRWaitForSingleObject(g_hMutex, 100) == WAIT_TIMEOUT) {
 			// 別プロセスが実行中だった
 			::CloseHandle(g_hMutex);
 			::CloseHandle(g_hStartEnableEvent);
