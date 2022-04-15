@@ -37,6 +37,7 @@ HANDLE _CreateFile2( LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMod
 
 void SetHRSleepMode(BOOL useHighResolution) ;
 void HRSleep(DWORD msec, DWORD usec=0) ;
+DWORD HRWaitForSingleObject(HANDLE hObj, DWORD msec, DWORD usec=0);
 
 void _OutputDebugString(const TCHAR *pOutputString, ...);
 

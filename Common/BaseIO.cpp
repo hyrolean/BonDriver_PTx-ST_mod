@@ -57,7 +57,7 @@ bool CBaseIO::BuffLock(DWORD dwID, DWORD timeout)
 	if( m_hBuffEvents[dwID] == NULL ){
 		return false ;
 	}
-	if( WaitForSingleObject(m_hBuffEvents[dwID], timeout) == WAIT_TIMEOUT ){
+	if( HRWaitForSingleObject(m_hBuffEvents[dwID], timeout) == WAIT_TIMEOUT ){
 		_OutputDebugString(L"time out%d", dwID+1);
 		return false ;
 	}
@@ -266,7 +266,7 @@ void CBaseIO::StopMemStreaming()
 		m_bMemStreamingTerm=TRUE;
 		if ( ::WaitForMultipleObjects(cnt,handles,TRUE, 15000) == WAIT_TIMEOUT ){
 			for(DWORD i=0;i<cnt;i++)
-				if(::WaitForSingleObject(handles[i],0)!=WAIT_OBJECT_0)
+				if(::HRWaitForSingleObject(handles[i],0)!=WAIT_OBJECT_0)
 					::TerminateThread(handles[i], 0xffffffff);
 		}
 		for(DWORD i=0;i<cnt;i++)

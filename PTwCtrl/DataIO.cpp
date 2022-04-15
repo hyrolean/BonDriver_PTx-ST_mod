@@ -23,7 +23,7 @@ CDataIO::~CDataIO(void)
 	if( m_hThread != INVALID_HANDLE_VALUE ){
 		::SetEvent(m_hStopEvent);
 		// スレッド終了待ち
-		if ( ::WaitForSingleObject(m_hThread, 15000) == WAIT_TIMEOUT ){
+		if ( ::HRWaitForSingleObject(m_hThread, 15000) == WAIT_TIMEOUT ){
 			::TerminateThread(m_hThread, 0xffffffff);
 		}
 		CloseHandle(m_hThread);
@@ -202,7 +202,7 @@ void CDataIO::Stop()
 		mQuit = true;
 		::SetEvent(m_hStopEvent);
 		// スレッド終了待ち
-		if ( ::WaitForSingleObject(m_hThread, 15000) == WAIT_TIMEOUT ){
+		if ( ::HRWaitForSingleObject(m_hThread, 15000) == WAIT_TIMEOUT ){
 			::TerminateThread(m_hThread, 0xffffffff);
 		}
 		CloseHandle(m_hThread);
@@ -307,7 +307,7 @@ UINT WINAPI CDataIO::RecvThreadProc(LPVOID pParam)
 
 	DWORD s=GetTickCount(), t=MIN_WAIT;
 	while (!pSys->mQuit) {
-		DWORD dwRes = WaitForSingleObject(pSys->m_hStopEvent, 0);
+		DWORD dwRes = HRWaitForSingleObject(pSys->m_hStopEvent, 0);
 		if( dwRes == WAIT_OBJECT_0 ){
 			//STOP
 			break;

@@ -91,7 +91,7 @@ void CPipeServer::StopServer()
 
 		::SetEvent(m_hStopEvent_PS);
 		// スレッド終了待ち
-		if ( ::WaitForSingleObject(m_hThread, 15000) == WAIT_TIMEOUT ){
+		if ( ::HRWaitForSingleObject(m_hThread, 15000) == WAIT_TIMEOUT ){
 			::TerminateThread(m_hThread, 0xffffffff);
 			::OutputDebugString(_T("[Pt1Ctrl] ServerThread : abnormal end.\n"));
 

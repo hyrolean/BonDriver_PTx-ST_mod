@@ -136,10 +136,18 @@ static BOOL s_bHighResolutionSleepMode = FALSE;
 void SetHRSleepMode(BOOL useHighResolution)
 { s_bHighResolutionSleepMode = useHighResolution ; }
 
-static bool doTimerSleep(HANDLE hTimer, const LARGE_INTEGER &time)
+static DWORD doTimerSleep(HANDLE hTimer, const LARGE_INTEGER &time, HANDLE hObj=NULL)
 {
-	return ( SetWaitableTimer(hTimer, &time, 0, NULL, NULL, 0) &&
-			WaitForSingleObject(hTimer,INFINITE)==WAIT_OBJECT_0 ) ;
+	if(!SetWaitableTimer(hTimer, &time, 0, NULL, NULL, 0))
+		return hObj ? WAIT_FAILED : FALSE ;
+	if(hObj!=NULL) {
+		HANDLE handles[2] ;
+		handles[0] = hObj ;
+		handles[1] = hTimer ;
+		DWORD r = WaitForMultipleObjects(2,handles,FALSE,INFINITE);
+		return (r==WAIT_OBJECT_0+1) ? WAIT_TIMEOUT : r ;
+	}
+	return WaitForSingleObject(hTimer,INFINITE)==WAIT_OBJECT_0 ? TRUE : FALSE ;
 }
 
 void HRSleep(DWORD msec, DWORD usec)
@@ -167,6 +175,36 @@ void HRSleep(DWORD msec, DWORD usec)
 		sleep_(msec,usec);
 
 	CloseHandle(hTimer);
+}
+
+DWORD HRWaitForSingleObject(HANDLE hObj, DWORD msec, DWORD usec)
+{
+	if(hObj == NULL) {
+		HRSleep(msec,usec);
+		return WAIT_TIMEOUT;
+	}
+
+	HANDLE hTimer =
+#if _WIN_VER >= 0x0600
+		s_bHighResolutionSleepMode ?
+			CreateWaitableTimerEx(NULL, NULL,
+				CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS):
+			CreateWaitableTimer(NULL, FALSE, NULL);
+#else
+		CreateWaitableTimer(NULL, FALSE, NULL);
+#endif
+
+	if(hTimer == NULL)
+	  return WAIT_FAILED;
+
+	LARGE_INTEGER time;
+	time.QuadPart = - (msec*1000LL + usec) * 10LL ;
+
+	DWORD r = doTimerSleep(hTimer, time, hObj) ;
+
+	CloseHandle(hTimer);
+
+	return r ;
 }
 
 void _OutputDebugString(const TCHAR *format, ...)

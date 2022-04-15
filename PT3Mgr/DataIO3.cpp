@@ -67,7 +67,7 @@ bool CDataIO3::SetBuffLock1(DWORD timeout)
 	if( m_hSetBuffEvent1 == NULL ){
 		return false ;
 	}
-	if( WaitForSingleObject(m_hSetBuffEvent1, timeout) == WAIT_TIMEOUT ){
+	if( HRWaitForSingleObject(m_hSetBuffEvent1, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out1");
 		return false ;
 	}
@@ -86,7 +86,7 @@ bool CDataIO3::SetBuffLock2(DWORD timeout)
 	if( m_hSetBuffEvent2 == NULL ){
 		return false ;
 	}
-	if( WaitForSingleObject(m_hSetBuffEvent2, timeout) == WAIT_TIMEOUT ){
+	if( HRWaitForSingleObject(m_hSetBuffEvent2, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out2");
 		return false ;
 	}
@@ -105,7 +105,7 @@ bool CDataIO3::SetBuffLock3(DWORD timeout)
 	if( m_hSetBuffEvent3 == NULL ){
 		return false ;
 	}
-	if( WaitForSingleObject(m_hSetBuffEvent3, timeout) == WAIT_TIMEOUT ){
+	if( HRWaitForSingleObject(m_hSetBuffEvent3, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out3");
 		return false ;
 	}
@@ -124,7 +124,7 @@ bool CDataIO3::SetBuffLock4(DWORD timeout)
 	if( m_hSetBuffEvent4 == NULL ){
 		return false ;
 	}
-	if( WaitForSingleObject(m_hSetBuffEvent4, timeout) == WAIT_TIMEOUT ){
+	if( HRWaitForSingleObject(m_hSetBuffEvent4, timeout) == WAIT_TIMEOUT ){
 		OutputDebugString(L"time out4");
 		return false ;
 	}
@@ -232,7 +232,7 @@ void CDataIO3::Stop()
 		::SetEvent(m_hWakeupEvent);
 		if ( ::WaitForMultipleObjects(cnt,handles,TRUE, 15000) == WAIT_TIMEOUT ){
 			for(DWORD i=0;i<cnt;i++)
-				if(::WaitForSingleObject(handles[i],0)!=WAIT_OBJECT_0)
+				if(::HRWaitForSingleObject(handles[i],0)!=WAIT_OBJECT_0)
 					::TerminateThread(handles[i], 0xffffffff);
 		}
 		for(DWORD i=0;i<cnt;i++)
@@ -646,7 +646,7 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 			avg.pop_back();
 		}
 		if(DWORD wait = avg.size()>0 ? DWORD(sleepy/avg.size()) : 0)
-			WaitForSingleObject(pSys->m_hWakeupEvent, wait)==WAIT_TIMEOUT || pSys->m_bThTerm || (HRSleep(10),1) ;
+			HRWaitForSingleObject(pSys->m_hWakeupEvent, wait)==WAIT_TIMEOUT || pSys->m_bThTerm || (HRSleep(10),1) ;
 	}
 
 	return 0;
