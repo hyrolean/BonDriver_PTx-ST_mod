@@ -4,13 +4,13 @@ PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用�
 
 ## ●ファイル構成
   ```
-    BonDriver_PTx-ST_mod
+   <BonDriver_PTx-ST_mod>
     |-- BonDriver_PTx-ST.ini (設定ファイル)
-    |-- Win32 (32bit版のモジュール一式)
+    |--<Win32> (32bit版のモジュール一式)
     |   |-- BonDriver_PTx-S.dll (BS/CS用のBonDriver)
     |   |-- BonDriver_PTx-T.dll (地デジ用のBonDriver)
     |   `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル)
-    `-- x64 (64bit版のモジュール一式)
+    `--<x64> (64bit版のモジュール一式)
         |-- BonDriver_PTx-S.dll (BS/CS用のBonDriver)
         |-- BonDriver_PTx-T.dll (地デジ用のBonDriver)
         `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル)
@@ -145,6 +145,34 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
   ServiceChkTimeOut=15
   ```
   
+## ●Spinelへの組み込み
+
+ SpinelへこのBonDriverを組み込む場合は、Spinelのルートに存在する BonDriverMapping.json ファイルの "BonDriver_PT-ST" 項目を下記のように修正すると、PTx として認識可能となります。
+
+  ```
+    /* BonDriver_PT-ST */
+    {
+        "DeviceName": "PT",
+        "Mapping": {
+            "ISDB_T": "^BonDriver_PT([xw]|xWDM)?-T.*?\\.dll$",
+            "ISDB_S": "^BonDriver_PT([xw]|xWDM)?-S.*?\\.dll$",
+        }
+    },
+  ```
+
+ BonDriverフォルダにWin32版のファイルを配置するのを忘れないでください。チューナー1セット構成だと以下のような配置になります。
+ 
+  ```
+   <Spinel>
+    `--<BonDriver>
+        |-- BonDriver_PTx-S0.dll (BS/CS用のBonDriver[T1])
+        |-- BonDriver_PTx-T0.dll (地デジ用のBonDriver[S1])
+        |-- BonDriver_PTx-S1.dll (BS/CS用のBonDriver[T2])
+        |-- BonDriver_PTx-T1.dll (地デジ用のBonDriver[S2])
+        |-- BonDriver_PTx-ST.ini (設定ファイル)
+        `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル)
+  ```
+
 ## ●64bitOSへの対応
 
  x64フォルダにあるモジュールは64bitでビルドしたモジュールになっています。
