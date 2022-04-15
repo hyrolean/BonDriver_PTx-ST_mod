@@ -168,10 +168,10 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
     |-- BonDriverMapping.json
     |-- (略)
     `--<BonDriver>
-        |-- BonDriver_PTx-S0.dll (BS/CS用のBonDriver[T1] TunerPath = "PT/0/T/0") ※Win32版
-        |-- BonDriver_PTx-T0.dll (地デジ用のBonDriver[S1] TunerPath = "PT/0/S/0") ※Win32版
-        |-- BonDriver_PTx-S1.dll (BS/CS用のBonDriver[T2] TunerPath = "PT/0/T/1") ※Win32版
-        |-- BonDriver_PTx-T1.dll (地デジ用のBonDriver[S2] TunerPath = "PT/0/S/1") ※Win32版
+        |-- BonDriver_PTx-S0.dll (BS/CS用のBonDriver[T1] TunerPath = "PT/0/S/0") ※Win32版
+        |-- BonDriver_PTx-T0.dll (地デジ用のBonDriver[S1] TunerPath = "PT/0/T/0") ※Win32版
+        |-- BonDriver_PTx-S1.dll (BS/CS用のBonDriver[T2] TunerPath = "PT/0/S/1") ※Win32版
+        |-- BonDriver_PTx-T1.dll (地デジ用のBonDriver[S2] TunerPath = "PT/0/T/1") ※Win32版
         |-- BonDriver_PTx-ST.ini (設定ファイル)
         `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル) ※Win32版
   ```
