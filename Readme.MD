@@ -145,9 +145,9 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
   ServiceChkTimeOut=15
   ```
   
-## ●Spinelへの組み込み
+## ●Spinelへの組み込み例
 
- SpinelへこのBonDriverを組み込む場合は、Spinelのルートに存在する BonDriverMapping.json ファイルの "BonDriver_PT-ST" 項目を下記のように修正すると、PTx として認識可能となります。
+ SpinelへこのBonDriverを組み込む場合は、Spinelのルートに存在する BonDriverMapping.json ファイルの "BonDriver_PT-ST" 項目を下記のように修正すると、"EarthSoft PTx" デバイス としてSpinelに認識されるようになります。
 
   ```
     /* BonDriver_PT-ST */
@@ -164,13 +164,16 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
  
   ```
    <Spinel>
+    |-- Spinel.exe
+    |-- BonDriverMapping.json
+    |-- (略)
     `--<BonDriver>
-        |-- BonDriver_PTx-S0.dll (BS/CS用のBonDriver[T1])
-        |-- BonDriver_PTx-T0.dll (地デジ用のBonDriver[S1])
-        |-- BonDriver_PTx-S1.dll (BS/CS用のBonDriver[T2])
-        |-- BonDriver_PTx-T1.dll (地デジ用のBonDriver[S2])
+        |-- BonDriver_PTx-S0.dll (BS/CS用のBonDriver[T1]) ※Win32版
+        |-- BonDriver_PTx-T0.dll (地デジ用のBonDriver[S1]) ※Win32版
+        |-- BonDriver_PTx-S1.dll (BS/CS用のBonDriver[T2]) ※Win32版
+        |-- BonDriver_PTx-T1.dll (地デジ用のBonDriver[S2]) ※Win32版
         |-- BonDriver_PTx-ST.ini (設定ファイル)
-        `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル)
+        `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル) ※Win32版
   ```
 
 ## ●64bitOSへの対応
