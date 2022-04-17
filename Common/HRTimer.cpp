@@ -9,15 +9,13 @@
 namespace PRY8EAlByw {
 //---------------------------------------------------------------------------
 
-static void sleep_(DWORD msec, DWORD usec)
+static BOOL s_bHighResolutionTimerMode = FALSE;
+
+static void doSleep(DWORD msec, DWORD usec)
 {
   msec += usec/1000;
   Sleep(msec>0?msec:1);
 }
-
-#ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
-#define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
-#endif
 
 static DWORD doTimerSleep(HANDLE hTimer, const LARGE_INTEGER &time, HANDLE hObj=NULL)
 {
@@ -33,9 +31,23 @@ static DWORD doTimerSleep(HANDLE hTimer, const LARGE_INTEGER &time, HANDLE hObj=
 	return WaitForSingleObject(hTimer,INFINITE)==WAIT_OBJECT_0 ? TRUE : FALSE ;
 }
 
+static HANDLE makeTimer()
+{
+#if _WIN32_WINNT >= 0x0600
+#ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
+#define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
+#endif
+	if(s_bHighResolutionTimerMode)  {
+		HANDLE hTimer = CreateWaitableTimerEx(NULL, NULL,
+					CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
+		if(hTimer!=NULL) return hTimer ;
+	}
+#endif
+	return CreateWaitableTimer(NULL, FALSE, NULL);
+}
+
 //---------------------------------------------------------------------------
 
-static BOOL s_bHighResolutionTimerMode = FALSE;
 void SetHRTimerMode(BOOL useHighResolution)
 { s_bHighResolutionTimerMode = useHighResolution ; }
 
@@ -44,26 +56,18 @@ void SetHRTimerMode(BOOL useHighResolution)
 void HRSleep(DWORD msec, DWORD usec)
 {
 	if(!s_bHighResolutionTimerMode&&!usec)
-	{ sleep_(msec,usec); return; }
+	{ doSleep(msec,usec); return; }
 
-	HANDLE hTimer =
-#if _WIN_VER >= 0x0600
-		s_bHighResolutionSleepMode ?
-			CreateWaitableTimerEx(NULL, NULL,
-				CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS):
-			CreateWaitableTimer(NULL, FALSE, NULL);
-#else
-		CreateWaitableTimer(NULL, FALSE, NULL);
-#endif
+	HANDLE hTimer = makeTimer();
 
 	if(hTimer == NULL)
-	{ sleep_(msec,usec); return; }
+	{ doSleep(msec,usec); return; }
 
 	LARGE_INTEGER time;
 	time.QuadPart = - (msec*1000LL + usec) * 10LL ;
 
 	if(!doTimerSleep(hTimer, time))
-		sleep_(msec,usec);
+		doSleep(msec,usec);
 
 	CloseHandle(hTimer);
 }
@@ -80,19 +84,10 @@ DWORD HRWaitForSingleObject(HANDLE hObj, DWORD msec, DWORD usec)
 	if(msec==INFINITE||(!msec&&!usec)||(!s_bHighResolutionTimerMode&&!usec))
 		return WaitForSingleObject(hObj,msec);
 
-	HANDLE hTimer =
-#if _WIN_VER >= 0x0600
-		s_bHighResolutionTimerMode ?
-			CreateWaitableTimerEx(NULL, NULL,
-				CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS):
-			CreateWaitableTimer(NULL, FALSE, NULL);
-#else
-		CreateWaitableTimer(NULL, FALSE, NULL);
-#endif
+	HANDLE hTimer = makeTimer();
 
-	if(hTimer == NULL) {
+	if(hTimer == NULL)
 		return WaitForSingleObject(hObj, msec + usec/1000);
-	}
 
 	LARGE_INTEGER time;
 	time.QuadPart = - (msec*1000LL + usec) * 10LL ;
@@ -111,18 +106,10 @@ DWORD HRWaitForMultipleObjects(DWORD numObjs, const HANDLE *hObjs, BOOL waitAll,
 {
 	if(waitAll||msec==INFINITE||(!msec&&!usec)||numObjs>=MAXIMUM_WAIT_OBJECTS) {
 		if(msec==INFINITE) usec=0;
-		return WaitForMultipleObjects(numObjs,hObjs,TRUE,msec+usec/1000);
+		return WaitForMultipleObjects(numObjs,hObjs,waitAll,msec+usec/1000);
 	}
 
-	HANDLE hTimer =
-#if _WIN_VER >= 0x0600
-		s_bHighResolutionTimerMode ?
-			CreateWaitableTimerEx(NULL, NULL,
-				CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS):
-			CreateWaitableTimer(NULL, FALSE, NULL);
-#else
-		CreateWaitableTimer(NULL, FALSE, NULL);
-#endif
+	HANDLE hTimer = makeTimer();
 
 	if(hTimer == NULL)
 		return WaitForMultipleObjects(numObjs,hObjs,FALSE,msec+usec/1000);

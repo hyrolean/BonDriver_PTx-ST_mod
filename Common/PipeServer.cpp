@@ -132,7 +132,7 @@ UINT WINAPI CPipeServer::ServerThread(LPVOID pParam)
 		SetEvent(pSys->m_hEventConnect);
 
 		DWORD dwRes;
-		dwRes = WaitForMultipleObjects(2, pSys->m_hEventArray, FALSE, INFINITE);
+		dwRes = HRWaitForMultipleObjects(2, pSys->m_hEventArray, FALSE, INFINITE);
 		if ( dwRes == WAIT_OBJECT_0 ) {
 			//STOP
 			ResetEvent(pSys->m_hEventConnect);
