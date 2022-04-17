@@ -131,9 +131,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\BaseIO.h" />
+    <ClInclude Include="..\Common\HRTimer.h" />
     <ClInclude Include="..\Common\PTxManager.cxx">
       <FileType>CppHeader</FileType>
     </ClInclude>
+    <ClCompile Include="..\Common\HRTimer.cpp" />
     <ClCompile Include="DataIO.cpp" />
     <ClCompile Include="MicroPacketUtil.cpp" />
     <ClCompile Include="PT1Manager.cpp" />

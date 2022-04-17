@@ -158,6 +158,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\BaseIO.h" />
+    <ClInclude Include="..\Common\HRTimer.h" />
     <ClInclude Include="..\Common\PipeServer.h" />
     <ClInclude Include="..\Common\PoolBuffer.h" />
     <ClInclude Include="..\Common\PTCreateCtrlCmdUtil.h" />
@@ -177,6 +178,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Common\BaseIO.cpp" />
+    <ClCompile Include="..\Common\HRTimer.cpp" />
     <ClCompile Include="..\Common\PipeServer.cpp" />
     <ClCompile Include="..\Common\PTCreateCtrlCmdUtil.cpp" />
     <ClCompile Include="..\Common\PTCtrlMain.cpp" />

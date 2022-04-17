@@ -75,6 +75,9 @@
     <ClCompile Include="..\Common\BaseIO.cpp">
       <Filter>ソース ファイル\Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\Common\HRTimer.cpp">
+      <Filter>ソース ファイル\Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DataIO.h">
@@ -154,6 +157,9 @@
     </ClInclude>
     <ClInclude Include="targetver.h">
       <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\HRTimer.h">
+      <Filter>ヘッダー ファイル\Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

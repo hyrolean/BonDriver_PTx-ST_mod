@@ -104,5 +104,8 @@
     <ClInclude Include="..\Common\BaseIO.h">
       <Filter>ヘッダー ファイル\Common</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\HRTimer.h">
+      <Filter>ヘッダー ファイル\Common</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

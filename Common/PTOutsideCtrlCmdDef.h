@@ -2,6 +2,7 @@
 #define __PT1_OUTSIDE_CTRL_CMD_DEF_H__
 
 #include "Util.h"
+#include "HRTimer.h"
 
 // パイプの送受信サイズ
 #define SEND_BUFF_SIZE (1024*64)

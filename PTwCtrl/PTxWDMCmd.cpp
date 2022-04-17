@@ -3,6 +3,7 @@
 
 #include "PTxWDMCmd.h"
 #include "../Common/Util.h"
+#include "../Common/HRTimer.h"
 //---------------------------------------------------------------------------
 
 using namespace std;

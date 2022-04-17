@@ -3,6 +3,7 @@
 #include "SharedMem.h"
 #include "Util.h"
 #include "StringUtil.h"
+#include "HRTimer.h"
 //---------------------------------------------------------------------------
 
 using namespace std;
