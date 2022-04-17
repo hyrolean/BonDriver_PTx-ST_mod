@@ -53,8 +53,12 @@ CPTwManager::CPTwManager(void)
 	SetHRTimerMode(GetPrivateProfileInt(L"SET", L"UseHRTimer", 0, strIni.c_str()));
 
 	m_dwMaxDurFREQ = GetPrivateProfileInt(L"SET", L"MAXDUR_FREQ", 1000, strIni.c_str() ); //Žü”g”’²®‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
-	m_dwMaxDurTMCC = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC", 1500, strIni.c_str() ); //TMCCŽæ“¾‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
-	m_dwMaxDurTSID = GetPrivateProfileInt(L"SET", L"MAXDUR_TSID", 3000, strIni.c_str() ); //TSIDÝ’è‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
+	m_dwMaxDurTMCC = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC", 1000, strIni.c_str() ); //TMCCŽæ“¾‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
+	m_dwMaxDurTMCC_S = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC_S", m_dwMaxDurTMCC, strIni.c_str() ); //TMCC(S‘¤)Žæ“¾‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
+	m_dwMaxDurTSID = GetPrivateProfileInt(L"SET", L"MAXDUR_TSID", 1000, strIni.c_str() ); //TSIDÝ’è‚É”ï‚â‚·Å‘åŽžŠÔ(msec)
+
+	m_bNoCheckFREQ = GetPrivateProfileInt(L"SET", L"NoCheckFREQ", 1, strIni.c_str());
+	m_bNoCheckTSID = GetPrivateProfileInt(L"SET", L"NoCheckTSID", 0, strIni.c_str());
 
 	m_bAuxiliaryRedirectAll = GetPrivateProfileInt(L"SET", L"wAuxiliaryRedirectAll", 0, strIni.c_str());
 }
@@ -250,6 +254,7 @@ int CPTwManager::OpenTuner2(BOOL bSate, int iTunerID)
 		SrvOpt.StreamerThreadPriority = GetThreadPriority(GetCurrentThread()) ;
 		SrvOpt.MAXDUR_FREQ = m_dwMaxDurFREQ ;
 		SrvOpt.MAXDUR_TMCC = m_dwMaxDurTMCC ;
+		SrvOpt.MAXDUR_TMCC_S = m_dwMaxDurTMCC_S ;
 		SrvOpt.MAXDUR_TSID = m_dwMaxDurTSID ;
 		SrvOpt.StreamerPacketSize = SHAREDMEM_TRANSPORT_PACKET_SIZE ;
 		SrvOpt.LNB11V = m_bLNB11V ;
@@ -394,6 +399,11 @@ BOOL CPTwManager::SetFreq(int iID, unsigned long ulCh)
 	if(!client) return FALSE ; // already closed
 
 	if(client->CmdSetFreq(freq)) {
+		if(!m_bNoCheckFREQ) {
+			DWORD curFreq ;
+			if(!client->CmdCurFreq(curFreq)||curFreq!=freq)
+				return FALSE;
+		}
 		client->CmdPurgeStream();
 		return TRUE ;
 	}
@@ -521,7 +531,7 @@ BOOL CPTwManager::SetCh(int iID, unsigned long ulCh, DWORD dwTSID, BOOL &hasStre
 	if(!client) return FALSE ; // already closed
 
 	DWORD dwStream=0 ;
-	if(dwTSID<=7) dwStream = dwTSID, dwTSID = 0 ;
+	if(!m_bNoCheckTSID||dwTSID<=7) dwStream = dwTSID, dwTSID = 0 ;
 
 	if(client->CmdSetChannel(hasStream, (DWORD)freq, dwTSID, dwStream)) {
 		client->CmdPurgeStream();

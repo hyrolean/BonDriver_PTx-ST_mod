@@ -146,6 +146,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\Common\HRTimer.h" />
     <ClInclude Include="..\Common\IBonDriver.h" />
     <ClInclude Include="..\Common\IBonDriver2.h" />
     <ClInclude Include="..\Common\IBonDriver3.h" />
@@ -167,6 +168,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Common\HRTimer.cpp" />
     <ClCompile Include="..\Common\PipeServer.cpp" />
     <ClCompile Include="..\Common\PTCreateCtrlCmdUtil.cpp" />
     <ClCompile Include="..\Common\PTSendCtrlCmdUtil.cpp" />

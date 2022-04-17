@@ -230,7 +230,7 @@ void CDataIO3::Stop()
 		if(m_hThread4!=INVALID_HANDLE_VALUE) handles[cnt++]=m_hThread4 ;
 		m_bThTerm=TRUE;
 		::SetEvent(m_hWakeupEvent);
-		if ( ::WaitForMultipleObjects(cnt,handles,TRUE, 15000) == WAIT_TIMEOUT ){
+		if ( ::HRWaitForMultipleObjects(cnt,handles,TRUE, 15000) == WAIT_TIMEOUT ){
 			for(DWORD i=0;i<cnt;i++)
 				if(::HRWaitForSingleObject(handles[i],0)!=WAIT_OBJECT_0)
 					::TerminateThread(handles[i], 0xffffffff);

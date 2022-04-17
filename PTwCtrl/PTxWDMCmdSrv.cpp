@@ -24,8 +24,9 @@ CPTxWDMCmdServiceOperator::CPTxWDMCmdServiceOperator(wstring name)
 	Settings_.CtrlPackets = SHAREDMEM_TRANSPORT_PACKET_NUM ;
 	Settings_.StreamerThreadPriority = THREAD_PRIORITY_HIGHEST ;
 	Settings_.MAXDUR_FREQ = 1000; //周波数調整に費やす最大時間(msec)
-	Settings_.MAXDUR_TMCC = 1500; //TMCC取得に費やす最大時間(msec)
-	Settings_.MAXDUR_TSID = 3000; //TSID設定に費やす最大時間(msec)
+	Settings_.MAXDUR_TMCC = 1000; //TMCC取得に費やす最大時間(msec)
+	Settings_.MAXDUR_TMCC_S = 1000; //TMCC(S側)取得に費やす最大時間(msec)
+	Settings_.MAXDUR_TSID = 1000; //TSID設定に費やす最大時間(msec)
 	Settings_.StreamerPacketSize = SHAREDMEM_TRANSPORT_PACKET_SIZE ;
 	Settings_.LNB11V = FALSE;
 	Settings_.PipeStreaming = FALSE;
@@ -132,6 +133,7 @@ BOOL CPTxWDMCmdServiceOperator::ResSetChannel(BOOL &Tuned, DWORD Freq,
 
 	const DWORD MAXDUR_FREQ = Settings_.MAXDUR_FREQ; //周波数調整に費やす最大時間(msec)
 	const DWORD MAXDUR_TMCC = Settings_.MAXDUR_TMCC; //TMCC取得に費やす最大時間(msec)
+	const DWORD MAXDUR_TMCC_S = Settings_.MAXDUR_TMCC_S; //TMCC(S側)取得に費やす最大時間(msec)
 
 	//チューニング
 	bool tuned=false ;
@@ -151,7 +153,7 @@ BOOL CPTxWDMCmdServiceOperator::ResSetChannel(BOOL &Tuned, DWORD Freq,
 
 		if(Sate_) {
 			if(!TSID) {
-				for (DWORD t=0,s=dur(); t<MAXDUR_TMCC; t=dur(s)) {
+				for (DWORD t=0,s=dur(); t<MAXDUR_TMCC_S; t=dur(s)) {
 					TMCC_STATUS tmcc;
 					ZeroMemory(&tmcc,sizeof(tmcc));
 					//std::fill_n(tmcc.Id,8,0xffff) ;
@@ -159,16 +161,24 @@ BOOL CPTxWDMCmdServiceOperator::ResSetChannel(BOOL &Tuned, DWORD Freq,
 						for (int i=0; i<8; i++) {
 							WORD id = tmcc.u.bs.tsId[i]&0xffff;
 							if ((id&0xff00) && (id^0xffff)) {
-								if( (id&7) == Stream ) { //ストリームに一致した
-									//一致したidに書き換える
-									TSID = id ;
-									break;
+								if(Stream<=7) { // 下位３ビット一致対象
+									if( (id&7) == Stream ) { //ストリームの下位3ビットに一致した
+										//一致したidに書き換える
+										TSID = id ;
+										break;
+									}
+								}else { // 完全一致対象
+									if( id == Stream ) { //ストリームと完全に一致した
+										//一致したidに書き換える
+										TSID = id ;
+										break;
+									}
 								}
 							}
 						}
 						if(TSID&~7UL) break ;
 					}
-					HRSleep(50);
+					HRSleep(0,500);
 				}
 			}
 			if(!TSID) break ;
@@ -195,6 +205,17 @@ BOOL CPTxWDMCmdServiceOperator::ResSetFreq(DWORD Freq)
 	if(Tuner_) {
 		if(Tuner_->SetFrequency(Freq))
 			return TRUE ;
+	}
+	return FALSE;
+}
+//---------------------------------------------------------------------------
+BOOL CPTxWDMCmdServiceOperator::ResCurFreq(DWORD &Freq)
+{
+	critical_lock lock(&Critical_);
+	KeepAlive();
+	if(Tuner_) {
+		Freq = Tuner_->CurFrequency();
+		return Tuner_->LastErrorCode()==NOERROR? TRUE: FALSE;
 	}
 	return FALSE;
 }

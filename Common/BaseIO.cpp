@@ -264,7 +264,7 @@ void CBaseIO::StopMemStreaming()
 			if(MemStreamingThread(dwID)!=INVALID_HANDLE_VALUE)
 				handles[cnt++]=MemStreamingThread(dwID);
 		m_bMemStreamingTerm=TRUE;
-		if ( ::WaitForMultipleObjects(cnt,handles,TRUE, 15000) == WAIT_TIMEOUT ){
+		if ( ::HRWaitForMultipleObjects(cnt,handles,TRUE, 15000) == WAIT_TIMEOUT ){
 			for(DWORD i=0;i<cnt;i++)
 				if(::HRWaitForSingleObject(handles[i],0)!=WAIT_OBJECT_0)
 					::TerminateThread(handles[i], 0xffffffff);

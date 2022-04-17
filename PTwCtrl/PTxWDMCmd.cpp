@@ -3,6 +3,7 @@
 
 #include "PTxWDMCmd.h"
 #include "../Common/Util.h"
+#include "../Common/HRTimer.h"
 //---------------------------------------------------------------------------
 
 using namespace std;
@@ -151,6 +152,15 @@ BOOL CPTxWDMCmdOperator::CmdSetFreq(DWORD Freq, DWORD timeout)
 	return op.res;
 }
 //---------------------------------------------------------------------------
+BOOL CPTxWDMCmdOperator::CmdCurFreq(DWORD &Freq, DWORD timeout)
+{
+	OP op;
+	op.cmd = PTXWDMCMD_CUR_FREQ ;
+	if(!Xfer(op,op,timeout)) return FALSE;
+	if(op.res) Freq = op.data[0];
+	return op.res;
+}
+//---------------------------------------------------------------------------
 BOOL CPTxWDMCmdOperator::CmdGetIdListS(TSIDLIST &TSIDList, DWORD timeout)
 {
 	OP op;
@@ -259,6 +269,9 @@ BOOL CPTxWDMCmdOperator::ServiceReaction(DWORD timeout)
 	}
 	case PTXWDMCMD_SET_FREQ:
 		res.res = ResSetFreq(cmd.data[0]);
+		break;
+	case PTXWDMCMD_CUR_FREQ:
+		res.res = ResCurFreq(res.data[0]);
 		break;
 	case PTXWDMCMD_GET_IDLIST_S: {
 		TSIDLIST tsid_list={0};

@@ -4,13 +4,13 @@ PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用�
 
 ## ●ファイル構成
   ```
-    BonDriver_PTx-ST_mod
+   <BonDriver_PTx-ST_mod>
     |-- BonDriver_PTx-ST.ini (設定ファイル)
-    |-- Win32 (32bit版のモジュール一式)
+    |--<Win32> (32bit版のモジュール一式)
     |   |-- BonDriver_PTx-S.dll (BS/CS用のBonDriver)
     |   |-- BonDriver_PTx-T.dll (地デジ用のBonDriver)
     |   `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル)
-    `-- x64 (64bit版のモジュール一式)
+    `--<x64> (64bit版のモジュール一式)
         |-- BonDriver_PTx-S.dll (BS/CS用のBonDriver)
         |-- BonDriver_PTx-T.dll (地デジ用のBonDriver)
         `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル)
@@ -30,6 +30,8 @@ PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用�
   BonDriver_PTx-ST.ini
   ```
   を置いてください。
+  
+  *※"BonDriver_PTx-S.dll"/"BonDriver_PTx-T.dll"は、ソリューション"BonDriver_Ptx.sln"をビルドして出来上がった生成物"BonDriver_PTx.dll"をコピーし、名前変更して配置してください("BonDriver_PTx.dll"同じものを２つコピーしてそれぞれ"BonDriver_PTx-S.dll"/"BonDriver_PTx-T.dll"に名前変更)。*
   
   1DLLで複数チューナーを扱います。（凡、HDUS BonDriver形式）
   PTxCtrl.exeはDLLから起動するので人為的に起動する必要はありません。
@@ -55,9 +57,9 @@ PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用�
   BonDriver_PTx-S5.dll ← BS/CS110 複合チューナーの三枚目のチューナーのS2端子のチューナー
   BonDriver_PTx-T5.dll ← 地デジ 複合チューナーの三枚目のチューナーのT2端子のチューナー
   ```
-  ※PT1/PT2とPT3両方を同一PCで利用しているケースで、PT1/2もしくは、PT3どちらを先に探しに行くかの順序は、BonDriver_PTx-ST.ini の xFirstPT3=1 のときにPT3を先に探しに行きます。 逆に、xFirstPT3=0 の場合は、PT1/PT2側が先行されます。  
+  *※PT1/PT2とPT3両方を同一PCで利用しているケースで、PT1/2もしくは、PT3どちらを先に探しに行くかの順序は、BonDriver_PTx-ST.ini の xFirstPT3=1 のときにPT3を先に探しに行きます。 逆に、xFirstPT3=0 の場合は、PT1/PT2側が先行されます。*
 
-## ● 設定
+## ●設定
 
   BonDriver_PTx-ST.iniを変更することで以下の項目が設定できます。
   ファイル名で個別チューナー設定を行っても設定は共通です。
@@ -67,7 +69,7 @@ PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用�
   - PT1/2、PT3の検索順序の設定(xFirstPT3)
   - PT1/2のバージョン設定(PT1Ver)
 
-  ※他にも色々設定する項目がありますが、長くなってしまいますので割愛します。BonDriver_PTx-ST.iniのコメント欄に個々の項目についての説明が記述してありますので参照してみてください。
+  *※他にも色々設定する項目がありますが、長くなってしまいますので割愛します。BonDriver_PTx-ST.iniのコメント欄に個々の項目についての説明が記述してありますので参照してみてください。*
   
   PTxCtrl.exeをサービスとして登録することもできます。
   コマンドラインオプション「-install」で登録、「-remove」で登録解除。
@@ -133,9 +135,9 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
 // +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+
 ```
 
-  ※チャンネル定義をtextファイル(.ChSet.txt)にしなくても、BonDriver_PTx-ST_mod は、チャンネル情報をBonDriver_PTx-ST.iniの\[DefSpace\]セクションに記述することによって既定のチャンネル情報として扱うことが可能になっています。周波数の微調整などが必要ない限り、チャンネルファイルを記述する必要はありません。BonDriver_PTx-ST_mod では、チャンネル情報(.ChSet.txt)ファイルが記述されている場合は、既定のチャンネル情報を破棄して記述されているチャンネル情報の方を優先して取り扱いますので、**いままでのように無駄にチャンネルファイル(BonDriver_PTx-S.ChSet.txt/BonDriver_PTx-T.ChSet.txt)を配置しているとBonDriver_PTx-ST.iniで記述してある既定のチャンネル情報が無効になってしまう**ので気をつけてください。
+  *※チャンネル定義をtextファイル(.ChSet.txt)にしなくても、BonDriver_PTx-ST_mod は、チャンネル情報をBonDriver_PTx-ST.iniの\[DefSpace\]セクションに記述することによって既定のチャンネル情報として扱うことが可能になっています。周波数の微調整などが必要ない限り、チャンネルファイルを記述する必要はありません。BonDriver_PTx-ST_mod では、チャンネル情報(.ChSet.txt)ファイルが記述されている場合は、既定のチャンネル情報を破棄して記述されているチャンネル情報の方を優先して取り扱いますので、**いままでのように無駄にチャンネルファイル(BonDriver_PTx-S.ChSet.txt/BonDriver_PTx-T.ChSet.txt)を配置しているとBonDriver_PTx-ST.iniで記述してある既定のチャンネル情報が無効になってしまう**ので気をつけてください。*
   
-  **※EDCBでのチャンネルのスキャン時に抜けが発生する場合は、下記のようにEDCBのディレクトリ上に存在する設定ファイルBonCtrl.iniのServiceChkTimeOutの値を15くらいに上げて再スキャンしてみてください。**
+  *※[EDCB](https://github.com/epgdatacapbon/EDCB)でのチャンネルのスキャン時に抜けが発生する場合は、下記のようにEDCBのディレクトリ上に存在する設定ファイルBonCtrl.iniのServiceChkTimeOutの値を15くらいに上げて再スキャンしてみてください。*
   
   ```
   ;チャンネルスキャン時の動作設定
@@ -143,6 +145,37 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
   ServiceChkTimeOut=15
   ```
   
+## ●Spinelへの組み込み例
+
+ SpinelへこのBonDriverを組み込む場合は、Spinelのルートに存在する BonDriverMapping.json ファイルの "BonDriver_PT-ST" 項目を下記のように修正すると、"EarthSoft PTx" デバイス としてSpinelに認識されるようになります。
+
+  ```
+    /* BonDriver_PT-ST */
+    {
+        "DeviceName": "PT",
+        "Mapping": {
+            "ISDB_T": "^BonDriver_PT([xw]|xWDM)?-T.*?\\.dll$",
+            "ISDB_S": "^BonDriver_PT([xw]|xWDM)?-S.*?\\.dll$",
+        }
+    },
+  ```
+
+ BonDriverフォルダにWin32版のファイルを配置するのを忘れないでください。チューナー1セット構成だと以下のような配置になります。
+ 
+  ```
+   <Spinel>
+    |-- Spinel.exe
+    |-- BonDriverMapping.json
+    |-- (略)
+    `--<BonDriver>
+        |-- BonDriver_PTx-S0.dll (BS/CS用のBonDriver[S1] TunerPath = "PT/0/S/0") ※Win32版
+        |-- BonDriver_PTx-T0.dll (地デジ用のBonDriver[T1] TunerPath = "PT/0/T/0") ※Win32版
+        |-- BonDriver_PTx-S1.dll (BS/CS用のBonDriver[S2] TunerPath = "PT/0/S/1") ※Win32版
+        |-- BonDriver_PTx-T1.dll (地デジ用のBonDriver[T2] TunerPath = "PT/0/T/1") ※Win32版
+        |-- BonDriver_PTx-ST.ini (設定ファイル)
+        `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル) ※Win32版
+  ```
+
 ## ●64bitOSへの対応
 
  x64フォルダにあるモジュールは64bitでビルドしたモジュールになっています。
@@ -160,6 +193,6 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
   再配布を行う場合は配布者個人の責任で行ってください。
 
 
-  ※mod版の更新履歴については、[こちら](./Readme_MOD.md)からご参照ください。
+  *※mod版の更新履歴については、[こちら](./Readme_MOD.md)からご参照ください。*
   
- *EpgDataCap_Bon (mod by hyrolean)*
+ **EpgDataCap_Bon (mod by hyrolean)**
