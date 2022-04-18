@@ -85,7 +85,7 @@ PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用�
 
 PTxとしてのチャンネルは以下のものが設定できます。
 EARTH_PT.h/EARTH_PT3.hより抜粋
-```
+```cpp
 // (ISDB-S)
 // PLL 周波数ステップが 1MHz のため、実際に設定される周波数は f' になります。
 // +----+------+---------+---------+ +----+------+---------+---------+ +----+------+---------+---------+
@@ -139,7 +139,7 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
   
   *※[EDCB](https://github.com/epgdatacapbon/EDCB)でのチャンネルのスキャン時に抜けが発生する場合は、下記のようにEDCBのディレクトリ上に存在する設定ファイルBonCtrl.iniのServiceChkTimeOutの値を15くらいに上げて再スキャンしてみてください。*
   
-  ```
+  ```ini
   ;チャンネルスキャン時の動作設定
   [CHSCAN]
   ServiceChkTimeOut=15
@@ -149,7 +149,7 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
 
  SpinelへこのBonDriverを組み込む場合は、Spinelのルートに存在する BonDriverMapping.json ファイルの "BonDriver_PT-ST" 項目を下記のように修正すると、"EarthSoft PTx" デバイス としてSpinelに認識されるようになります。
 
-  ```
+  ```json
     /* BonDriver_PT-ST */
     {
         "DeviceName": "PT",
