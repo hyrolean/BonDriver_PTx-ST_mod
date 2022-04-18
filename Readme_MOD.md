@@ -7,7 +7,7 @@
   Windows10 1803 以降でサポートされた高精度割込みタイマーを導入することにより、チャンネルスキャンのもたつきや、ストリーム転送のラグを極限まで抑えることを可能としました。
 
   高精度割込みタイマーを有効にするには、BonDriver_PTx-ST.ini の以下の項目を"1"に変更してください。
-  ```
+  ```ini
   [SET]
   ; UseHRTimer=0 を UseHRTimer=1 に変更
   UseHRTimer=1
@@ -29,7 +29,7 @@
   PTwCtrl.exe ← pt2wdm 制御実行ファイル (PTwCtrl.vcxprojをコンパイルして出来上がったファイル)
   ```
   そして、BonDriver_PTx-ST.ini ファイルの以下の部分を下記のように修正…
-  ```
+  ```ini
   [SET]
   ; xSparePTw=0 を xSparePTw=1 に変更
   xSparePTw=1
@@ -174,7 +174,7 @@
     (Described by 2020/01/07 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 
     **※機能を有効にするには、添付のBonDriver_PT3-S.ChSet.txtを差し替えてください。また、添付のBonDriver_PT3-S.ChSet.txtを差し替えた結果、EDCBでのチャンネルのスキャン時に抜けが発生する場合は、下記のようにEDCBのディレクトリ上に存在する設定ファイルBonCtrl.iniのServiceChkTimeOutの値を15くらいに上げて再スキャンしてみてください。**
-    ```
+    ```ini
     ;チャンネルスキャン時の動作設定
     [CHSCAN]
     ServiceChkTimeOut=15
