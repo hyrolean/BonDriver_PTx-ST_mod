@@ -977,8 +977,6 @@ const BOOL CBonTuner::SetLnbPower(const BOOL bEnable)
 	//IBonTransponder‚Ì‹@”\‚ð’Ç‰Á
 	//(added by 2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 
-	#define TRANSPONDER_CHMASK 0x80000000
-
 LPCTSTR CBonTuner::TransponderEnumerate(const DWORD dwSpace, const DWORD dwTransponder)
 {
 	DWORD key = dwSpace<<16 | dwTransponder;

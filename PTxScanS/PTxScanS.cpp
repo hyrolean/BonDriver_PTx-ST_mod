@@ -365,8 +365,10 @@ bool DoScanS()
 		BonTransponder = dynamic_cast<IBonTransponder*>(BonTuner) ;
 	}catch(bad_cast &e) {
 		printf("Cast error: %s\n",e.what());
-		puts("IBonTransponderインターフェイスを確認できませんでした。\n");
 		BonTransponder = NULL ;
+	}
+	if(BonTransponder==NULL) {
+		puts("IBonTransponderインターフェイスを確認できませんでした。\n");
 		return false;
 	}
 	puts("IBonTransponderインターフェイス: 有効\n");
@@ -375,12 +377,13 @@ bool DoScanS()
 		BonPTx = dynamic_cast<IBonPTx*>(BonTuner) ;
 	}catch(bad_cast &e) {
 		printf("Cast error: %s\n",e.what());
-		puts("IBonPTxインターフェイスを確認できませんでした。\n");
-		BonTransponder = NULL ;
 		BonPTx = NULL ;
-		return false;
 	}
-	puts("IBonPTxインターフェイス: 有効\n");
+	if(BonPTx==NULL) {
+		puts("IBonPTxインターフェイスを確認できませんでした。\n"
+			"(※チャンネル情報出力機能は無効化されます。)\n");
+	}else
+		puts("IBonPTxインターフェイス: 有効\n");
 
 	puts("スペース名を列挙しています。");
 	str_vector spaces ;
@@ -484,7 +487,7 @@ bool DoScanS()
 		puts("チューナーをクローズしました。");
 	}
 
-	if(res) {
+	if(res && BonPTx!=NULL) {
 		string out_file ;
 		{
 
