@@ -111,10 +111,17 @@ int EnumCandidates(str_vector &candidates, string filter)
 string DoSelectS()
 {
 	str_vector candidates;
+	#if 0
 	EnumCandidates(candidates,"BonDriver_PTx-S*.dll");
 	EnumCandidates(candidates,"BonDriver_PT-S*.dll");
 	EnumCandidates(candidates,"BonDriver_PT3-S*.dll");
 	EnumCandidates(candidates,"BonDriver_PTw-S*.dll");
+	#else
+	EnumCandidates(candidates,"BonDriver_PT*.dll");
+	EnumCandidates(candidates,"BonDriver_Bulldog*.dll");
+	EnumCandidates(candidates,"BonDriver_FSUSB2*.dll");
+	EnumCandidates(candidates,"BonDriver_uSUNpTV*.dll");
+	#endif
 	if(candidates.empty()) {
 		help();
 		puts("\nPress <Ctrl+C> to exit.");
@@ -174,6 +181,9 @@ bool LoadBon()
 		BonTuner = dynamic_cast<IBonDriver2*>(CreateBonDriver_()) ;
 	}catch(bad_cast &e) {
 		printf("Cast error: %s\n",e.what());
+		BonTuner = NULL ;
+	}
+	if(!BonTuner) {
 		puts("IBonDriver2インターフェイスを確認できませんでした。\n");
 		return false;
 	}
@@ -310,7 +320,7 @@ bool OutChSet(string out_file, const str_vector &spaces, const vector<TRANSPONDE
 	tm now_tm; localtime_s(&now_tm,&now);
 	asctime_s(asct_buff,80,&now_tm);
 	fputs(";\t@ ",st); fputs(asct_buff,st);
-	fputs(";BS/CS用\n",st);
+	//fputs(";BS/CS用\n",st);
 	fputs(";チューナー空間(タブ区切り：$名称\tBonDriverとしてのチューナ空間\n",st);
 	for(size_t spc=0;spc<spaces.size();spc++)
 		fprintf(st,"$%s\t%d\n",spaces[spc].c_str(),(int)spc);
@@ -341,17 +351,104 @@ bool OutChSet(string out_file, const str_vector &spaces, const vector<TRANSPONDE
 		fputs(";(※ただし、TSIDの記述が7以下の場合は、"
 			"ストリーム番号を意味する[mod])\n",st);
 	for(size_t spc=0;spc<transponders_list.size();spc++) {
-		const TRANSPONDERS &trapons = transponders_list[spc];
-		for(size_t tp=0,n=0;tp<trapons.size();tp++) {
-			const TRANSPONDER &trpn = trapons[tp] ;
-			DWORD ptxch = BonPTx->TransponderGetPTxCh((DWORD)spc,(DWORD)tp);
-			for(auto id : trpn.TSIDs) {
-				fprintf(st,"%s/TS%d\t%d\t%d\t%d\t%d\n",
-						trpn.Name.c_str(),
-						(int)id&7,(int)spc,(int)n,(int)ptxch,
+		bool hasTransponder = BonTransponder->TransponderEnumerate((DWORD)spc,0) != NULL ;
+		if(hasTransponder) {
+			const TRANSPONDERS &trapons = transponders_list[spc];
+			for(size_t tp=0,n=0;tp<trapons.size();tp++) {
+				const TRANSPONDER &trpn = trapons[tp] ;
+				DWORD ptxch = BonPTx->TransponderGetPTxCh((DWORD)spc,(DWORD)tp);
+				for(auto id : trpn.TSIDs) {
+					fprintf(st,"%s/TS%d\t%d\t%d\t%d\t%d\n",
+							trpn.Name.c_str(),
+							(int)id&7,(int)spc,(int)n,(int)ptxch,
+							(int)(vp_tsid_stream=='y'?id&7:id)
+						);
+					n++;
+				}
+			}
+		}else {
+			for(DWORD n=0;;n++) {
+				LPCTSTR pStr = BonTuner->EnumChannelName((DWORD)spc,n);
+				if(!pStr) break;
+				string nam = wcs2mbcs(pStr);
+				DWORD id=0, ptxch = BonPTx->GetPTxCh((DWORD)spc,n,&id);
+				fprintf(st,"%s\t%d\t%d\t%d\t%d\n",
+						nam.c_str(),(int)spc,(int)n,(int)ptxch,
 						(int)(vp_tsid_stream=='y'?id&7:id)
 					);
-				n++;
+			}
+		}
+	}
+	fclose(st);
+	return true;
+}
+
+bool OutCSV(string out_file, const str_vector &spaces, const vector<TRANSPONDERS> &transponders_list)
+{
+	string filename = AppPath + out_file ;
+	FILE *st=NULL;
+	fopen_s(&st,filename.c_str(),"wt");
+	if(!st) return false ;
+	fputs("; -*- This CSV file was generated automatically by PTxScanS -*-\n",st);
+	time_t now = time(NULL) ;
+	char asct_buff[80];
+	tm now_tm; localtime_s(&now_tm,&now);
+	asctime_s(asct_buff,80,&now_tm);
+	fputs(";\t@ ",st); fputs(asct_buff,st);
+fputs(R"^(;
+; 物理チャンネル番号の表記について：
+;
+;   1～63               : 地デジ(VHF/UHF帯域)の物理チャンネル
+;   C13～C63            : CATVパススルー(UHF帯域)の物理チャンネル
+;   BS[1～23]/TS[0～7]  : BSの物理チャンネル(チャンネル番号/ストリーム番号)
+;   BS[1～23]/ID[整数]  : BSの物理チャンネル(チャンネル番号/ストリームＩＤ)
+;   ND[2～24]			: CSの物理チャンネル(チャンネル番号)
+;
+;     ※TS[0～7]、ID[整数] は省略可。
+;
+; スペース名, 物理チャンネル番号or周波数MHz[, チャンネル名(無くても可)]
+)^",st);
+	for(size_t spc=0;spc<spaces.size();spc++) {
+		string space = spaces[spc] ;
+		fprintf(st,"\n\t; %s\n\n",space.c_str());
+		bool hasTransponder = BonTransponder->TransponderEnumerate((DWORD)spc,0) != NULL ;
+		if(hasTransponder) {
+			const TRANSPONDERS &trapons = transponders_list[spc];
+			for(size_t tp=0,n=0;tp<trapons.size();tp++) {
+				const TRANSPONDER &trpn = trapons[tp] ;
+				for(auto id : trpn.TSIDs) {
+					if(vp_tsid_stream=='y') {
+						fprintf(st,"%s, %s/TS%d\n",
+								space.c_str(),
+								trpn.Name.c_str(),
+								(int)id&7
+							);
+					}else {
+						fprintf(st,"%s, %s/ID0x%04X, %s/TS%d\n",
+								space.c_str(),
+								trpn.Name.c_str(),
+								(int)id,
+								trpn.Name.c_str(),
+								(int)id&7
+							);
+					}
+				}
+			}
+		}else {
+			for(DWORD n=0;;n++) {
+				LPCTSTR pStr = BonTuner->EnumChannelName((DWORD)spc,n);
+				if(!pStr) break;
+				string nam = wcs2mbcs(pStr), ch = nam ;
+				if(ch.length()>2) {
+					if( tolower(ch[ch.length()-2])=='c' &&
+						tolower(ch[ch.length()-1])=='h' ) { // XXXch -> XXX
+							ch=ch.substr(0,ch.length()-2);
+					}
+				}
+				if(ch == nam)
+					fprintf(st,"%s, %s\n", space.c_str(), ch.c_str() );
+				else
+					fprintf(st,"%s, %s, %s\n", space.c_str(), ch.c_str(), nam.c_str() );
 			}
 		}
 	}
@@ -381,7 +478,7 @@ bool DoScanS()
 	}
 	if(BonPTx==NULL) {
 		puts("IBonPTxインターフェイスを確認できませんでした。\n"
-			"(※チャンネル情報出力機能は無効化されます。)\n");
+			"(※チャンネル情報出力機能はCSV形式に強制されます。)\n");
 	}else
 		puts("IBonPTxインターフェイス: 有効\n");
 
@@ -487,15 +584,14 @@ bool DoScanS()
 		puts("チューナーをクローズしました。");
 	}
 
-	if(res && BonPTx!=NULL) {
+	if(res) {
 		string out_file ;
 		{
-
 			CHAR szFname[_MAX_FNAME];
 			CHAR szExt[_MAX_EXT];
 			_splitpath_s( (AppPath+BonFile).c_str(), NULL, 0, NULL, 0, szFname, _MAX_FNAME, szExt, _MAX_EXT );
 			out_file = szFname ;
-			out_file += ".ChSet.txt" ;
+			out_file += BonPTx ? ".ChSet.txt" /*ptx*/ : ".CSV.txt" /*csv*/ ;
 		}
 		char c = vp_chset ;
 		if(!c) {
@@ -503,13 +599,16 @@ bool DoScanS()
 			c=prompt('n') ;
 		}
 		if(c=='y') {
-			c = vp_transponder ;
-			if(!c) {
-				printf("トランスポンダ情報も出力しますか？[y/N]");
-				c=prompt('n') ;
+			if(BonPTx) {
+				c = vp_transponder ;
+				if(!c) {
+					printf("トランスポンダ情報も出力しますか？[y/N]");
+					c=prompt('n') ;
+				}
 			}
 			printf("スキャン結果をファイル \"%s\" に出力しています...\n",out_file.c_str());
-			if(!OutChSet(out_file, spaces, transponders_list, c=='y')) {
+			if(!(BonPTx?OutChSet(out_file, spaces, transponders_list, c=='y'):
+						OutCSV(out_file, spaces, transponders_list)) ) {
 				puts("スキャン結果の出力に失敗。") ;
 				res=false ;
 			}else

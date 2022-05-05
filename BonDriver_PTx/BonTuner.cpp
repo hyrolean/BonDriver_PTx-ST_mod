@@ -1096,12 +1096,19 @@ const BOOL CBonTuner::TransponderGetCurID(LPDWORD lpdwID)
 
 const DWORD CBonTuner::TransponderGetPTxCh(const DWORD dwSpace, const DWORD dwTransponder)
 {
-	DWORD key = dwSpace<<16 | dwTransponder;
-	map<DWORD, TP_DATA>::iterator itr;
-	itr = m_chSet.tpMap.find(key);
-	if( itr == m_chSet.tpMap.end() ){
+	auto itr = m_chSet.tpMap.find( dwSpace<<16 | dwTransponder);
+	if( itr == m_chSet.tpMap.end() )
 		return 0xFFFFFFFF;
-	}
 	return itr->second.dwPT1Ch;
+}
+
+const DWORD CBonTuner::GetPTxCh(const DWORD dwSpace, const DWORD dwChannel, DWORD *lpdwTSID)
+{
+	auto itr = m_chSet.chMap.find( dwSpace<<16 | dwChannel ) ;
+	if( itr == m_chSet.chMap.end() )
+		return 0xFFFFFFFF;
+	if(lpdwTSID!=NULL)
+		*lpdwTSID=itr->second.dwTSID;
+	return itr->second.dwPT1Ch ;
 }
 
