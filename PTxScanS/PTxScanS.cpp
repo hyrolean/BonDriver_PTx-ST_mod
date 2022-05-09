@@ -2,6 +2,7 @@
 //
 
 #include "stdafx.h"
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <algorithm>
 #include <vector>
 #include <string>
@@ -10,8 +11,11 @@
 #include <ctime>
 #include <cctype>
 #include <conio.h>
+#include <winsock2.h>
 #include "../Common/IBonTransponder.h"
 #include "../Common/IBonPTx.h"
+
+#pragma comment(lib, "WSock32.Lib")
 
 using namespace std;
 
@@ -34,15 +38,86 @@ using TRANSPONDERS = vector<TRANSPONDER> ;
 string AppPath = "" ;
 string BonFile = "" ;
 
-char vp_transponder = 0 ;
-char vp_chset = 0 ;
-char vp_tsid_stream = 'n' ;
-char vp_deep_tuning = 'n' ;
+char   vp_transponder          = 0           ;
+char   vp_chset                = 0           ;
+char   vp_tsid_stream          = 'n'         ;
+char   vp_deep_tuning          = 'n'         ;
+int    vp_deep_tuning_sec      = 5           ;
+float  vp_deep_tuning_db       = 5.f         ;
+string vp_tuning_udp_ip        = "127.0.0.1" ;
+int    vp_tuning_udp_port      = 1234        ;
+BOOL   vp_tuning_udp_broadcast = FALSE       ;
 
 HMODULE BonModule = NULL;
 IBonDriver2 *BonTuner = NULL;
 IBonTransponder *BonTransponder = NULL;
 IBonPTx *BonPTx = NULL;
+
+  // CUDPTrasmitter
+class CUDPTrasmitter
+{
+protected:
+	BOOL Broadcast ;
+	sockaddr_in Addr ;
+	SOCKET Sock ;
+public:
+	CUDPTrasmitter(string ip, WORD port, BOOL broadcast=FALSE) {
+		Sock = NULL; Broadcast=broadcast ;
+		WSAData wsaData;
+		WSAStartup(MAKEWORD(2, 0), &wsaData);
+		ZeroMemory(&Addr, sizeof(Addr)) ;
+		Addr.sin_family = AF_INET;
+		Addr.sin_port = htons((WORD)port);
+		Addr.sin_addr.S_un.S_addr = inet_addr(ip.c_str());
+	}
+	~CUDPTrasmitter() {
+		Close();
+		WSACleanup();
+	}
+	BOOL Open() {
+		if ( Sock != NULL ) {
+			return FALSE;
+		}
+		Sock = socket(AF_INET, SOCK_DGRAM, 0);
+		if ( Sock == INVALID_SOCKET ) {
+			Sock = NULL;
+			return FALSE;
+		}
+		if(Broadcast) {
+			BYTE yes = 1 ;
+			setsockopt(Sock, SOL_SOCKET, SO_BROADCAST, (char*)&yes, sizeof(yes) );
+		}
+		return TRUE;
+	}
+	BOOL Close() {
+		if ( Sock != NULL ) {
+			closesocket(Sock);
+			Sock = NULL;
+		}
+		return TRUE;
+	}
+	BOOL Send(char *data, int size) {
+		return sendto(Sock, data, size, 0,
+			(sockaddr*)&Addr, sizeof(Addr)) == SOCKET_ERROR ? FALSE : TRUE ;
+	}
+	int Select(UINT wait, bool *sendOk = nullptr, bool *excepted = nullptr) {
+		fd_set fdSend, fdExcept ;
+		ZeroMemory(&fdSend, sizeof fdSend) ;
+		FD_ZERO(&fdSend);
+		FD_SET(Sock, &fdSend);
+		fdExcept = fdSend ;
+		timeval time_limit ;
+		time_limit.tv_sec = 0 ;
+		time_limit.tv_usec = wait * 1000 ;
+		int r = select(int(Sock+1), NULL, &fdSend, &fdExcept, &time_limit) ;
+		if (sendOk)
+			*sendOk = FD_ISSET(Sock, &fdSend) ? true : false ;
+		if (excepted)
+			*excepted = FD_ISSET(Sock, &fdExcept) ? true : false ;
+		return r ;
+	};
+};
+
 
 void help()
 {
@@ -253,13 +328,16 @@ bool CheckID(DWORD id)
 	DWORD s = dur(), u = s ;
 	using rate_t = pair<float,DWORD> ;
 	deque<rate_t> avg;
-	rate_t sum = pair<float,DWORD>(0.f,0), cur = pair<float,DWORD>(-1.f,0) ;
+	rate_t sum = pair<float,DWORD>(0.f,0), cur = pair<float,DWORD>(0.f,0) ;
 
-	const DWORD wait = 500, max_wait=5000;
+	const DWORD wait = 500, max_wait = vp_deep_tuning_sec*1000 ;
 	char status[80] = "\0" ;
 
 	Sleep(wait);
 	BonTuner->PurgeTsStream(); // 初回受信分を殺しておく
+
+	CUDPTrasmitter udptx(vp_tuning_udp_ip, vp_tuning_udp_port, vp_tuning_udp_broadcast) ;
+	udptx.Open();
 
 	for(;;) { // signal and bps testing
 		DWORD e = dur();
@@ -292,6 +370,10 @@ bool CheckID(DWORD id)
 		while(n>0) {
 			BYTE *buf=NULL; DWORD sz=0, rem=0;
 			if(BonTuner->GetTsStream(&buf, &sz, &rem)) {
+				if(sz>0) {
+					udptx.Select(wait);
+					udptx.Send((char*)buf,(int)sz);
+				}
 				cur.second += sz ;
 			}
 			if(!--n) {
@@ -301,11 +383,13 @@ bool CheckID(DWORD id)
 		}
 	}
 
+	udptx.Close();
+
 	for(size_t i=0;status[i];i++) putchar('\b');
 	for(size_t i=0;status[i];i++) putchar(' ');
 	for(size_t i=0;status[i];i++) putchar('\b');
 
-	return sum.first  > 0.f  && sum.second > 0 ;
+	return sum.first/float(avg.size())>=vp_deep_tuning_db && sum.second>0 ;
 }
 
 bool OutChSet(string out_file, const str_vector &spaces, const vector<TRANSPONDERS> &transponders_list, bool out_transponders)
@@ -642,7 +726,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	MAXDUR_TMCC = GetPrivateProfileIntA("SET", "MAXDUR_TMCC", MAXDUR_TMCC, iniFile.c_str() ); //TMCC取得に費やす最大時間(msec)
 	MAXDUR_TMCC = GetPrivateProfileIntA("SET", "MAXDUR_TMCC_S", MAXDUR_TMCC, iniFile.c_str() ); //TMCC(S側)取得に費やす最大時間(msec)
 
-	int err=1;
+	int err=1,dig; wchar_t sub[80]; float fval;
 	for(int i=1;i<argc;i++) { // param analyzer
 		wstring param = argv[i] ;
 		if(param.empty()) continue;
@@ -658,6 +742,16 @@ int _tmain(int argc, _TCHAR* argv[])
 			else if(vparam==L"no-chset")       vp_chset       = 'n' ;
 			else if(vparam==L"tsid-stream")    vp_tsid_stream = 'y' ;
 			else if(vparam==L"deep-tuning")    vp_deep_tuning = 'y' ;
+			else if(swscanf_s(vparam.c_str(),L"deep-tuning-sec=%d",&dig)==1)
+				vp_deep_tuning_sec = dig ;
+			else if(swscanf_s(vparam.c_str(),L"deep-tuning-db=%f",&fval)==1)
+				vp_deep_tuning_db = fval ;
+			else if(swscanf_s(vparam.c_str(),L"tuning-udp-ip=%s",sub,(unsigned)_countof(sub))==1)
+				vp_tuning_udp_ip = wcs2mbcs(sub) ;
+			else if(swscanf_s(vparam.c_str(),L"tuning-udp-port=%d",&dig)==1)
+				vp_tuning_udp_port = dig ;
+			else if(vparam==L"tuning-udp-broadcast")
+				vp_tuning_udp_broadcast = TRUE ;
 			else {
 				printf("不明なパラメタ: %s\n\n",wcs2mbcs(param).c_str());
 				help();
