@@ -63,6 +63,8 @@ IBonDriver2 *BonTuner = NULL;
 IBonTransponder *BonTransponder = NULL;
 IBonPTx *BonPTx = NULL;
 
+#define UDP_PACKET_SIZE		48128
+
   // CUDPTransmitter
 class CUDPTransmitter
 {
@@ -388,8 +390,11 @@ bool TuningTest(DWORD spc, DWORD ch)
 			BYTE *buf=NULL; DWORD sz=0, rem=0;
 			if(BonTuner->GetTsStream(&buf, &sz, &rem)) {
 				if(sz>0) {
-					udptx.Select(wait);
-					udptx.Send((char*)buf,(int)sz);
+					for(DWORD i=0;i<sz;i+=UDP_PACKET_SIZE) {
+						udptx.Select(wait);
+						int ln = min<int>(sz-i,UDP_PACKET_SIZE);
+						udptx.Send((char*)buf+i,ln);
+					}
 				}
 				cur.second += sz ;
 			}
