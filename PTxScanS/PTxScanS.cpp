@@ -564,16 +564,30 @@ fputs(R"^(;
 			}
 		}else {
 			const CHANNELSET &ngchs = spaces[spc].NGChannels ;
+			auto i2s = [](int v) -> string {
+				char s[10]; sprintf_s(s,"%d",v); return s;
+			};
 			for(DWORD n=0;;n++) {
 				LPCTSTR pStr = BonTuner->EnumChannelName((DWORD)spc,n);
 				if(!pStr) break;
 				if(ngchs.find(n)!=ngchs.end()) continue;
 				string nam = wcs2mbcs(pStr), ch = nam ;
-				if(ch.length()>2) {
-					if( tolower(ch[ch.length()-2])=='c' &&
-						tolower(ch[ch.length()-1])=='h' ) { // XXXch -> XXX
-							ch=ch.substr(0,ch.length()-2);
-					}
+				int tp,id;
+				if(sscanf_s(ch.c_str(),"BS%d/TS%d",&tp,&id)==2) {
+					// BS
+					ch = "BS"+i2s(tp)+"/TS"+i2s(id);
+				}else if(sscanf_s(ch.c_str(),"ND%d/TS%d",&tp,&id)==2) {
+					// CS110
+					ch = "ND"+i2s(tp)+"/TS"+i2s(id);
+				}else if(sscanf_s(ch.c_str(),"ND%d",&tp)==1) {
+					// CS110
+					ch = "ND"+i2s(tp);
+				}else if(sscanf_s(ch.c_str(),"C%d",&id)==1) {
+					// CATV
+					ch = "C"+i2s(id);
+				}else if(sscanf_s(ch.c_str(),"%d",&id)==1) {
+					// VHF/UHF
+					ch = i2s(id);
 				}
 				if(ch == nam)
 					fprintf(st,"%s, %s\n", space.c_str(), ch.c_str() );
