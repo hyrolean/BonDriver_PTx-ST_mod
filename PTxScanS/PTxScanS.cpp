@@ -340,7 +340,6 @@ bool TuningTest(DWORD spc, DWORD ch)
 		return s <= e ? e - s : 0xFFFFFFFFUL - s + 1 + e;
 	};
 
-	DWORD s = dur(), u = s ;
 	using rate_t = pair<float,DWORD> ;
 	deque<rate_t> avg;
 	rate_t sum = pair<float,DWORD>(0.f,0), cur = pair<float,DWORD>(0.f,0) ;
@@ -352,35 +351,15 @@ bool TuningTest(DWORD spc, DWORD ch)
 	BonTuner->PurgeTsStream(); // 初回受信分を殺しておく
 
 	// チャンネル情報を確認する
-	if(BonTuner->GetCurSpace()!=spc || BonTuner->GetCurChannel()!=ch)
+	if(BonTuner->GetCurSpace()!=spc || BonTuner->GetCurChannel()!=ch) {
+		puts("× <スペース、または、チャンネルが不正>");
 		return FALSE;
+	}
 
 	CUDPTransmitter udptx(vp_tuning_udp_ip, vp_tuning_udp_port, vp_tuning_udp_broadcast) ;
 	udptx.Open();
 
-	for(;;) { // signal and bps testing
-		DWORD e = dur();
-		if(dur(s,e)>=max_wait) break;
-		DWORD w = dur(u,e);
-		if(w>=wait) {
-			cur.second = cur.second * 1000 / w ;
-			avg.push_front(cur);
-			sum.first += cur.first ; sum.second += cur.second ;
-			cur = pair<float,DWORD>(-1.f,0) ;
-			if(avg.size()>10) {
-				sum.first -= avg.back().first ;
-				sum.second -= avg.back().second ;
-				avg.pop_back();
-			}
-			float sig = sum.first / float(avg.size()) ;
-			float mbps = (sum.second * 8.f) / (1024.f * 1024.f * float(avg.size())) ;
-			for(size_t i=0;status[i];i++) putchar('\b');
-			for(size_t i=0;status[i];i++) putchar(' ');
-			for(size_t i=0;status[i];i++) putchar('\b');
-			sprintf_s(status,"%.2f dB / %.2f Mbps", sig, mbps);
-			printf("%s",status);
-			u=e ;
-		}
+	for(DWORD s = dur(), u = s ;;) { // signal and bps testing
 		int n=BonTuner->GetReadyCount();
 		if(!n) {
 			BonTuner->WaitTsStream(wait);
@@ -403,6 +382,28 @@ bool TuningTest(DWORD spc, DWORD ch)
 				if(sig>cur.first) cur.first = sig ;
 			}
 		}
+		DWORD e = dur();
+		DWORD w = dur(u,e);
+		if(w>=wait) {
+			cur.second = cur.second * 1000 / w ;
+			avg.push_front(cur);
+			sum.first += cur.first ; sum.second += cur.second ;
+			cur = pair<float,DWORD>(-1.f,0) ;
+			if(avg.size()>10) {
+				sum.first -= avg.back().first ;
+				sum.second -= avg.back().second ;
+				avg.pop_back();
+			}
+			float sig = sum.first / float(avg.size()) ;
+			float mbps = (sum.second * 8.f) / (1024.f * 1024.f * float(avg.size())) ;
+			for(size_t i=0;status[i];i++) putchar('\b');
+			for(size_t i=0;status[i];i++) putchar(' ');
+			for(size_t i=0;status[i];i++) putchar('\b');
+			sprintf_s(status,"%.2f dB / %.2f Mbps", sig, mbps);
+			printf("%s",status);
+			u=e ;
+		}
+		if(dur(s,e)>=max_wait) break;
 	}
 
 	udptx.Close();
@@ -411,7 +412,16 @@ bool TuningTest(DWORD spc, DWORD ch)
 	for(size_t i=0;status[i];i++) putchar(' ');
 	for(size_t i=0;status[i];i++) putchar('\b');
 
-	return sum.first/float(avg.size())>=vp_deep_tuning_db && sum.second>0 ;
+	float sig = sum.first/float(avg.size()) ;
+	float mbps = (sum.second * 8.f) / (1024.f * 1024.f * float(avg.size())) ;
+	bool r = true ;
+	string reason="";
+	if(sig<vp_deep_tuning_db)
+		reason += " <シグナル下限超過>", r=false ;
+	if(!sum.second)
+		reason += " <ストリーム未到達>", r=false ;
+	printf("%s %.2f dB / %.2f Mbps%s\n", r?"○":"×", sig, mbps, reason.c_str()) ;
+	return  r ;
 }
 
 bool OutChSet(string out_file, const SPACES &spaces, bool out_transponders)
@@ -623,7 +633,10 @@ bool DoScanS()
 			printf(" スペース(%d): %s\n ",spc,space.Name.c_str());
 			for(DWORD tp=0;;tp++) {
 				LPCTSTR tra = BonTransponder->TransponderEnumerate(spc,tp);
-				if(!tra) break;
+				if(!tra) {
+					if(!tp) fputs(" <空>",stdout);
+					break;
+				}
 				string name = wcs2mbcs(tra);
 				printf(" %s",name.c_str());
 				space.Transponders.push_back(TRANSPONDER(name));
@@ -647,7 +660,9 @@ bool DoScanS()
 		for(DWORD spc=0;spc<(DWORD)spaces.size();spc++) {
 			printf(" スペース(%d): %s\n",spc,spaces[spc].Name.c_str());
 			TRANSPONDERS &trapons = spaces[spc].Transponders;
-			for(DWORD tp=0;tp<trapons.size();tp++) {
+			if(trapons.empty()) {
+				puts("  <空>");
+			}else for(DWORD tp=0;tp<trapons.size();tp++) {
 				printf("  トランスポンダ(%d): %s\n",tp,trapons[tp].Name.c_str());
 				if(SelectTransponder(spc,tp)) {
 					tsid_vector idList;
@@ -687,11 +702,10 @@ bool DoScanS()
 						else {
 							for(auto id : idList) {
 								printf("\tTS%d:%04x ⇒ ",(int)id&7,(int)id);
-								if(CheckID(id)&&TuningTest((DWORD)spc,tp|TRANSPONDER_CHMASK)) {
+								if(!CheckID(id))
+									puts("× <IDが不正>");
+								else if(TuningTest((DWORD)spc,tp|TRANSPONDER_CHMASK))
 									passedIDList.push_back(id) ;
-									puts("○");
-								}else
-									puts("×");
 								BonTuner->PurgeTsStream();
 							}
 							idList.swap(passedIDList);
@@ -707,12 +721,13 @@ bool DoScanS()
 					LPCTSTR pStr = BonTuner->EnumChannelName((DWORD)spc,n);
 					if(!pStr) break;
 					printf("  チャンネル(%d): %s ⇒ ",n,wcs2mbcs(pStr).c_str());
-					if(BonTuner->SetChannel((DWORD)spc,n)&&TuningTest((DWORD)spc,n))
-						puts("○");
-					else {
+					bool done = false ;
+					if(!BonTuner->SetChannel((DWORD)spc,n))
+						puts("× <チャンネル切替に失敗>");
+					else if(TuningTest((DWORD)spc,n))
+						done = true;
+					if(!done)
 						ngchs.insert(n);
-						puts("×");
-					}
 				}
 			}
 		}
