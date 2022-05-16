@@ -51,6 +51,7 @@ string BonFile = "" ;
 char   vp_transponder          = 0           ;
 char   vp_chset                = 0           ;
 char   vp_tsid_stream          = 'n'         ;
+char   vp_force_CSV            = 'n'         ;
 char   vp_deep_tuning          = 'n'         ;
 int    vp_deep_tuning_sec      = 5           ;
 float  vp_deep_tuning_db       = 5.f         ;
@@ -140,6 +141,8 @@ void help()
         Enable writing the scanning results to the .ChSet.txt file.
       -c, --no-chset
         Disable writing the scanning results to the .ChSet.txt file.
+      +f, --force-CSV
+        Force writing the scanning results to the .CSV.txt file.
       +t, --transponder
         Enable writing the transponder information to the scanning results.
       -t, --no-transponder
@@ -755,12 +758,13 @@ bool DoScanS()
 
 	if(res) {
 		string out_file ;
+		bool csv = !BonPTx || vp_force_CSV=='y' ;
 		{
 			CHAR szFname[_MAX_FNAME];
 			CHAR szExt[_MAX_EXT];
 			_splitpath_s( (AppPath+BonFile).c_str(), NULL, 0, NULL, 0, szFname, _MAX_FNAME, szExt, _MAX_EXT );
 			out_file = szFname ;
-			out_file += BonPTx ? ".ChSet.txt" /*ptx*/ : ".CSV.txt" /*csv*/ ;
+			out_file += csv ? ".CSV.txt" /*csv*/ : ".ChSet.txt" /*ptx*/ ;
 		}
 		char c = vp_chset ;
 		if(!c) {
@@ -771,13 +775,15 @@ bool DoScanS()
 			if(BonPTx) {
 				c = vp_transponder ;
 				if(!c) {
-					printf("トランスポンダ情報も出力しますか？[y/N]");
-					c=prompt('n') ;
+					if(csv) c='n';
+					else {
+						printf("トランスポンダ情報も出力しますか？[y/N]");
+						c=prompt('n') ;
+					}
 				}
 			}
 			printf("スキャン結果をファイル \"%s\" に出力しています...\n",out_file.c_str());
-			if(!(BonPTx?OutChSet(out_file, spaces, c=='y'):
-						OutCSV(out_file, spaces)) ) {
+			if(!(csv?OutCSV(out_file, spaces):OutChSet(out_file, spaces, c=='y'))) {
 				puts("スキャン結果の出力に失敗。") ;
 				res=false ;
 			}else
@@ -825,6 +831,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			else if(vparam==L"no-transponder") vp_transponder = 'n' ;
 			else if(vparam==L"chset")          vp_chset       = 'y' ;
 			else if(vparam==L"no-chset")       vp_chset       = 'n' ;
+			else if(vparam==L"force-CSV")      vp_force_CSV = vp_chset = 'y' ;
 			else if(vparam==L"tsid-stream")    vp_tsid_stream = 'y' ;
 			else if(vparam==L"deep-tuning")    vp_deep_tuning = 'y' ;
 			else if(swscanf_s(vparam.c_str(),L"deep-tuning-sec=%d",&dig)==1)
@@ -849,6 +856,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				switch(tolower(c)) {
 					case 't': vp_transponder = boolean ; break;
 					case 'c': vp_chset       = boolean ; break;
+					case 'f': vp_force_CSV   = boolean ; break;
 					case 's': vp_tsid_stream = boolean ; break;
 					case 'd': vp_deep_tuning = boolean ; break;
 					case '?': help() ; return err;
