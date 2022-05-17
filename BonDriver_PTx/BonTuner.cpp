@@ -178,37 +178,34 @@ CBonTuner::CBonTuner()
 	m_dwStartBuff = GetPrivateProfileIntW(L"SET", L"StartBuff", 8, strIni.c_str());
 	SetHRTimerMode(GetPrivateProfileIntW(L"SET", L"UseHRTimer", 0, strIni.c_str()));
 
+	const LPCWSTR CHSET_EXT = L".ChSet.txt" ;
+	const LPCWSTR CSV_EXT = L".ch.txt" ;
 	wstring strChSet;
 
 	//dllñºÇ∆ìØÇ∂ñºëOÇÃ.ChSet.txtÇêÊÇ…óDêÊÇµÇƒì«Ç›çûÇ›ÇééçsÇ∑ÇÈ
 	//(fixed by 2020 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-	strChSet = szPath;	strChSet += szFname;	strChSet += L".ChSet.txt";
-	if(!m_chSet.ParseText(strChSet.c_str())) {
+	strChSet = szPath;	strChSet += szFname;
+	if(		!m_chSet.ParseText(strChSet.c_str(), CHSET_EXT) &&
+			!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_EXT)	) {
 		strChSet = szPath;
-		if(m_iPT==3) {
-			if (m_isISDB_S)
-				strChSet += L"BonDriver_PT3-S.ChSet.txt";
-			else
-				strChSet += L"BonDriver_PT3-T.ChSet.txt";
-		}else if(m_iPT==1) {
-			if (m_isISDB_S)
-				strChSet += L"BonDriver_PT-S.ChSet.txt";
-			else
-				strChSet += L"BonDriver_PT-T.ChSet.txt";
-		}else if(m_iPT==2) {
-			if (m_isISDB_S)
-				strChSet += L"BonDriver_PTw-S.ChSet.txt";
-			else
-				strChSet += L"BonDriver_PTw-T.ChSet.txt";
+		switch(m_iPT) {
+		case 3: strChSet += L"BonDriver_PT3"; break;
+		case 1: strChSet += L"BonDriver_PT" ; break;
+		case 2: strChSet += L"BonDriver_PTw"; break;
 		}
-		if(!m_iPT||!m_chSet.ParseText(strChSet.c_str())) {
-			strChSet = szPath;
-			if (m_isISDB_S)
-				strChSet += L"BonDriver_PTx-S.ChSet.txt";
-			else
-				strChSet += L"BonDriver_PTx-T.ChSet.txt";
-			if(!m_chSet.ParseText(strChSet.c_str()))
-				BuildDefSpace(strIni);
+		if(!m_iPT||!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_EXT))  {
+			strChSet += m_isISDB_S ? L"-S" : L"-T";
+			if(!m_iPT|| (	!m_chSet.ParseText(strChSet.c_str(), CHSET_EXT) &&
+							!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_EXT)	)) {
+				strChSet = szPath;
+				strChSet += L"BonDriver_PTx";
+				if(!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_EXT))  {
+					strChSet += m_isISDB_S ? L"-S" : L"-T";
+					if(		!m_chSet.ParseText(strChSet.c_str(), CHSET_EXT) &&
+							!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_EXT)	)
+						BuildDefSpace(strIni);
+				}
+			}
 		}
 	}
 
