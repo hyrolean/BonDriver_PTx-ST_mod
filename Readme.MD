@@ -137,6 +137,8 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
 
   *※チャンネル定義をtextファイル(.ChSet.txt)にしなくても、BonDriver_PTx-ST_mod は、チャンネル情報をBonDriver_PTx-ST.iniの\[DefSpace\]セクションに記述することによって既定のチャンネル情報として扱うことが可能になっています。周波数の微調整などが必要ない限り、チャンネルファイルを記述する必要はありません。BonDriver_PTx-ST_mod では、チャンネル情報(.ChSet.txt)ファイルが記述されている場合は、既定のチャンネル情報を破棄して記述されているチャンネル情報の方を優先して取り扱いますので、**いままでのように無駄にチャンネルファイル(BonDriver_PTx-S.ChSet.txt/BonDriver_PTx-T.ChSet.txt)を配置しているとBonDriver_PTx-ST.iniで記述してある既定のチャンネル情報が無効になってしまう**ので気をつけてください。*
   
+  *※[mod7.4](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod7.4)より、CSV形式のチャンネルファイル(.ch.txt)もBonDrvier_PTxのチャンネルファイルとして扱えるようになりました。カンマで区切るだけのシンプル方式のチャンネル記述形式で出来ており、通し番号なども必要ない為、チャンネル定義ファイル(.ChSet.txt)よりも簡単な構造になっています。CSV形式のチャンネルファイル(.ch.txt)のサンプルファイルについては、[Extraフォルダ](./Extra)を参照してみてください。*
+  
   *※[EDCB](https://github.com/epgdatacapbon/EDCB)でのチャンネルのスキャン時に抜けが発生する場合は、下記のようにEDCBのディレクトリ上に存在する設定ファイルBonCtrl.iniのServiceChkTimeOutの値を15くらいに上げて再スキャンしてみてください。*
   
   ```ini
