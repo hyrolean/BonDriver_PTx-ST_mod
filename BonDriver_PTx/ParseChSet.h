@@ -90,7 +90,13 @@ public:
 	//引数：
 	// file_path		[IN]ChSet.txtのフルパス
 	BOOL ParseText(
-		LPCWSTR filePath
+		LPCWSTR filePath,
+		LPCWSTR fileExt=NULL
+		);
+	BOOL ParseTextCSV(
+		LPCWSTR filePath,
+		BOOL isISDBS,
+		LPCWSTR fileExt=NULL
 		);
 
 protected:

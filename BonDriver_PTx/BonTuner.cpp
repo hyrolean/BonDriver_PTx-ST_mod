@@ -178,37 +178,34 @@ CBonTuner::CBonTuner()
 	m_dwStartBuff = GetPrivateProfileIntW(L"SET", L"StartBuff", 8, strIni.c_str());
 	SetHRTimerMode(GetPrivateProfileIntW(L"SET", L"UseHRTimer", 0, strIni.c_str()));
 
+	const LPCWSTR CHSET_EXT = L".ChSet.txt" ;
+	const LPCWSTR CSV_EXT = L".ch.txt" ;
 	wstring strChSet;
 
 	//dll名と同じ名前の.ChSet.txtを先に優先して読み込みを試行する
 	//(fixed by 2020 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-	strChSet = szPath;	strChSet += szFname;	strChSet += L".ChSet.txt";
-	if(!m_chSet.ParseText(strChSet.c_str())) {
+	strChSet = szPath;	strChSet += szFname;
+	if(		!m_chSet.ParseText(strChSet.c_str(), CHSET_EXT) &&
+			!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_EXT)	) {
 		strChSet = szPath;
-		if(m_iPT==3) {
-			if (m_isISDB_S)
-				strChSet += L"BonDriver_PT3-S.ChSet.txt";
-			else
-				strChSet += L"BonDriver_PT3-T.ChSet.txt";
-		}else if(m_iPT==1) {
-			if (m_isISDB_S)
-				strChSet += L"BonDriver_PT-S.ChSet.txt";
-			else
-				strChSet += L"BonDriver_PT-T.ChSet.txt";
-		}else if(m_iPT==2) {
-			if (m_isISDB_S)
-				strChSet += L"BonDriver_PTw-S.ChSet.txt";
-			else
-				strChSet += L"BonDriver_PTw-T.ChSet.txt";
+		switch(m_iPT) {
+		case 3: strChSet += L"BonDriver_PT3"; break;
+		case 1: strChSet += L"BonDriver_PT" ; break;
+		case 2: strChSet += L"BonDriver_PTw"; break;
 		}
-		if(!m_iPT||!m_chSet.ParseText(strChSet.c_str())) {
-			strChSet = szPath;
-			if (m_isISDB_S)
-				strChSet += L"BonDriver_PTx-S.ChSet.txt";
-			else
-				strChSet += L"BonDriver_PTx-T.ChSet.txt";
-			if(!m_chSet.ParseText(strChSet.c_str()))
-				BuildDefSpace(strIni);
+		if(!m_iPT||!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_EXT))  {
+			strChSet += m_isISDB_S ? L"-S" : L"-T";
+			if(!m_iPT|| (	!m_chSet.ParseText(strChSet.c_str(), CHSET_EXT) &&
+							!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_EXT)	)) {
+				strChSet = szPath;
+				strChSet += L"BonDriver_PTx";
+				if(!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_EXT))  {
+					strChSet += m_isISDB_S ? L"-S" : L"-T";
+					if(		!m_chSet.ParseText(strChSet.c_str(), CHSET_EXT) &&
+							!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_EXT)	)
+						BuildDefSpace(strIni);
+				}
+			}
 		}
 	}
 
@@ -977,8 +974,6 @@ const BOOL CBonTuner::SetLnbPower(const BOOL bEnable)
 	//IBonTransponderの機能を追加
 	//(added by 2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 
-	#define TRANSPONDER_CHMASK 0x80000000
-
 LPCTSTR CBonTuner::TransponderEnumerate(const DWORD dwSpace, const DWORD dwTransponder)
 {
 	DWORD key = dwSpace<<16 | dwTransponder;
@@ -1098,12 +1093,19 @@ const BOOL CBonTuner::TransponderGetCurID(LPDWORD lpdwID)
 
 const DWORD CBonTuner::TransponderGetPTxCh(const DWORD dwSpace, const DWORD dwTransponder)
 {
-	DWORD key = dwSpace<<16 | dwTransponder;
-	map<DWORD, TP_DATA>::iterator itr;
-	itr = m_chSet.tpMap.find(key);
-	if( itr == m_chSet.tpMap.end() ){
+	auto itr = m_chSet.tpMap.find( dwSpace<<16 | dwTransponder);
+	if( itr == m_chSet.tpMap.end() )
 		return 0xFFFFFFFF;
-	}
 	return itr->second.dwPT1Ch;
+}
+
+const DWORD CBonTuner::GetPTxCh(const DWORD dwSpace, const DWORD dwChannel, DWORD *lpdwTSID)
+{
+	auto itr = m_chSet.chMap.find( dwSpace<<16 | dwChannel ) ;
+	if( itr == m_chSet.chMap.end() )
+		return 0xFFFFFFFF;
+	if(lpdwTSID!=NULL)
+		*lpdwTSID=itr->second.dwTSID;
+	return itr->second.dwPT1Ch ;
 }
 

@@ -60,6 +60,10 @@ public:
 
 };
 
+// トランスポンダのチャンネルマスク
+// (トランスポンダ選択時にこの値が現在のチャンネルにマスクされる)
+#define TRANSPONDER_CHMASK 0x80000000
+
 #include "IBonDriver2.h"
 // 凡(ドライバ2+トランスポンダ)複合インターフェイス
 class IBonDriver2Transponder : public IBonDriver2, public IBonTransponder {};

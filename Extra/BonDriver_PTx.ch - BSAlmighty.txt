@@ -1,0 +1,217 @@
+; BonDriver_PTx 用 チャンネルファイルＢＳオールマイティ版 (2022/5/18)
+;
+;       チャンネル情報を変更する場合は、このファイルを編集して
+;       プレフィックスが同じ名前のドライバと同ディレクトリに
+;       拡張子 .ch.txt としてこのファイルを置くこと。
+;
+;       <配置例>
+;
+;         BonDriver_PTx-S.dll   ← サテライト用凡ドライバ
+;         BonDriver_PTx-T.dll   ← 地デジ用凡ドライバ
+;         BonDriver_PTx.ch.txt  ← 名前変更したチャンネルファイル(S/T共用)
+;
+; ※ このファイルを利用する場合は、必ずチャンネルスキャンし直して下さい。
+; ※ スペースの順番はブロックごとカット＆ペーストして入れ替えることができます。
+;    （CATVの記述の途中にVHFを挿入したり(ミックス)することはできません。）
+; ※ 利用しないスペースは丸ごと抹消するかコメントアウトしてください。
+;
+; 物理チャンネル番号の表記方法：
+;
+;   1～63               : 地デジ(VHF/UHF帯域)の物理チャンネル
+;   C13～C63            : CATVパススルー(UHF帯域)の物理チャンネル
+;   BS[1～23]/TS[0～7]  : BSの物理チャンネル(チャンネル番号/ストリーム番号)
+;   BS[1～23]/ID[整数]  : BSの物理チャンネル(チャンネル番号/ストリームＩＤ)
+;   ND[2～24]           : CSの物理チャンネル(チャンネル番号)
+;
+;     ※TS[0～7]、ID[整数] は省略可。
+;
+; スペース名, 物理チャンネル番号or周波数MHz[, チャンネル名(無くても可)]
+
+  ; VHF
+
+;VHF, 1
+;VHF, 2
+;VHF, 3
+;VHF, 4
+;VHF, 5
+;VHF, 6
+;VHF, 7
+;VHF, 8
+;VHF, 9
+;VHF,10
+;VHF,11
+;VHF,12
+
+  ; UHF
+
+UHF,13
+UHF,14
+UHF,15
+UHF,16
+UHF,17
+UHF,18
+UHF,19
+UHF,20
+UHF,21
+UHF,22
+UHF,23
+UHF,24
+UHF,25
+UHF,26
+UHF,27
+UHF,28
+UHF,29
+UHF,30
+UHF,31
+UHF,32
+UHF,33
+UHF,34
+UHF,35
+UHF,36
+UHF,37
+UHF,38
+UHF,39
+UHF,40
+UHF,41
+UHF,42
+UHF,43
+UHF,44
+UHF,45
+UHF,46
+UHF,47
+UHF,48
+UHF,49
+UHF,50
+UHF,51
+UHF,52
+UHF,53
+UHF,54
+UHF,55
+UHF,56
+UHF,57
+UHF,58
+UHF,59
+UHF,60
+UHF,61
+UHF,62
+
+  ; CATV
+
+CATV,C13
+CATV,C14
+CATV,C15
+CATV,C16
+CATV,C17
+CATV,C18
+CATV,C19
+CATV,C20
+CATV,C21
+CATV,C22
+CATV,C23
+CATV,C24
+CATV,C25
+CATV,C26
+CATV,C27
+CATV,C28
+CATV,C29
+CATV,C30
+CATV,C31
+CATV,C32
+CATV,C33
+CATV,C34
+CATV,C35
+CATV,C36
+CATV,C37
+CATV,C38
+CATV,C39
+CATV,C40
+CATV,C41
+CATV,C42
+CATV,C43
+CATV,C44
+CATV,C45
+CATV,C46
+CATV,C47
+CATV,C48
+CATV,C49
+CATV,C50
+CATV,C51
+CATV,C52
+CATV,C53
+CATV,C54
+CATV,C55
+CATV,C56
+CATV,C57
+CATV,C58
+CATV,C59
+CATV,C60
+CATV,C61
+CATV,C62
+;CATV,C63
+
+  ; BS ( TS0～TS3 のすべての可能性に対応 )
+
+BS, BS01/TS0
+BS, BS01/TS1
+BS, BS01/TS2
+BS, BS01/TS3
+BS, BS03/TS0
+BS, BS03/TS1
+BS, BS03/TS2
+BS, BS03/TS3
+BS, BS05/TS0
+BS, BS05/TS1
+BS, BS05/TS2
+BS, BS05/TS3
+BS, BS07/TS0
+BS, BS07/TS1
+BS, BS07/TS2
+BS, BS07/TS3
+BS, BS09/TS0
+BS, BS09/TS1
+BS, BS09/TS2
+BS, BS09/TS3
+BS, BS11/TS0
+BS, BS11/TS1
+BS, BS11/TS2
+BS, BS11/TS3
+BS, BS13/TS0
+BS, BS13/TS1
+BS, BS13/TS2
+BS, BS13/TS3
+BS, BS15/TS0
+BS, BS15/TS1
+BS, BS15/TS2
+BS, BS15/TS3
+BS, BS17/TS0
+BS, BS17/TS1
+BS, BS17/TS2
+BS, BS17/TS3
+BS, BS19/TS0
+BS, BS19/TS1
+BS, BS19/TS2
+BS, BS19/TS3
+BS, BS21/TS0
+BS, BS21/TS1
+BS, BS21/TS2
+BS, BS21/TS3
+BS, BS23/TS0
+BS, BS23/TS1
+BS, BS23/TS2
+BS, BS23/TS3
+
+  ; CS110
+
+CS110, ND2
+CS110, ND4
+CS110, ND6
+CS110, ND8
+CS110, ND10
+CS110, ND12
+CS110, ND14
+CS110, ND16
+CS110, ND18
+CS110, ND20
+CS110, ND22
+CS110, ND24
+

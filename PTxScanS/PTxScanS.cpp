@@ -2,16 +2,21 @@
 //
 
 #include "stdafx.h"
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <algorithm>
 #include <vector>
 #include <string>
 #include <memory>
 #include <deque>
+#include <set>
 #include <ctime>
 #include <cctype>
 #include <conio.h>
+#include <winsock2.h>
 #include "../Common/IBonTransponder.h"
 #include "../Common/IBonPTx.h"
+
+#pragma comment(lib, "WSock32.Lib")
 
 using namespace std;
 
@@ -31,18 +36,100 @@ struct TRANSPONDER {
 };
 using TRANSPONDERS = vector<TRANSPONDER> ;
 
+using CHANNELSET = set<DWORD> ;
+
+struct SPACE {
+	string Name ;
+	TRANSPONDERS Transponders ;
+	CHANNELSET NGChannels ;
+};
+using SPACES = vector<SPACE> ;
+
 string AppPath = "" ;
 string BonFile = "" ;
 
-char vp_transponder = 0 ;
-char vp_chset = 0 ;
-char vp_tsid_stream = 'n' ;
-char vp_deep_tuning = 'n' ;
+char   vp_transponder          = 0           ;
+char   vp_chset                = 0           ;
+char   vp_tsid_stream          = 'n'         ;
+char   vp_force_CSV            = 'n'         ;
+char   vp_deep_tuning          = 'n'         ;
+int    vp_deep_tuning_sec      = 5           ;
+float  vp_deep_tuning_db       = 5.f         ;
+string vp_tuning_udp_ip        = "127.0.0.1" ;
+int    vp_tuning_udp_port      = 1234        ;
+BOOL   vp_tuning_udp_broadcast = FALSE       ;
 
 HMODULE BonModule = NULL;
 IBonDriver2 *BonTuner = NULL;
 IBonTransponder *BonTransponder = NULL;
 IBonPTx *BonPTx = NULL;
+
+#define UDP_PACKET_SIZE		48128
+
+  // CUDPTransmitter
+class CUDPTransmitter
+{
+protected:
+	BOOL Broadcast ;
+	sockaddr_in Addr ;
+	SOCKET Sock ;
+public:
+	CUDPTransmitter(string ip, WORD port, BOOL broadcast=FALSE) {
+		Sock = INVALID_SOCKET; Broadcast=broadcast ;
+		WSAData wsaData;
+		WSAStartup(MAKEWORD(2, 0), &wsaData);
+		ZeroMemory(&Addr, sizeof(Addr)) ;
+		Addr.sin_family = AF_INET;
+		Addr.sin_port = htons((WORD)port);
+		Addr.sin_addr.S_un.S_addr = inet_addr(ip.c_str());
+	}
+	~CUDPTransmitter() {
+		Close();
+		WSACleanup();
+	}
+	BOOL Open() {
+		if ( Sock != INVALID_SOCKET ) {
+			return FALSE;
+		}
+		Sock = socket(AF_INET, SOCK_DGRAM, 0);
+		if ( Sock == INVALID_SOCKET ) {
+			return FALSE;
+		}
+		if(Broadcast) {
+			BYTE yes = 1 ;
+			setsockopt(Sock, SOL_SOCKET, SO_BROADCAST, (char*)&yes, sizeof(yes) );
+		}
+		return TRUE;
+	}
+	BOOL Close() {
+		if ( Sock != INVALID_SOCKET ) {
+			closesocket(Sock);
+			Sock = INVALID_SOCKET;
+		}
+		return TRUE;
+	}
+	BOOL Send(char *data, int size) {
+		return sendto(Sock, data, size, 0,
+			(sockaddr*)&Addr, sizeof(Addr)) == SOCKET_ERROR ? FALSE : TRUE ;
+	}
+	int Select(UINT wait, bool *sendOk = nullptr, bool *excepted = nullptr) {
+		fd_set fdSend, fdExcept ;
+		ZeroMemory(&fdSend, sizeof fdSend) ;
+		FD_ZERO(&fdSend);
+		FD_SET(Sock, &fdSend);
+		fdExcept = fdSend ;
+		timeval time_limit ;
+		time_limit.tv_sec = 0 ;
+		time_limit.tv_usec = wait * 1000 ;
+		int r = select(int(Sock+1), NULL, &fdSend, &fdExcept, &time_limit) ;
+		if (sendOk)
+			*sendOk = FD_ISSET(Sock, &fdSend) ? true : false ;
+		if (excepted)
+			*excepted = FD_ISSET(Sock, &fdExcept) ? true : false ;
+		return r ;
+	};
+};
+
 
 void help()
 {
@@ -54,6 +141,8 @@ void help()
         Enable writing the scanning results to the .ChSet.txt file.
       -c, --no-chset
         Disable writing the scanning results to the .ChSet.txt file.
+      +f, --force-CSV
+        Force writing the scanning results to the .CSV.txt file.
       +t, --transponder
         Enable writing the transponder information to the scanning results.
       -t, --no-transponder
@@ -111,10 +200,19 @@ int EnumCandidates(str_vector &candidates, string filter)
 string DoSelectS()
 {
 	str_vector candidates;
+	#if 0
 	EnumCandidates(candidates,"BonDriver_PTx-S*.dll");
 	EnumCandidates(candidates,"BonDriver_PT-S*.dll");
 	EnumCandidates(candidates,"BonDriver_PT3-S*.dll");
 	EnumCandidates(candidates,"BonDriver_PTw-S*.dll");
+	#elif 0
+	EnumCandidates(candidates,"BonDriver_PT*.dll");
+	EnumCandidates(candidates,"BonDriver_Bulldog*.dll");
+	EnumCandidates(candidates,"BonDriver_FSUSB2*.dll");
+	EnumCandidates(candidates,"BonDriver_uSUNpTV*.dll");
+	#else
+	EnumCandidates(candidates,"BonDriver_*.dll");
+	#endif
 	if(candidates.empty()) {
 		help();
 		puts("\nPress <Ctrl+C> to exit.");
@@ -174,6 +272,9 @@ bool LoadBon()
 		BonTuner = dynamic_cast<IBonDriver2*>(CreateBonDriver_()) ;
 	}catch(bad_cast &e) {
 		printf("Cast error: %s\n",e.what());
+		BonTuner = NULL ;
+	}
+	if(!BonTuner) {
 		puts("IBonDriver2インターフェイスを確認できませんでした。\n");
 		return false;
 	}
@@ -234,26 +335,59 @@ bool CheckID(DWORD id)
 	DWORD curID = 0 ;
 	if(!BonTransponder->TransponderGetCurID(&curID)) return false;
 	if(curID!=id) return false;
+	return true ;
+}
 
+bool TuningTest(DWORD spc, DWORD ch)
+{
 	auto dur = [](DWORD s=0, DWORD e=GetTickCount()) -> DWORD {
 		// duration ( s -> e )
 		return s <= e ? e - s : 0xFFFFFFFFUL - s + 1 + e;
 	};
 
-	DWORD s = dur(), u = s ;
 	using rate_t = pair<float,DWORD> ;
 	deque<rate_t> avg;
-	rate_t sum = pair<float,DWORD>(0.f,0), cur = pair<float,DWORD>(-1.f,0) ;
+	rate_t sum = pair<float,DWORD>(0.f,0), cur = pair<float,DWORD>(0.f,0) ;
 
-	const DWORD wait = 500, max_wait=5000;
+	const DWORD wait = 500, max_wait = vp_deep_tuning_sec*1000 ;
 	char status[80] = "\0" ;
 
 	Sleep(wait);
 	BonTuner->PurgeTsStream(); // 初回受信分を殺しておく
 
-	for(;;) { // signal and bps testing
+	// チャンネル情報を確認する
+	if(BonTuner->GetCurSpace()!=spc || BonTuner->GetCurChannel()!=ch) {
+		puts("× <スペース、または、チャンネルが不正>");
+		return FALSE;
+	}
+
+	CUDPTransmitter udptx(vp_tuning_udp_ip, vp_tuning_udp_port, vp_tuning_udp_broadcast) ;
+	udptx.Open();
+
+	for(DWORD s = dur(), u = s ;;) { // signal and bps testing
+		int n=BonTuner->GetReadyCount();
+		if(!n) {
+			BonTuner->WaitTsStream(wait);
+			n=BonTuner->GetReadyCount();
+		}
+		while(n>0) {
+			BYTE *buf=NULL; DWORD sz=0, rem=0;
+			if(BonTuner->GetTsStream(&buf, &sz, &rem)) {
+				if(sz>0) {
+					for(DWORD i=0;i<sz;i+=UDP_PACKET_SIZE) {
+						udptx.Select(wait);
+						int ln = min<int>(sz-i,UDP_PACKET_SIZE);
+						udptx.Send((char*)buf+i,ln);
+					}
+				}
+				cur.second += sz ;
+			}
+			if(!--n) {
+				float sig = BonTuner->GetSignalLevel();
+				if(sig>cur.first) cur.first = sig ;
+			}
+		}
 		DWORD e = dur();
-		if(dur(s,e)>=max_wait) break;
 		DWORD w = dur(u,e);
 		if(w>=wait) {
 			cur.second = cur.second * 1000 / w ;
@@ -274,32 +408,39 @@ bool CheckID(DWORD id)
 			printf("%s",status);
 			u=e ;
 		}
-		int n=BonTuner->GetReadyCount();
-		if(!n) {
-			BonTuner->WaitTsStream(wait);
-			n=BonTuner->GetReadyCount();
-		}
-		while(n>0) {
-			BYTE *buf=NULL; DWORD sz=0, rem=0;
-			if(BonTuner->GetTsStream(&buf, &sz, &rem)) {
-				cur.second += sz ;
-			}
-			if(!--n) {
-				float sig = BonTuner->GetSignalLevel();
-				if(sig>cur.first) cur.first = sig ;
-			}
-		}
+		if(dur(s,e)>=max_wait) break;
 	}
+
+	udptx.Close();
 
 	for(size_t i=0;status[i];i++) putchar('\b');
 	for(size_t i=0;status[i];i++) putchar(' ');
 	for(size_t i=0;status[i];i++) putchar('\b');
 
-	return sum.first  > 0.f  && sum.second > 0 ;
+	float sig = sum.first/float(avg.size()) ;
+	float mbps = (sum.second * 8.f) / (1024.f * 1024.f * float(avg.size())) ;
+	bool r = true ;
+	string reason="";
+	if(sig<vp_deep_tuning_db)
+		reason += " <シグナル下限超過>", r=false ;
+	if(!sum.second)
+		reason += " <ストリーム未到達>", r=false ;
+	printf("%s %.2f dB / %.2f Mbps%s\n", r?"○":"×", sig, mbps, reason.c_str()) ;
+	return  r ;
 }
 
-bool OutChSet(string out_file, const str_vector &spaces, const vector<TRANSPONDERS> &transponders_list, bool out_transponders)
+bool OutChSet(string out_file, const SPACES &spaces, bool out_transponders)
 {
+	auto print_ptxch = [](DWORD ptxch, FILE *st) {
+		int ch = ptxch & 0xffff;
+		int offset = (ptxch >> 16) & 0xffff;
+		if (offset >= 32768) offset -= 65536;
+		if(offset!=0)
+			fprintf(st,"%d%+d",ch,offset);
+		else
+			fprintf(st,"%d",ch);
+	};
+
 	string filename = AppPath + out_file ;
 	FILE *st=NULL;
 	fopen_s(&st,filename.c_str(),"wt");
@@ -310,10 +451,10 @@ bool OutChSet(string out_file, const str_vector &spaces, const vector<TRANSPONDE
 	tm now_tm; localtime_s(&now_tm,&now);
 	asctime_s(asct_buff,80,&now_tm);
 	fputs(";\t@ ",st); fputs(asct_buff,st);
-	fputs(";BS/CS用\n",st);
+	//fputs(";BS/CS用\n",st);
 	fputs(";チューナー空間(タブ区切り：$名称\tBonDriverとしてのチューナ空間\n",st);
 	for(size_t spc=0;spc<spaces.size();spc++)
-		fprintf(st,"$%s\t%d\n",spaces[spc].c_str(),(int)spc);
+		fprintf(st,"$%s\t%d\n",spaces[spc].Name.c_str(),(int)spc);
 	if(out_transponders) {
 		fputs(";BS/CS110トランスポンダ情報[mod5]\n",st);
 		fputs(
@@ -321,13 +462,15 @@ bool OutChSet(string out_file, const str_vector &spaces, const vector<TRANSPONDE
 			"BonDriverとしてのチューナ空間\t"
 			"BonDriverとしてのチャンネル\t"
 			"PTxとしてのチャンネル)\n",st);
-		for(size_t spc=0;spc<transponders_list.size();spc++) {
-			const TRANSPONDERS &trapons = transponders_list[spc];
+		for(size_t spc=0;spc<spaces.size();spc++) {
+			const TRANSPONDERS &trapons = spaces[spc].Transponders ;
 			for(size_t tp=0;tp<trapons.size();tp++) {
 				fputc('%',st) ;
 				const TRANSPONDER &trpn = trapons[tp] ;
 				DWORD ptxch = BonPTx->TransponderGetPTxCh((DWORD)spc,(DWORD)tp);
-				fprintf(st,"%s\t%d\t%d\t%d\n",trpn.Name.c_str(),(int)spc,(int)tp,(int)ptxch);
+				fprintf(st,"%s\t%d\t%d\t",trpn.Name.c_str(),(int)spc,(int)tp);
+				print_ptxch(ptxch,st);
+				putc('\n',st);
 			}
 		}
 	}
@@ -340,18 +483,130 @@ bool OutChSet(string out_file, const str_vector &spaces, const vector<TRANSPONDE
 	if(vp_tsid_stream=='y')
 		fputs(";(※ただし、TSIDの記述が7以下の場合は、"
 			"ストリーム番号を意味する[mod])\n",st);
-	for(size_t spc=0;spc<transponders_list.size();spc++) {
-		const TRANSPONDERS &trapons = transponders_list[spc];
-		for(size_t tp=0,n=0;tp<trapons.size();tp++) {
-			const TRANSPONDER &trpn = trapons[tp] ;
-			DWORD ptxch = BonPTx->TransponderGetPTxCh((DWORD)spc,(DWORD)tp);
-			for(auto id : trpn.TSIDs) {
-				fprintf(st,"%s/TS%d\t%d\t%d\t%d\t%d\n",
-						trpn.Name.c_str(),
-						(int)id&7,(int)spc,(int)n,(int)ptxch,
-						(int)(vp_tsid_stream=='y'?id&7:id)
-					);
-				n++;
+	for(size_t spc=0;spc<spaces.size();spc++) {
+		bool hasTransponder = BonTransponder->TransponderEnumerate((DWORD)spc,0) != NULL ;
+		if(hasTransponder) {
+			const TRANSPONDERS &trapons = spaces[spc].Transponders ;
+			for(size_t tp=0,n=0;tp<trapons.size();tp++) {
+				const TRANSPONDER &trpn = trapons[tp] ;
+				DWORD ptxch = BonPTx->TransponderGetPTxCh((DWORD)spc,(DWORD)tp);
+				for(auto id : trpn.TSIDs) {
+					fprintf(st,"%s/TS%d\t%d\t%d\t",
+							trpn.Name.c_str(),(int)id&7,(int)spc,(int)n);
+					print_ptxch(ptxch,st);
+					fprintf(st,"\t%d\n",(int)(vp_tsid_stream=='y'?id&7:id));
+					n++;
+				}
+			}
+		}else {
+			const CHANNELSET &ngchs = spaces[spc].NGChannels ;
+			for(DWORD n=0,i=0;;n++) {
+				LPCTSTR pStr = BonTuner->EnumChannelName((DWORD)spc,n);
+				if(!pStr) break;
+				if(ngchs.find(n)!=ngchs.end()) continue;
+				string nam = wcs2mbcs(pStr);
+				DWORD id=0, ptxch = BonPTx->GetPTxCh((DWORD)spc,n,&id);
+				fprintf(st,"%s\t%d\t%d\t",nam.c_str(),(int)spc,(int)i++);
+				print_ptxch(ptxch,st);
+				fprintf(st,"\t%d\n",(int)(vp_tsid_stream=='y'?id&7:id));
+			}
+		}
+	}
+	fclose(st);
+	return true;
+}
+
+bool OutCSV(string out_file, const SPACES &spaces)
+{
+	string filename = AppPath + out_file ;
+	FILE *st=NULL;
+	fopen_s(&st,filename.c_str(),"wt");
+	if(!st) return false ;
+	fputs("; -*- This CSV file was generated automatically by PTxScanS -*-\n",st);
+	time_t now = time(NULL) ;
+	char asct_buff[80];
+	tm now_tm; localtime_s(&now_tm,&now);
+	asctime_s(asct_buff,80,&now_tm);
+	fputs(";\t@ ",st); fputs(asct_buff,st);
+fputs(R"^(;
+;       チャンネル情報を変更する場合は、このファイルを編集して
+;       プレフィックスが同じ名前のドライバと同ディレクトリに
+;       拡張子 .ch.txt としてこのファイルを置くこと。
+;
+; ※ このファイルを利用する場合は、必ずチャンネルスキャンし直して下さい。
+; ※ スペースの順番はブロックごとカット＆ペーストして入れ替えることができます。
+;    （CATVの記述の途中にVHFを挿入したり(ミックス)することはできません。）
+; ※ 利用しないスペースは丸ごと抹消するかコメントアウトしてください。
+;
+; 物理チャンネル番号の表記について：
+;
+;   1～63               : 地デジ(VHF/UHF帯域)の物理チャンネル
+;   C13～C63            : CATVパススルー(UHF帯域)の物理チャンネル
+;   BS[1～23]/TS[0～7]  : BSの物理チャンネル(チャンネル番号/ストリーム番号)
+;   BS[1～23]/ID[整数]  : BSの物理チャンネル(チャンネル番号/ストリームＩＤ)
+;   ND[2～24]           : CSの物理チャンネル(チャンネル番号)
+;
+;     ※TS[0～7]、ID[整数] は省略可。
+;
+; スペース名, 物理チャンネル番号or周波数MHz[, チャンネル名(無くても可)]
+)^",st);
+	for(size_t spc=0;spc<spaces.size();spc++) {
+		string space = spaces[spc].Name ;
+		fprintf(st,"\n\t; %s\n\n",space.c_str());
+		bool hasTransponder = BonTransponder->TransponderEnumerate((DWORD)spc,0) != NULL ;
+		if(hasTransponder) {
+			const TRANSPONDERS &trapons = spaces[spc].Transponders ;
+			for(size_t tp=0,n=0;tp<trapons.size();tp++) {
+				const TRANSPONDER &trpn = trapons[tp] ;
+				for(auto id : trpn.TSIDs) {
+					if(vp_tsid_stream=='y') {
+						fprintf(st,"%s, %s/TS%d\n",
+								space.c_str(),
+								trpn.Name.c_str(),
+								(int)id&7
+							);
+					}else {
+						fprintf(st,"%s, %s/ID0x%04X, %s/TS%d\n",
+								space.c_str(),
+								trpn.Name.c_str(),
+								(int)id,
+								trpn.Name.c_str(),
+								(int)id&7
+							);
+					}
+				}
+			}
+		}else {
+			const CHANNELSET &ngchs = spaces[spc].NGChannels ;
+			auto i2s = [](int v) -> string {
+				char s[10]; sprintf_s(s,"%d",v); return s;
+			};
+			for(DWORD n=0;;n++) {
+				LPCTSTR pStr = BonTuner->EnumChannelName((DWORD)spc,n);
+				if(!pStr) break;
+				if(ngchs.find(n)!=ngchs.end()) continue;
+				string nam = wcs2mbcs(pStr), ch = nam ;
+				int tp,id;
+				if(sscanf_s(ch.c_str(),"BS%d/TS%d",&tp,&id)==2) {
+					// BS
+					ch = "BS"+i2s(tp)+"/TS"+i2s(id);
+				}else if(sscanf_s(ch.c_str(),"ND%d/TS%d",&tp,&id)==2) {
+					// CS110
+					ch = "ND"+i2s(tp)+"/TS"+i2s(id);
+				}else if(sscanf_s(ch.c_str(),"ND%d",&tp)==1) {
+					// CS110
+					ch = "ND"+i2s(tp);
+				}else if(sscanf_s(ch.c_str(),"C%d",&id)==1) {
+					// CATV
+					ch = "C"+i2s(id);
+				}else if(sscanf_s(ch.c_str(),"%d",&id)==1) {
+					// VHF/UHF
+					ch = i2s(id);
+				}
+				if(ch == nam)
+					fprintf(st,"%s, %s\n", space.c_str(), ch.c_str() );
+				else
+					fprintf(st,"%s, %s, %s\n", space.c_str(), ch.c_str(), nam.c_str() );
 			}
 		}
 	}
@@ -365,8 +620,10 @@ bool DoScanS()
 		BonTransponder = dynamic_cast<IBonTransponder*>(BonTuner) ;
 	}catch(bad_cast &e) {
 		printf("Cast error: %s\n",e.what());
-		puts("IBonTransponderインターフェイスを確認できませんでした。\n");
 		BonTransponder = NULL ;
+	}
+	if(BonTransponder==NULL) {
+		puts("IBonTransponderインターフェイスを確認できませんでした。\n");
 		return false;
 	}
 	puts("IBonTransponderインターフェイス: 有効\n");
@@ -375,42 +632,49 @@ bool DoScanS()
 		BonPTx = dynamic_cast<IBonPTx*>(BonTuner) ;
 	}catch(bad_cast &e) {
 		printf("Cast error: %s\n",e.what());
-		puts("IBonPTxインターフェイスを確認できませんでした。\n");
-		BonTransponder = NULL ;
 		BonPTx = NULL ;
-		return false;
 	}
-	puts("IBonPTxインターフェイス: 有効\n");
+	if(BonPTx==NULL) {
+		puts("IBonPTxインターフェイスを確認できませんでした。\n"
+			"(※チャンネル情報出力機能はCSV形式に強制されます。)\n");
+	}else
+		puts("IBonPTxインターフェイス: 有効\n");
 
-	puts("スペース名を列挙しています。");
-	str_vector spaces ;
-	for(DWORD spc=0;;spc++) {
-		LPCTSTR space = BonTuner->EnumTuningSpace(spc);
-		if(!space) break;
-		string name = wcs2mbcs(space);
-		printf(" %s",name.c_str());
-		spaces.push_back(name);
-	}
-	printf("\n計 %d のスペースを集計しました。\n\n",(int)spaces.size());
-
-	puts("トランスポンダを列挙しています。");
-	vector<TRANSPONDERS> transponders_list;
-	int ntrapons=0;
-	for(DWORD spc=0;spc<(DWORD)spaces.size();spc++) {
-		printf(" スペース(%d): %s\n ",spc,spaces[spc].c_str());
-		TRANSPONDERS trapons;
-		for(DWORD tp=0;;tp++) {
-			LPCTSTR tra = BonTransponder->TransponderEnumerate(spc,tp);
-			if(!tra) break;
-			string name = wcs2mbcs(tra);
+	SPACES spaces;
+    {
+		puts("スペース名を列挙しています。");
+		str_vector space_names ;
+		for(DWORD spc=0;;spc++) {
+			LPCTSTR lpwcnam = BonTuner->EnumTuningSpace(spc);
+			if(!lpwcnam) break;
+			string name = wcs2mbcs(lpwcnam);
 			printf(" %s",name.c_str());
-			trapons.push_back(TRANSPONDER(name));
-			ntrapons++;
+			space_names.push_back(name);
 		}
-		transponders_list.push_back(trapons);
-		putchar('\n');
-	}
-	printf("計 %d のトランスポンダを集計しました。\n\n",ntrapons);
+		printf("\n計 %d のスペースを集計しました。\n\n",(int)space_names.size());
+
+		puts("トランスポンダを列挙しています。");
+		int ntrapons=0;
+		for(DWORD spc=0;spc<(DWORD)space_names.size();spc++) {
+			SPACE space ;
+			space.Name = space_names[spc] ;
+			printf(" スペース(%d): %s\n ",spc,space.Name.c_str());
+			for(DWORD tp=0;;tp++) {
+				LPCTSTR tra = BonTransponder->TransponderEnumerate(spc,tp);
+				if(!tra) {
+					if(!tp) fputs(" <空>",stdout);
+					break;
+				}
+				string name = wcs2mbcs(tra);
+				printf(" %s",name.c_str());
+				space.Transponders.push_back(TRANSPONDER(name));
+				ntrapons++;
+			}
+			spaces.push_back(space);
+			putchar('\n');
+		}
+		printf("計 %d のトランスポンダを集計しました。\n\n",ntrapons);
+    }
 
 	puts("チューナーをオープンしています...");
 	BOOL opened = BonTuner->OpenTuner();
@@ -421,10 +685,12 @@ bool DoScanS()
 	}else do {
 		puts("チューナーのオープンに成功しました。");
 		puts("トランスポンダスキャンを開始します。");
-		for(DWORD spc=0;spc<(DWORD)transponders_list.size();spc++) {
-			printf(" スペース(%d): %s\n",spc,spaces[spc].c_str());
-			TRANSPONDERS &trapons = transponders_list[spc];
-			for(DWORD tp=0;tp<trapons.size();tp++) {
+		for(DWORD spc=0;spc<(DWORD)spaces.size();spc++) {
+			printf(" スペース(%d): %s\n",spc,spaces[spc].Name.c_str());
+			TRANSPONDERS &trapons = spaces[spc].Transponders;
+			if(trapons.empty()) {
+				puts("  <空>");
+			}else for(DWORD tp=0;tp<trapons.size();tp++) {
 				printf("  トランスポンダ(%d): %s\n",tp,trapons[tp].Name.c_str());
 				if(SelectTransponder(spc,tp)) {
 					tsid_vector idList;
@@ -449,30 +715,47 @@ bool DoScanS()
 		puts("トランスポンダスキャンを完了しました。");
 		if(vp_deep_tuning!='y') break;
 		puts("TSID整合性の検証を開始します。");
-		for(DWORD spc=0;spc<(DWORD)transponders_list.size();spc++) {
-			printf(" スペース(%d): %s\n",spc,spaces[spc].c_str());
-			TRANSPONDERS &trapons = transponders_list[spc];
-			for(DWORD tp=0;tp<trapons.size();tp++) {
-				printf("  トランスポンダ(%d): %s\n",tp,trapons[tp].Name.c_str());
-				if(SelectTransponder(spc,tp)) {
-					Sleep(MAXDUR_TMCC);
-					tsid_vector &idList = trapons[tp].TSIDs, passedIDList ;
-					if(idList.empty())
-						puts("\t<空>");
-					else {
-						for(auto id : idList) {
-							printf("\tTS%d:%04x ⇒ ",(int)id&7,(int)id);
-							if(CheckID(id)) {
-								passedIDList.push_back(id) ;
-								puts("○");
-							}else
-								puts("×");
-							BonTuner->PurgeTsStream();
+		for(DWORD spc=0;spc<(DWORD)spaces.size();spc++) {
+			printf(" スペース(%d): %s\n",spc,spaces[spc].Name.c_str());
+			bool hasTransponder = BonTransponder->TransponderEnumerate((DWORD)spc,0) != NULL ;
+			TRANSPONDERS &trapons = spaces[spc].Transponders;
+			if(hasTransponder) {
+				for(DWORD tp=0;tp<trapons.size();tp++) {
+					printf("  トランスポンダ(%d): %s\n",tp,trapons[tp].Name.c_str());
+					if(SelectTransponder(spc,tp)) {
+						Sleep(MAXDUR_TMCC);
+						tsid_vector &idList = trapons[tp].TSIDs, passedIDList ;
+						if(idList.empty())
+							puts("\t<空>");
+						else {
+							for(auto id : idList) {
+								printf("\tTS%d:%04x ⇒ ",(int)id&7,(int)id);
+								if(!CheckID(id))
+									puts("× <IDが不正>");
+								else if(TuningTest((DWORD)spc,tp|TRANSPONDER_CHMASK))
+									passedIDList.push_back(id) ;
+								BonTuner->PurgeTsStream();
+							}
+							idList.swap(passedIDList);
 						}
-						idList.swap(passedIDList);
+					}else {
+						puts("\t<選択不可>");
 					}
-				}else {
-					puts("\t<選択不可>");
+				}
+			}else {
+				puts(" (※トランスポンダが存在しません。チャンネルスキャンモードに切り替えます。)");
+				CHANNELSET &ngchs = spaces[spc].NGChannels ;
+				for(DWORD n=0;;n++) {
+					LPCTSTR pStr = BonTuner->EnumChannelName((DWORD)spc,n);
+					if(!pStr) break;
+					printf("  チャンネル(%d): %s ⇒ ",n,wcs2mbcs(pStr).c_str());
+					bool done = false ;
+					if(!BonTuner->SetChannel((DWORD)spc,n))
+						puts("× <チャンネル切替に失敗>");
+					else if(TuningTest((DWORD)spc,n))
+						done = true;
+					if(!done)
+						ngchs.insert(n);
 				}
 			}
 		}
@@ -486,13 +769,13 @@ bool DoScanS()
 
 	if(res) {
 		string out_file ;
+		bool csv = !BonPTx || vp_force_CSV=='y' ;
 		{
-
 			CHAR szFname[_MAX_FNAME];
 			CHAR szExt[_MAX_EXT];
 			_splitpath_s( (AppPath+BonFile).c_str(), NULL, 0, NULL, 0, szFname, _MAX_FNAME, szExt, _MAX_EXT );
 			out_file = szFname ;
-			out_file += ".ChSet.txt" ;
+			out_file += csv ? ".CSV.txt" /*csv*/ : ".ChSet.txt" /*ptx*/ ;
 		}
 		char c = vp_chset ;
 		if(!c) {
@@ -500,13 +783,18 @@ bool DoScanS()
 			c=prompt('n') ;
 		}
 		if(c=='y') {
-			c = vp_transponder ;
-			if(!c) {
-				printf("トランスポンダ情報も出力しますか？[y/N]");
-				c=prompt('n') ;
+			if(BonPTx) {
+				c = vp_transponder ;
+				if(!c) {
+					if(csv) c='n';
+					else {
+						printf("トランスポンダ情報も出力しますか？[y/N]");
+						c=prompt('n') ;
+					}
+				}
 			}
 			printf("スキャン結果をファイル \"%s\" に出力しています...\n",out_file.c_str());
-			if(!OutChSet(out_file, spaces, transponders_list, c=='y')) {
+			if(!(csv?OutCSV(out_file, spaces):OutChSet(out_file, spaces, c=='y'))) {
 				puts("スキャン結果の出力に失敗。") ;
 				res=false ;
 			}else
@@ -540,7 +828,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	MAXDUR_TMCC = GetPrivateProfileIntA("SET", "MAXDUR_TMCC", MAXDUR_TMCC, iniFile.c_str() ); //TMCC取得に費やす最大時間(msec)
 	MAXDUR_TMCC = GetPrivateProfileIntA("SET", "MAXDUR_TMCC_S", MAXDUR_TMCC, iniFile.c_str() ); //TMCC(S側)取得に費やす最大時間(msec)
 
-	int err=1;
+	int err=1,dig; wchar_t sub[80]; float fval;
 	for(int i=1;i<argc;i++) { // param analyzer
 		wstring param = argv[i] ;
 		if(param.empty()) continue;
@@ -554,8 +842,19 @@ int _tmain(int argc, _TCHAR* argv[])
 			else if(vparam==L"no-transponder") vp_transponder = 'n' ;
 			else if(vparam==L"chset")          vp_chset       = 'y' ;
 			else if(vparam==L"no-chset")       vp_chset       = 'n' ;
+			else if(vparam==L"force-CSV")      vp_force_CSV = vp_chset = 'y' ;
 			else if(vparam==L"tsid-stream")    vp_tsid_stream = 'y' ;
 			else if(vparam==L"deep-tuning")    vp_deep_tuning = 'y' ;
+			else if(swscanf_s(vparam.c_str(),L"deep-tuning-sec=%d",&dig)==1)
+				vp_deep_tuning_sec = dig ;
+			else if(swscanf_s(vparam.c_str(),L"deep-tuning-db=%f",&fval)==1)
+				vp_deep_tuning_db = fval ;
+			else if(swscanf_s(vparam.c_str(),L"tuning-udp-ip=%s",sub,(unsigned)_countof(sub))==1)
+				vp_tuning_udp_ip = wcs2mbcs(sub) ;
+			else if(swscanf_s(vparam.c_str(),L"tuning-udp-port=%d",&dig)==1)
+				vp_tuning_udp_port = dig ;
+			else if(vparam==L"tuning-udp-broadcast")
+				vp_tuning_udp_broadcast = TRUE ;
 			else {
 				printf("不明なパラメタ: %s\n\n",wcs2mbcs(param).c_str());
 				help();
@@ -568,6 +867,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				switch(tolower(c)) {
 					case 't': vp_transponder = boolean ; break;
 					case 'c': vp_chset       = boolean ; break;
+					case 'f': vp_force_CSV   = boolean ; break;
 					case 's': vp_tsid_stream = boolean ; break;
 					case 'd': vp_deep_tuning = boolean ; break;
 					case '?': help() ; return err;

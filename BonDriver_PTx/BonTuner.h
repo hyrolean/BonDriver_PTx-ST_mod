@@ -64,6 +64,7 @@ public:
 
 // IBonPTx
 	const DWORD TransponderGetPTxCh(const DWORD dwSpace, const DWORD dwTransponder);
+	const DWORD GetPTxCh(const DWORD dwSpace, const DWORD dwChannel, DWORD *lpdwTSID=NULL);
 
 	void Release(void);
 

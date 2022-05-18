@@ -138,8 +138,8 @@ BOOL Separate(string strIn, string strSep, string& strLeft, string& strRight)
 
 	strLeft = "";
 	strRight = "";
-	int iPos = (int)strIn.find(strSep);
-	if( iPos == (int)string::npos ){
+	string::size_type iPos = strIn.find(strSep);
+	if( iPos == string::npos ){
 		strLeft = strIn;
 		return FALSE;
 	}else if( iPos == 0 ){
@@ -164,8 +164,8 @@ BOOL Separate(wstring strIn, wstring strSep, wstring& strLeft, wstring& strRight
 
 	strLeft = L"";
 	strRight = L"";
-	int iPos = (int)strIn.find(strSep);
-	if( iPos == (int)string::npos ){
+	string::size_type iPos = strIn.find(strSep);
+	if( iPos == string::npos ){
 		strLeft = strIn;
 		return FALSE;
 	}else if( iPos == 0 ){
