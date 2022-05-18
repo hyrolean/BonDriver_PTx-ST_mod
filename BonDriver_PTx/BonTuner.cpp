@@ -180,6 +180,10 @@ CBonTuner::CBonTuner()
 
 	const LPCWSTR CHSET_EXT = L".ChSet.txt" ;
 	const LPCWSTR CSV_EXT = L".ch.txt" ;
+<<<<<<< HEAD
+=======
+	const LPCWSTR CSV_ST_EXT = L"-ST.ch.txt" ;
+>>>>>>> master
 	wstring strChSet;
 
 	//dll–¼‚Æ“¯‚¶–¼‘O‚Ì.ChSet.txt‚ğæ‚É—Dæ‚µ‚Ä“Ç‚İ‚İ‚ğs‚·‚é
@@ -193,13 +197,21 @@ CBonTuner::CBonTuner()
 		case 1: strChSet += L"BonDriver_PT" ; break;
 		case 2: strChSet += L"BonDriver_PTw"; break;
 		}
+<<<<<<< HEAD
 		if(!m_iPT||!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_EXT))  {
+=======
+		if(!m_iPT||!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_ST_EXT))  {
+>>>>>>> master
 			strChSet += m_isISDB_S ? L"-S" : L"-T";
 			if(!m_iPT|| (	!m_chSet.ParseText(strChSet.c_str(), CHSET_EXT) &&
 							!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_EXT)	)) {
 				strChSet = szPath;
 				strChSet += L"BonDriver_PTx";
+<<<<<<< HEAD
 				if(!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_EXT))  {
+=======
+				if(!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_ST_EXT))  {
+>>>>>>> master
 					strChSet += m_isISDB_S ? L"-S" : L"-T";
 					if(		!m_chSet.ParseText(strChSet.c_str(), CHSET_EXT) &&
 							!m_chSet.ParseTextCSV(strChSet.c_str(), m_isISDB_S, CSV_EXT)	)
