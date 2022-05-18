@@ -205,20 +205,13 @@ string DoSelectS()
 	EnumCandidates(candidates,"BonDriver_PT-S*.dll");
 	EnumCandidates(candidates,"BonDriver_PT3-S*.dll");
 	EnumCandidates(candidates,"BonDriver_PTw-S*.dll");
-<<<<<<< HEAD
-	#else
-=======
 	#elif 0
->>>>>>> master
 	EnumCandidates(candidates,"BonDriver_PT*.dll");
 	EnumCandidates(candidates,"BonDriver_Bulldog*.dll");
 	EnumCandidates(candidates,"BonDriver_FSUSB2*.dll");
 	EnumCandidates(candidates,"BonDriver_uSUNpTV*.dll");
-<<<<<<< HEAD
-=======
 	#else
 	EnumCandidates(candidates,"BonDriver_*.dll");
->>>>>>> master
 	#endif
 	if(candidates.empty()) {
 		help();

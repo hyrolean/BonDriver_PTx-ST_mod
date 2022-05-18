@@ -12,17 +12,10 @@
   ; UseHRTimer=0 を UseHRTimer=1 に変更
   UseHRTimer=1
   ```
-<<<<<<< HEAD
-- [mod7.4 BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS+SparePTw+UseHRTimer fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod7.4)
-(Described by 2022/04/15 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
-
-  *※mod7.4より、CSV形式のチャンネルファイル(.ch.txt)もBonDrvier_PTxのチャンネルファイルとして扱えるようになりました。カンマで区切るだけのシンプル方式のチャンネル記述形式で出来ており、通し番号なども必要ない為、チャンネル定義ファイル(.ChSet.txt)よりも簡単な構造になっています。CSV形式のチャンネルファイル(.ch.txt)のサンプルファイルについては、[Extraフォルダ](./Extra)を参照してみてください。*
-=======
 - [mod7.4a BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS+SparePTw+UseHRTimer fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod7.4a)
 (Described by 2022/04/15 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 
   *※mod7.4aより、CSV形式のチャンネルファイル(.ch.txt)もBonDrvier_PTxのチャンネルファイルとして扱えるようになりました。カンマで区切るだけのシンプル方式のチャンネル記述形式で出来ており、通し番号なども必要ない為、チャンネル定義ファイル(.ChSet.txt)よりも簡単な構造になっています。CSV形式のチャンネルファイル(.ch.txt)のサンプルファイルについては、[Extraフォルダ](./Extra)を参照してみてください。*
->>>>>>> master
 
 ### ■ PTxの代替としてのPTwチューナー差し替えの簡略化。
 
