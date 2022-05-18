@@ -1,4 +1,4 @@
-; BonDriver_PTx 用 チャンネルファイル簡易表記版 (2022/5/18)
+; BonDriver_PTx 用 チャンネルファイルＢＳオールマイティ版 (2022/5/18)
 ;
 ;       チャンネル情報を変更する場合は、このファイルを編集して
 ;       プレフィックスが同じ名前のドライバと同ディレクトリに
@@ -6,9 +6,9 @@
 ;
 ;       <配置例>
 ;
-;         BonDriver_PTx-S.dll   ← サテライト用凡ドライバ
-;         BonDriver_PTx-T.dll   ← 地デジ用凡ドライバ
-;         BonDriver_PTx.ch.txt  ← チャンネルファイル(S/T共用)
+;         BonDriver_PTx-S.dll      ← サテライト用凡ドライバ
+;         BonDriver_PTx-T.dll      ← 地デジ用凡ドライバ
+;         BonDriver_PTx-ST.ch.txt  ← 名前変更したチャンネルファイル(S/T共用)
 ;
 ; ※ このファイルを利用する場合は、必ずチャンネルスキャンし直して下さい。
 ; ※ スペースの順番はブロックごとカット＆ペーストして入れ替えることができます。
@@ -21,7 +21,7 @@
 ;   C13～C63            : CATVパススルー(UHF帯域)の物理チャンネル
 ;   BS[1～23]/TS[0～7]  : BSの物理チャンネル(チャンネル番号/ストリーム番号)
 ;   BS[1～23]/ID[整数]  : BSの物理チャンネル(チャンネル番号/ストリームＩＤ)
-;   ND[2～24]			: CSの物理チャンネル(チャンネル番号)
+;   ND[2～24]           : CSの物理チャンネル(チャンネル番号)
 ;
 ;     ※TS[0～7]、ID[整数] は省略可。
 ;
@@ -149,42 +149,59 @@ CATV,C61
 CATV,C62
 ;CATV,C63
 
-  ; BS
+  ; BS ( TS0～TS3 のすべての可能性に対応 )
 
-; -*- auto generated BS channels -*-
-BS, BS1/TS0 ;ＢＳ朝日１
-BS, BS1/TS1 ;ＢＳ－ＴＢＳ
-BS, BS1/TS2 ;ＢＳテレ東
-BS, BS3/TS0 ;ＷＯＷＯＷプライム
-BS, BS3/TS1 ;ＮＨＫＢＳプレミアム
-BS, BS5/TS0 ;ＷＯＷＯＷライブ
-BS, BS5/TS1 ;ＷＯＷＯＷシネマ
-BS, BS9/TS0 ;ＢＳ１１イレブン
-BS, BS9/TS1 ;スターチャンネル１
-BS, BS9/TS2 ;ＢＳ１２トゥエルビ
-BS, BS11/TS1 ;ＢＳスカパー！
-BS, BS11/TS2 ;放送大学ｅｘ
-BS, BS11/TS3 ;ＢＳ釣りビジョン
-BS, BS13/TS0 ;ＢＳ日テレ
-BS, BS13/TS1 ;ＢＳフジ・１８１
-BS, BS13/TS2 ;ＢＳアニマックス
-BS, BS15/TS1 ;ＮＨＫＢＳ１
-BS, BS15/TS2 ;スターチャンネル２
-BS, BS19/TS0 ;Ｊ　ＳＰＯＲＴＳ　４
-BS, BS19/TS1 ;Ｊ　ＳＰＯＲＴＳ　１
-BS, BS19/TS2 ;Ｊ　ＳＰＯＲＴＳ　２
-BS, BS19/TS3 ;Ｊ　ＳＰＯＲＴＳ　３
-BS, BS21/TS0 ;ＷＯＷＯＷプラス
-BS, BS21/TS1 ;日本映画専門ｃｈ
-BS, BS21/TS2 ;グリーンチャンネル
-BS, BS23/TS0 ;ディズニーｃｈ
-BS, BS23/TS1 ;ＢＳよしもと
-BS, BS23/TS2 ;ＢＳＪａｐａｎｅｘｔ
-BS, BS23/TS3 ;ＢＳ松竹東急
+BS, BS01/TS0
+BS, BS01/TS1
+BS, BS01/TS2
+BS, BS01/TS3
+BS, BS03/TS0
+BS, BS03/TS1
+BS, BS03/TS2
+BS, BS03/TS3
+BS, BS05/TS0
+BS, BS05/TS1
+BS, BS05/TS2
+BS, BS05/TS3
+BS, BS07/TS0
+BS, BS07/TS1
+BS, BS07/TS2
+BS, BS07/TS3
+BS, BS09/TS0
+BS, BS09/TS1
+BS, BS09/TS2
+BS, BS09/TS3
+BS, BS11/TS0
+BS, BS11/TS1
+BS, BS11/TS2
+BS, BS11/TS3
+BS, BS13/TS0
+BS, BS13/TS1
+BS, BS13/TS2
+BS, BS13/TS3
+BS, BS15/TS0
+BS, BS15/TS1
+BS, BS15/TS2
+BS, BS15/TS3
+BS, BS17/TS0
+BS, BS17/TS1
+BS, BS17/TS2
+BS, BS17/TS3
+BS, BS19/TS0
+BS, BS19/TS1
+BS, BS19/TS2
+BS, BS19/TS3
+BS, BS21/TS0
+BS, BS21/TS1
+BS, BS21/TS2
+BS, BS21/TS3
+BS, BS23/TS0
+BS, BS23/TS1
+BS, BS23/TS2
+BS, BS23/TS3
 
   ; CS110
 
-; -*- auto generated CS110 channels -*-
 CS110, ND2
 CS110, ND4
 CS110, ND6

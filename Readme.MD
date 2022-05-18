@@ -15,13 +15,13 @@ PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用�
         |-- BonDriver_PTx-T.dll (地デジ用のBonDriver)
         `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル)
   ```
-  
+
 ## ●使い方
 
   PT3 SDKバージョン0.9がインストールされている環境と、PT SDKバージョン4.0がインストールされている環境のどちらか一方が最低限必要。
   SDKは、最低限、どちらか一方がインストールされていれば、支障なく動作すると思います。
   PT1/PT2とPT3両方を同一PCで利用する場合は、両方のSDKをインストールしておいてください。
-  
+
   各種アプリのBonDriver配置場所に下記に表記されているモジュール一式
   ```
   PTxCtrl.exe
@@ -30,9 +30,9 @@ PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用�
   BonDriver_PTx-ST.ini
   ```
   を置いてください。
-  
+
   *※"BonDriver_PTx-S.dll"/"BonDriver_PTx-T.dll"は、ソリューション"BonDriver_Ptx.sln"をビルドして出来上がった生成物"BonDriver_PTx.dll"をコピーし、名前変更して配置してください("BonDriver_PTx.dll"同じものを２つコピーしてそれぞれ"BonDriver_PTx-S.dll"/"BonDriver_PTx-T.dll"に名前変更)。*
-  
+
   1DLLで複数チューナーを扱います。（凡、HDUS BonDriver形式）
   PTxCtrl.exeはDLLから起動するので人為的に起動する必要はありません。
   もしアプリが強制終了してPTxCtrl.exeがプロセスに残った場合はタスクマネージャーから終了させて下さい。（一応自動終了の仕組みは入れていますが、1分以上残っているようなら終了してください。）
@@ -41,7 +41,7 @@ PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用�
   「BonDriver_PTx-S*.dll」、「BonDriver_PTx-T*.dll」の形式で\*部分を0～∞まで
   0が1枚目のS1かT1、1が1枚目のS2かT2、2が2枚目のS1かT1、3が2枚目のS2かT2・・・
   デフォルトのファイル名のままなら空きチューナーを探して使用します。
-  
+
   表記例
   ```
   BonDriver_PTx-S0.dll ← BS/CS110 複合チューナーの最初のチューナーのS1端子のチューナー
@@ -63,17 +63,17 @@ PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用�
 
   BonDriver_PTx-ST.iniを変更することで以下の項目が設定できます。
   ファイル名で個別チューナー設定を行っても設定は共通です。
-  
+
   - LNB電源の使用／未使用(UseLNB)
   - DMA転送バッファのサイズ指定(DMABuff)
   - PT1/2、PT3の検索順序の設定(xFirstPT3)
   - PT1/2のバージョン設定(PT1Ver)
 
   *※他にも色々設定する項目がありますが、長くなってしまいますので割愛します。BonDriver_PTx-ST.iniのコメント欄に個々の項目についての説明が記述してありますので参照してみてください。*
-  
+
   PTxCtrl.exeをサービスとして登録することもできます。
   コマンドラインオプション「-install」で登録、「-remove」で登録解除。
-  
+
 ## ●チャンネル設定
 
   チャンネル定義をtextファイルにしています(BonDriver_PTx-S.ChSet.txt/BonDriver_PTx-T.ChSet.txt)。
@@ -104,7 +104,7 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
 // | 10 | BS21 | 1433.08 | 1433.00 | | 22 | ND22 | 2013.00 | (同左)  | | 34 | ND21 | 1993.00 | (同左)  |
 // | 11 | BS23 | 1471.44 | 1471.00 | | 23 | ND24 | 2053.00 | (同左)  | | 35 | ND23 | 2033.00 | (同左)  |
 // +----+------+---------+---------+ +----+------+---------+---------+ +----+------+---------+---------+
-// 
+//
 // (ISDB-T)
 // +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+ +-----+-----+---------+
 // | ch. | Ch. | f (MHz) | | ch. | Ch. | f (MHz) | | ch. | Ch. | f (MHz) | | ch. | Ch. | f (MHz) | | ch. | Ch. | f (MHz) |
@@ -136,17 +136,17 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
 ```
 
   *※チャンネル定義をtextファイル(.ChSet.txt)にしなくても、BonDriver_PTx-ST_mod は、チャンネル情報をBonDriver_PTx-ST.iniの\[DefSpace\]セクションに記述することによって既定のチャンネル情報として扱うことが可能になっています。周波数の微調整などが必要ない限り、チャンネルファイルを記述する必要はありません。BonDriver_PTx-ST_mod では、チャンネル情報(.ChSet.txt)ファイルが記述されている場合は、既定のチャンネル情報を破棄して記述されているチャンネル情報の方を優先して取り扱いますので、**いままでのように無駄にチャンネルファイル(BonDriver_PTx-S.ChSet.txt/BonDriver_PTx-T.ChSet.txt)を配置しているとBonDriver_PTx-ST.iniで記述してある既定のチャンネル情報が無効になってしまう**ので気をつけてください。*
-  
-  *※[mod7.4](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod7.4)より、CSV形式のチャンネルファイル(.ch.txt)もBonDrvier_PTxのチャンネルファイルとして扱えるようになりました。カンマで区切るだけのシンプル方式のチャンネル記述形式で出来ており、通し番号なども必要ない為、チャンネル定義ファイル(.ChSet.txt)よりも簡単な構造になっています。CSV形式のチャンネルファイル(.ch.txt)のサンプルファイルについては、[Extraフォルダ](./Extra)を参照してみてください。*
-  
+
+  *※[mod7.4a](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod7.4a)より、CSV形式のチャンネルファイル(.ch.txt)もBonDrvier_PTxのチャンネルファイルとして扱えるようになりました。カンマで区切るだけのシンプル方式のチャンネル記述形式で出来ており、通し番号なども必要ない為、チャンネル定義ファイル(.ChSet.txt)よりも簡単な構造になっています。CSV形式のチャンネルファイル(.ch.txt)のサンプルファイルについては、[Extraフォルダ](./Extra)を参照してみてください。*
+
   *※[EDCB](https://github.com/epgdatacapbon/EDCB)でのチャンネルのスキャン時に抜けが発生する場合は、下記のようにEDCBのディレクトリ上に存在する設定ファイルBonCtrl.iniのServiceChkTimeOutの値を15くらいに上げて再スキャンしてみてください。*
-  
+
   ```ini
   ;チャンネルスキャン時の動作設定
   [CHSCAN]
   ServiceChkTimeOut=15
   ```
-  
+
 ## ●Spinelへの組み込み例
 
  SpinelへこのBonDriverを組み込む場合は、Spinelのルートに存在する BonDriverMapping.json ファイルの "BonDriver_PT-ST" 項目を下記のように修正すると、"EarthSoft PTx" デバイス としてSpinelに認識されるようになります。
@@ -163,7 +163,7 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
   ```
 
  BonDriverフォルダにWin32版のファイルを配置するのを忘れないでください。チューナー1セット構成だと以下のような配置になります。
- 
+
   ```
    <Spinel>
     |-- Spinel.exe
@@ -196,5 +196,5 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
 
 
   *※mod版の更新履歴については、[こちら](./Readme_MOD.md)からご参照ください。*
-  
+
  **EpgDataCap_Bon (mod by hyrolean)**
