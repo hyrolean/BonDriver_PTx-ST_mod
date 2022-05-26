@@ -54,8 +54,8 @@ void Replace(string& strBuff, const string strOld, const string strNew)
 
 void Replace(wstring& strBuff, const wstring strOld, const wstring strNew)
 {
-	string::size_type Pos = 0;
-	string::size_type OldPos = 0;
+	wstring::size_type Pos = 0;
+	wstring::size_type OldPos = 0;
 
 	while ((Pos = strBuff.find(strOld,OldPos)) != string::npos)
 	{
@@ -138,7 +138,7 @@ BOOL Separate(string strIn, string strSep, string& strLeft, string& strRight)
 
 	strLeft = "";
 	strRight = "";
-	string::size_type iPos = strIn.find(strSep);
+	auto iPos = strIn.find(strSep);
 	if( iPos == string::npos ){
 		strLeft = strIn;
 		return FALSE;
@@ -164,7 +164,7 @@ BOOL Separate(wstring strIn, wstring strSep, wstring& strLeft, wstring& strRight
 
 	strLeft = L"";
 	strRight = L"";
-	string::size_type iPos = strIn.find(strSep);
+	auto iPos = strIn.find(strSep);
 	if( iPos == string::npos ){
 		strLeft = strIn;
 		return FALSE;
