@@ -641,7 +641,7 @@ bool DoScanS()
 		puts("IBonPTxインターフェイス: 有効\n");
 
 	SPACES spaces;
-    {
+	{
 		puts("スペース名を列挙しています。");
 		str_vector space_names ;
 		for(DWORD spc=0;;spc++) {
@@ -674,7 +674,7 @@ bool DoScanS()
 			putchar('\n');
 		}
 		printf("計 %d のトランスポンダを集計しました。\n\n",ntrapons);
-    }
+	}
 
 	puts("チューナーをオープンしています...");
 	BOOL opened = BonTuner->OpenTuner();
