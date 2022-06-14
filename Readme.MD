@@ -33,6 +33,8 @@ PT3のSDKバージョン0.9、および、PT1、PT2のSDKバージョン4.0用�
 
   *※"BonDriver_PTx-S.dll"/"BonDriver_PTx-T.dll"は、ソリューション"BonDriver_Ptx.sln"をビルドして出来上がった生成物"BonDriver_PTx.dll"をコピーし、名前変更して配置してください("BonDriver_PTx.dll"同じものを２つコピーしてそれぞれ"BonDriver_PTx-S.dll"/"BonDriver_PTx-T.dll"に名前変更)。*
 
+  *より詳しいビルド方法については、[こちら](./HowToBuilidng.MD)を参照してみてください。*
+
   1DLLで複数チューナーを扱います。（凡、HDUS BonDriver形式）
   PTxCtrl.exeはDLLから起動するので人為的に起動する必要はありません。
   もしアプリが強制終了してPTxCtrl.exeがプロセスに残った場合はタスクマネージャーから終了させて下さい。（一応自動終了の仕組みは入れていますが、1分以上残っているようなら終了してください。）
