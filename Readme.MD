@@ -174,7 +174,7 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
         |-- BonDriver_PTx-S1.dll (BS/CS用のBonDriver[S2] TunerPath = "PT/0/S/1") ※Win32版
         |-- BonDriver_PTx-T1.dll (地デジ用のBonDriver[T2] TunerPath = "PT/0/T/1") ※Win32版
         |-- BonDriver_PTx-ST.ini (設定ファイル)
-        `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル) ※Win32版
+        `-- PTxCtrl.exe (PT1/PT2/PT3制御用実行ファイル) ※使用OSが64ビットならx64版、32ビットならWin32版
   ```
 
 ## ●64bitOSへの対応
