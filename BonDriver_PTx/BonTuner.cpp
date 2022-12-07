@@ -173,6 +173,7 @@ CBonTuner::CBonTuner()
 	m_bTrySpares = GetPrivateProfileIntW(L"SET", L"TrySpares", 0, strIni.c_str());
 	m_bBon3Lnb = GetPrivateProfileIntW(L"SET", L"Bon3Lnb", 0, strIni.c_str());
 	m_bFastScan = GetPrivateProfileIntW(L"SET", L"FastScan", 0, strIni.c_str());
+	m_bPreventSuspending = GetPrivateProfileIntW(L"SET", L"PreventSuspending", 0, strIni.c_str());
 	m_dwSetChDelay = GetPrivateProfileIntW(L"SET", L"SetChDelay", 0, strIni.c_str());
 	m_dwRetryDur = GetPrivateProfileIntW(L"SET", L"RetryDur", 3000, strIni.c_str());
 	m_dwStartBuff = GetPrivateProfileIntW(L"SET", L"StartBuff", 8, strIni.c_str());
@@ -801,13 +802,15 @@ void CBonTuner::Release()
 	delete this;
 }
 
+
 UINT WINAPI CBonTuner::RecvThreadPipeIOProc(LPVOID pParam)
 {
 	CBonTuner* pSys = (CBonTuner*)pParam;
 
 
 	PTBUFFER_OBJECT *pPtBuffObj=nullptr;
-	for (;;) {
+
+	for (suspend_preventer sp(pSys);;) {
 		if (::HRWaitForSingleObject( pSys->m_hStopEvent, 0 ) != WAIT_TIMEOUT) {
 			//’†Ž~
 			break;
@@ -862,7 +865,7 @@ UINT WINAPI CBonTuner::RecvThreadSharedMemProc(LPVOID pParam)
 
 	DWORD rem=0;
 	PTBUFFER_OBJECT *pPtBuffObj=nullptr;
-	for (;;) {
+	for (suspend_preventer sp(pSys);;) {
 		if (::HRWaitForSingleObject( pSys->m_hStopEvent, 0 ) != WAIT_TIMEOUT) {
 			//’†Ž~
 			break;
@@ -943,6 +946,17 @@ void CBonTuner::GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive)
 				}
 			}
 		}
+	}
+}
+
+void CBonTuner::PreventSuspending(BOOL bInner)
+{
+	if(!m_bPreventSuspending) return ;
+	if(bInner) {
+		SetThreadExecutionState(
+			ES_CONTINUOUS|ES_SYSTEM_REQUIRED|ES_AWAYMODE_REQUIRED);
+	}else {
+		SetThreadExecutionState(ES_CONTINUOUS);
 	}
 }
 

@@ -342,7 +342,7 @@ BOOL CParseChSet::ParseTextCSV(LPCWSTR filePath, BOOL isISDBS, LPCWSTR fileExt)
 				chObj=CHANNEL(space,band,channel,name,stream,tsid) ;
 			else
 				continue ;
-			if((chObj.isISDBS() && !isISDBS) || (chObj.isISDBT() && isISDBS))
+			if(chObj.Band==BAND_na || (chObj.isISDBS() && !isISDBS) || (chObj.isISDBT() && isISDBS))
 				continue ;
 			if(space_name!=space) {
 				SPACE_DATA item;

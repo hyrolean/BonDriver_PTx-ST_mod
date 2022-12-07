@@ -63,7 +63,7 @@ protected:
 	DWORD SzPacket;  // Packet size
 	DWORD NumPacket; // Packet count (Packet size x Packet count = Whole size)
 	DWORD CurPacketSend, CurPacketRecv; // FIFO streaming cursor
-	BOOL FReceiver; // TRUE: Receiver, FALSE: Transimitter
+	BOOL FReceiver; // TRUE: Receiver, FALSE: Transmitter
 	DWORD PosPackets;  // Position of begining packets
 	HANDLE *PacketMutex; // Mutexes for locking packets
 	bool LockPacket(DWORD index, DWORD timeout = INFINITE) const ;

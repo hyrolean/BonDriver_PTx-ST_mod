@@ -93,6 +93,7 @@ protected:
 	BOOL m_bBon3Lnb;
 	BOOL m_bTrySpares;
 	BOOL m_bFastScan;
+	BOOL m_bPreventSuspending;
 	BOOL m_bXFirstPT3;
 	BOOL m_bXSparePTw;
 	DWORD m_dwSetChDelay;
@@ -117,6 +118,18 @@ protected:
 	BOOL LaunchPTCtrl(int iPT);
 	BOOL TryOpenTunerByID(int iTunerID, int *piID);
 	BOOL TryOpenTuner();
+
+	void PreventSuspending(BOOL bInner);
+	class suspend_preventer {
+		CBonTuner *sys_;
+	public:
+		explicit suspend_preventer(CBonTuner *sys) : sys_(sys) {
+			sys_->PreventSuspending(TRUE);
+		}
+		~suspend_preventer() {
+			sys_->PreventSuspending(FALSE);
+		}
+	};
 
 protected:
 	static UINT WINAPI RecvThreadPipeIOProc(LPVOID pParam);
