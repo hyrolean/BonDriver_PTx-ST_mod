@@ -6,9 +6,6 @@
 #include <vector>
 #include <set>
 
-#include <Shlwapi.h>
-#pragma comment(lib, "Shlwapi.lib")
-
 #include "BonTuner.h"
 #include "../Common/SharedMem.h"
 
@@ -139,30 +136,30 @@ CBonTuner::CBonTuner()
 		int detection = GetPrivateProfileIntW(L"SET", L"xFirstPT3", -1, strIni.c_str());
 		int bypassPTw = GetPrivateProfileIntW(L"SET", L"xSparePTw", 0, strIni.c_str());
 		m_bXFirstPT3 = detection>=0 ? BOOL(detection) :
-			PathFileExists((m_strDirPath+L"PT3Ctrl.exe").c_str()) ;
+			FileIsExisted((m_strDirPath+L"PT3Ctrl.exe").c_str()) ;
 		m_bXSparePTw = bypassPTw==0 ? FALSE:
-			PathFileExists((m_strDirPath+L"PTwCtrl.exe").c_str()) ;
+			FileIsExisted((m_strDirPath+L"PTwCtrl.exe").c_str()) ;
 
 		parse_fname(L"PTx");
 
 	}else if(m_iPT==2) { // pt2wdm Tuner
 
 		wstring strPTwini = m_strDirPath + L"BonDriver_PTw-ST.ini";
-		if(PathFileExists(strPTwini.c_str())) strIni = strPTwini;
+		if(FileIsExisted(strPTwini.c_str())) strIni = strPTwini;
 
 		parse_fname(L"PTw");
 
 	}else if(m_iPT==3) { // PT3 Tuner
 
 		wstring strPT3ini = m_strDirPath + L"BonDriver_PT3-ST.ini";
-		if(PathFileExists(strPT3ini.c_str())) strIni = strPT3ini;
+		if(FileIsExisted(strPT3ini.c_str())) strIni = strPT3ini;
 
 		parse_fname(L"PT3");
 
 	}else {  // PT Tuner (PT1/2)
 
 		wstring strPTini = wstring(szPath) + L"BonDriver_PT-ST.ini";
-		if(PathFileExists(strPTini.c_str())) strIni = strPTini;
+		if(FileIsExisted(strPTini.c_str())) strIni = strPTini;
 
 		int iPTn = GetPrivateProfileIntW(L"SET", L"PT1Ver", 2, strIni.c_str());
 		if(iPTn<1||iPTn>2) iPTn=2;
@@ -404,7 +401,7 @@ BOOL CBonTuner::LaunchPTCtrl(int iPT)
 			return TRUE ;
 	}
 
-	if(!PathFileExists(strPTCtrlExe.c_str())) {
+	if(!FileIsExisted(strPTCtrlExe.c_str())) {
 		// 実行ファイルが存在しない
 		return hasMutex ;
 	}

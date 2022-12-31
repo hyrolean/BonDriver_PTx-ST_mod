@@ -43,7 +43,7 @@ CPTxManager::CPTxManager(void)
 	strIni += L"\\BonDriver_PTw-ST.ini";
 #endif
 
-	if(!PathFileExists(strIni.c_str())) {
+	if(!FileIsExisted(strIni.c_str())) {
 		strIni = szPath;
 		strIni += L"\\BonDriver_PTx-ST.ini";
 	}

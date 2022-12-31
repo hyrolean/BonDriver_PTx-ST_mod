@@ -139,3 +139,23 @@ void _OutputDebugString(const TCHAR *format, ...)
 	}
 	va_end(params);
 }
+
+int FileDosAgeOf(LPCTSTR filename)
+{
+	WIN32_FIND_DATA data ;
+	HANDLE h = FindFirstFile(filename,&data);
+	if(h == INVALID_HANDLE_VALUE) return -1 ;
+	FindClose(h) ;
+	if(data.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY) return -1 ;
+	FILETIME local ;
+	FileTimeToLocalFileTime(&data.ftLastWriteTime, &local);
+	WORD d, t ;
+	if(!FileTimeToDosDateTime(&local, &d, &t)) return -1 ;
+	return int(DWORD(d)<<16|DWORD(t)) ;
+}
+
+bool FileIsExisted(LPCTSTR filename)
+{
+	return FileDosAgeOf(filename) != -1 ;
+}
+

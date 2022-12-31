@@ -1,7 +1,5 @@
 #include "StdAfx.h"
 #include <assert.h>
-#include <Shlwapi.h>
-#pragma comment(lib, "Shlwapi.lib")
 
 #include "PTwManager.h"
 
@@ -37,7 +35,7 @@ CPTwManager::CPTwManager(void)
 	strIni = szPath;
 	strIni += L"\\BonDriver_PTw-ST.ini";
 
-	if(!PathFileExists(strIni.c_str())) {
+	if(!FileIsExisted(strIni.c_str())) {
 		strIni = szPath;
 		strIni += L"\\BonDriver_PTx-ST.ini";
 	}

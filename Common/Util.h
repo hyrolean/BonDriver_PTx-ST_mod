@@ -80,3 +80,8 @@ void _OutputDebugString(const TCHAR *pOutputString, ...);
 	};
 
 #endif
+
+
+int FileDosAgeOf(LPCTSTR filename);
+bool FileIsExisted(LPCTSTR filename);
+
