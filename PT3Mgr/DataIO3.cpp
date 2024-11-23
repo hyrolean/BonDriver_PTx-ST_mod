@@ -608,7 +608,7 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 	const size_t MAX_AVG = 10 ;
 	fixed_queue<DWORD> avg(MAX_AVG+2) ;
 	DWORD sleepy=0 ;
-	bool idle = true ;
+	bool idle = true, ready = false ;
 
 	DWORD s=GetTickCount();
 	while(!pSys->m_bThTerm) {
@@ -633,6 +633,7 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 					avg.push_front(MIN_WAIT) ;
 					sleepy+=avg.front();
 				}
+				ready=true;
 				s=GetTickCount();
 			}
 		}else {
@@ -645,8 +646,11 @@ UINT WINAPI CDataIO3::RecvThreadProc(LPVOID pParam)
 			sleepy-=avg.back();
 			avg.pop_back();
 		}
-		if(DWORD wait = avg.size()>0 ? DWORD(sleepy/avg.size()) : 0)
+		if(ready) ready=false ;
+		else {
+		  if(DWORD wait = avg.size()>0 ? DWORD(sleepy/avg.size()) : 0)
 			HRWaitForSingleObject(pSys->m_hWakeupEvent, wait)==WAIT_TIMEOUT || pSys->m_bThTerm || (HRSleep(10),1) ;
+	    }
 	}
 
 	return 0;

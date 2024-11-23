@@ -45,6 +45,9 @@ extern "C" __declspec(dllexport) IBonDriver * CreateBonDriver()
 
 HINSTANCE CBonTuner::m_hModule = NULL;
 
+	//チューナー検出中ミューテックス名
+	#define LAUNCH_PTX_CTRL_MUTEX L"LAUNCH_PTX_CTRL_EXE_MUTEX"
+
 	//PTxCtrl実行ファイルのミューテックス名
 	#define PT0_CTRL_MUTEX L"PT0_CTRL_EXE_MUTEX" // PTxCtrl.exe
 	#define PT1_CTRL_MUTEX L"PT1_CTRL_EXE_MUTEX" // PTCtrl.exe
@@ -52,7 +55,7 @@ HINSTANCE CBonTuner::m_hModule = NULL;
 	#define PT2_CTRL_MUTEX L"PT2_CTRL_EXE_MUTEX" // PTwCtrl.exe
 
 	//PTxCtrlへのコマンド送信用オブジェクト
-	CPTSendCtrlCmd
+	CPTSendCtrlCmdPipe
 		PT1CmdSender(1), PT3CmdSender(3), // PT1/2/3
 		PTwCmdSender(2); // pt2wdm
 
@@ -365,6 +368,39 @@ void CBonTuner::FlushPtBuff(BOOL dispose)
 
 BOOL CBonTuner::LaunchPTCtrl(int iPT)
 {
+	class mutex_locker_t {
+		bool locking_;
+		HANDLE mutex_;
+	public:
+		mutex_locker_t(wstring name) {
+			mutex_ = _CreateMutex(FALSE, name.c_str());
+			locking_ = false ;
+		}
+		~mutex_locker_t() {
+			if(locking_) unlock();
+			if(mutex_) CloseHandle(mutex_);
+		}
+		bool lock(DWORD timeout) {
+			if(!locking_) {
+				if(!mutex_) return false ;
+				locking_ = HRWaitForSingleObject(mutex_, timeout) == WAIT_OBJECT_0 ;
+			}
+			return locking_;
+		}
+		bool unlock() {
+			if(locking_) {
+				if(!mutex_) return false ;
+				if(!ReleaseMutex(mutex_)) return false ;
+				locking_ = false ;
+			}
+			return !locking_;
+		}
+	};
+
+	// 排他で実行ファイルを起動するためにﾐｭｰﾃｯｸｽをlockする
+	mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
+	if(!locker.lock(PTXCTRLCMDTIMEOUT)) return FALSE;
+
 	PROCESS_INFORMATION pi;
 	STARTUPINFO si;
 	ZeroMemory(&si,sizeof(si));
@@ -415,6 +451,7 @@ BOOL CBonTuner::LaunchPTCtrl(int iPT)
 
 	if(!bRet) bRet = hasMutex ;
 	m_bExecPT[iPT] = bRet ;
+
 	return bRet ;
 }
 
@@ -536,7 +573,7 @@ BOOL CBonTuner::TryOpenTuner()
 		m_hThread = (HANDLE)_beginthreadex(NULL, 0, RecvThreadSharedMemProc, (LPVOID)this, CREATE_SUSPENDED, NULL);
 		if(m_hThread!=INVALID_HANDLE_VALUE) {
 			wstring memName;
-			Format(memName,SHAREDMEM_TRANSPORT_FORMAT,m_pCmdSender->GetPTKind(),m_iID) ;
+			Format(memName,SHAREDMEM_TRANSPORT_FORMAT,m_pCmdSender->PTKind(),m_iID) ;
 			m_hSharedMemTransportMutex = _CreateMutex(TRUE, memName.c_str());
 		}
 		break;
@@ -855,7 +892,7 @@ UINT WINAPI CBonTuner::RecvThreadSharedMemProc(LPVOID pParam)
 
 	wstring strStreamerName;
 	Format(strStreamerName, SHAREDMEM_TRANSPORT_STREAM_FORMAT,
-		pSys->m_pCmdSender->GetPTKind(), pSys->m_iID);
+		pSys->m_pCmdSender->PTKind(), pSys->m_iID);
 	CSharedTransportStreamer streamer(strStreamerName,
 		TRUE, SHAREDMEM_TRANSPORT_PACKET_SIZE, SHAREDMEM_TRANSPORT_PACKET_NUM);
 	DBGOUT("BON Streamer memName: %s\n",wcs2mbcs(streamer.Name()).c_str());
@@ -926,7 +963,7 @@ void CBonTuner::GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive)
 		for(int i=1;i<=3;i++) {
 			if((!m_iPT&&i!=2)||m_iPT==i) {
 				if(LaunchPTCtrl(i)) {
-					CPTSendCtrlCmd *sender;
+					CPTSendCtrlCmdBase *sender;
 					switch(i) {
 					case 1:	sender = &PT1CmdSender; break;
 					case 3:	sender = &PT3CmdSender; break;

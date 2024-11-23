@@ -8,7 +8,42 @@
 
 #define CONNECT_TIMEOUT 30*1000
 
-class CPTSendCtrlCmd
+class CPTSendCtrlCmdBase
+{
+public:
+	CPTSendCtrlCmdBase(int iPT,DWORD Timeout__ = CONNECT_TIMEOUT);
+	virtual ~CPTSendCtrlCmdBase(){}
+protected:
+	int m_iPT;
+	DWORD Timeout_;
+	virtual DWORD SendCmd(CMD_STREAM &stSend, CMD_STREAM &stRes) = 0;
+public:
+	int PTKind() {return m_iPT;}
+	DWORD Timeout() { return Timeout_ ; }
+	void SetTimeout(DWORD Timeout__) { Timeout_ = Timeout__ ; }
+	// main commands
+	DWORD CloseExe();
+	DWORD GetTotalTunerCount(DWORD* pdwNumTuner);
+	DWORD GetActiveTunerCount(BOOL bSate, DWORD* pdwNumTuner);
+	DWORD SetLnbPower(int iID, BOOL bEnabled);
+	DWORD OpenTuner(BOOL bSate, int* piID);
+	DWORD OpenTuner2(BOOL bSate, int iTunerID, int* piID);
+	DWORD CloseTuner(int iID);
+	DWORD SetCh(int iID, DWORD dwCh, DWORD dwTSID);
+	DWORD GetSignal(int iID, DWORD* pdwCn100);
+	DWORD GetStreamingMethod(PTSTREAMING *pPTStreaming);
+	// data transmitter
+	virtual DWORD SendData(int iID, BYTE** pbData, DWORD* pdwSize) = 0;
+	virtual DWORD SendBufferObject(int iID, PTBUFFER_OBJECT *pPtBuffObj) = 0 ;
+    // for IBonTransponder
+	DWORD SetFreq(int iID, DWORD dwCh);
+	DWORD GetIdListS(int iID, PTTSIDLIST *pPtTSIDList);
+	DWORD GetIdS(int iID, DWORD *pdwTSID);
+	DWORD SetIdS(int iID, DWORD dwTSID);
+};
+
+
+class CPTSendCtrlCmdPipe : public CPTSendCtrlCmdBase
 {
 public:
 	/*
@@ -17,31 +52,14 @@ public:
 		wstring strCmdPipe=CMD_PT_CTRL_PIPE)
 		: m_iPT(iPT), m_strCmdEvent(strCmdEvent), m_strCmdPipe(strCmdPipe) {}
                                                                            */
-	CPTSendCtrlCmd(int iPT);
+	CPTSendCtrlCmdPipe(int iPT, DWORD Timeout__ = CONNECT_TIMEOUT);
 
 protected:
-	int m_iPT;
 	wstring m_strCmdEvent, m_strCmdPipe;
-
+	DWORD SendCmd(CMD_STREAM &stSend, CMD_STREAM &stRes) ;
 public:
-	int GetPTKind() {return m_iPT;}
-	DWORD CloseExe(DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-	DWORD GetTotalTunerCount(DWORD* pdwNumTuner, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-	DWORD GetActiveTunerCount(BOOL bSate, DWORD* pdwNumTuner, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-	DWORD SetLnbPower(int iID, BOOL bEnabled, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-	DWORD OpenTuner(BOOL bSate, int* piID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-	DWORD OpenTuner2(BOOL bSate, int iTunerID, int* piID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-	DWORD CloseTuner(int iID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-	DWORD SetCh(int iID, DWORD dwCh, DWORD dwTSID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-	DWORD GetSignal(int iID, DWORD* pdwCn100, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-	DWORD SendData(int iID, BYTE** pbData, DWORD* pdwSize, DWORD dwConnectTimeOut = CONNECT_TIMEOUT );
-	DWORD SendBufferObject(int iID, PTBUFFER_OBJECT *pPtBuffObj, DWORD dwConnectTimeOut = CONNECT_TIMEOUT );
-	DWORD GetStreamingMethod(PTSTREAMING *pPTStreaming, DWORD dwConnectTimeOut = CONNECT_TIMEOUT );
-    // for IBonTransponder
-	DWORD SetFreq(int iID, DWORD dwCh, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-	DWORD GetIdListS(int iID, PTTSIDLIST *pPtTSIDList, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-	DWORD GetIdS(int iID, DWORD *pdwTSID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
-	DWORD SetIdS(int iID, DWORD dwTSID, DWORD dwConnectTimeOut = CONNECT_TIMEOUT);
+	DWORD SendData(int iID, BYTE** pbData, DWORD* pdwSize);
+	DWORD SendBufferObject(int iID, PTBUFFER_OBJECT *pPtBuffObj);
 };
 
 #endif

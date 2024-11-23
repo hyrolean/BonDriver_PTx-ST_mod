@@ -149,12 +149,12 @@ void CDataIO::ResetDMA()
 {
 	status enStatus;
 
-	bool bEnalbe = true;
-	enStatus = m_pcDevice->GetTransferEnable(&bEnalbe);
+	bool bEnable = true;
+	enStatus = m_pcDevice->GetTransferEnable(&bEnable);
 	if( enStatus != PT::STATUS_OK ){
 		return ;
 	}
-	if( bEnalbe ){
+	if( bEnable ){
 		enStatus = m_pcDevice->SetTransferEnable(false);
 		if( enStatus != PT::STATUS_OK ){
 			return ;
@@ -214,12 +214,12 @@ void CDataIO::Stop()
 
 	status enStatus;
 
-	bool bEnalbe = true;
-	enStatus = m_pcDevice->GetTransferEnable(&bEnalbe);
+	bool bEnable = true;
+	enStatus = m_pcDevice->GetTransferEnable(&bEnable);
 	if( enStatus != PT::STATUS_OK ){
 		return ;
 	}
-	if( bEnalbe ){
+	if( bEnable ){
 		enStatus = m_pcDevice->SetTransferEnable(false);
 		if( enStatus != PT::STATUS_OK ){
 			return ;

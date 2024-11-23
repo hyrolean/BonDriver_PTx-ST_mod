@@ -102,7 +102,7 @@ protected:
 
 	BOOL m_bExecPT[4] ;
 
-	CPTSendCtrlCmd *m_pCmdSender;
+	CPTSendCtrlCmdBase *m_pCmdSender;
 	CPTxCtrlCmdOperator *m_pPTxCtrlOp;
 
 	DWORD m_dwStartBuffBorder;
