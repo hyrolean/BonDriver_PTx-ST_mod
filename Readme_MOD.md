@@ -2,6 +2,19 @@
 
 ## ●オリジナルのBonDriver_PT3(人柱版4)およびBonDriver_PT-ST(人柱版3)との使用する上での相違点
 
+### ■ サーバー常駐時間をコントロールしてシステムの動作を安定化。
+
+  サーバー常駐時間をコントロールしてシステムの動作を安定を図るオプションを追加しました。
+
+  下記のサーバー非アクティブ化までの常駐時間を多めに設定すると、クライアント再接続時のサーバー再起動のタイムラグを最小限に抑えることができます。(Default:5000msec)
+  ```ini
+  [SET]
+  ; サーバー非アクティブ化までの常駐時間
+  xServiceDeactWaitMSec=5000
+  ```
+- [mod7.5 BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS+SparePTw+UseHRTimer+SrvDeactWait fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod7.5)
+(Described by 2025/01/13 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+
 ### ■ ハイレゾリューションタイマー導入によるストリーム転送とチャンネルスキャンの高速化。
 
   Windows10 1803 以降でサポートされた高精度割込みタイマーを導入することにより、チャンネルスキャンのもたつきや、ストリーム転送のラグを極限まで抑えることを可能としました。
