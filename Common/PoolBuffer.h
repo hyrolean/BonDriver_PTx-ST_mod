@@ -139,7 +139,13 @@ public:
 		uses_.pop();
 		return true;
 	}
-	void clear() { while(pull_trash()); }
+	bool pull_back_trash() { // uses ‚ÌÅŒã”ö‚ğ empties ‚ÌÅŒã”ö‚ÉˆÚ‚µ‚Ä”jŠü
+		if(empty()) return false;
+		empties_.push(uses_.back());
+		uses_.pop_back();
+		return true;
+	}
+	void clear() { while(pull_back_trash()); }
 	void dispose() { clear(); for(auto &v: pool_) v.free(); }
 	bool empty() const { return uses_.empty(); }
 	bool no_pool() const { return empties_.size()<=minimum_pool_&&total()>=maximum_pool_; }

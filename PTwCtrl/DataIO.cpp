@@ -506,14 +506,14 @@ void CDataIO::MicroPacket(BYTE* pbPacket)
 		memcpy(head->data()+sz, micro.Get1TS(), 188);
 		BuffLock(dwID);
 		if( head->size() >= head->capacity() ){
-			buf.push();
 			if(buf.no_pool()) { // overflow
-				buf.pull_trash();
+				buf.pull_back_trash();
 				overflow++;
 				OutputDebugString(IdentStr(dwID,L" Buff Full").c_str());
 			}else{
 				overflow ^= overflow;
 			}
+			buf.push();
 			m_fDataCarry[dwID] = true;
 		}
 		BuffUnLock(dwID);

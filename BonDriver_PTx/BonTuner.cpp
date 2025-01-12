@@ -13,31 +13,47 @@ using namespace std;
 
 static CRITICAL_SECTION secBonTuners;
 static set<CBonTuner*> BonTuners ;
+static CBonTuner *BonSingleInstance = NULL;
+static BOOL BonTunersMultiInstance = TRUE ;
+
 
 void InitializeBonTuners(HMODULE hModule)
 {
-	::InitializeCriticalSection(&secBonTuners);
+	if(BonTunersMultiInstance)
+	  ::InitializeCriticalSection(&secBonTuners);
 	CBonTuner::m_hModule = hModule;
 }
 
 void FinalizeBonTuners()
 {
-	::EnterCriticalSection(&secBonTuners);
-	vector<CBonTuner*> clone;
-	copy(BonTuners.begin(),BonTuners.end(),back_inserter(clone));
-	for(auto bon: clone) if(bon!=NULL) bon->Release();
-	::LeaveCriticalSection(&secBonTuners);
-	::DeleteCriticalSection(&secBonTuners);
+	if(BonTunersMultiInstance) {
+		::EnterCriticalSection(&secBonTuners);
+			vector<CBonTuner*> clone;
+			copy(BonTuners.begin(),BonTuners.end(),back_inserter(clone));
+			for(auto bon: clone) if(bon!=NULL) bon->Release();
+		::LeaveCriticalSection(&secBonTuners);
+		::DeleteCriticalSection(&secBonTuners);
+	}else {
+		BonSingleInstance = NULL;
+	}
 }
 
 #pragma warning( disable : 4273 )
 extern "C" __declspec(dllexport) IBonDriver * CreateBonDriver()
 {
-	// 同一プロセスからの複数インスタンス取得可能(IBonDriver3対応により)
-	::EnterCriticalSection(&secBonTuners);
-	CBonTuner *p = new CBonTuner ;
-	if(p!=NULL) BonTuners.insert(p);
-	::LeaveCriticalSection(&secBonTuners);
+	CBonTuner *p = NULL ;
+	if(BonTunersMultiInstance) {
+		// 同一プロセスからの複数インスタンス取得可能(IBonDriver3対応により)
+		::EnterCriticalSection(&secBonTuners);
+		p = new CBonTuner ;
+		if(p!=NULL) BonTuners.insert(p);
+		::LeaveCriticalSection(&secBonTuners);
+	}else {
+		if(BonSingleInstance)
+			p = BonSingleInstance ;
+		else
+			p = BonSingleInstance = new CBonTuner ;
+	}
 	return p;
 }
 #pragma warning( default : 4273 )
@@ -227,9 +243,13 @@ CBonTuner::~CBonTuner()
 
 	::DeleteCriticalSection(&m_CriticalSection);
 
-	::EnterCriticalSection(&secBonTuners);
-	BonTuners.erase(this);
-	::LeaveCriticalSection(&secBonTuners);
+	if(BonTunersMultiInstance) {
+		::EnterCriticalSection(&secBonTuners);
+		BonTuners.erase(this);
+		::LeaveCriticalSection(&secBonTuners);
+	}else {
+		BonSingleInstance=NULL;
+	}
 }
 
 void CBonTuner::BuildDefSpace(wstring strIni)
@@ -833,7 +853,13 @@ const DWORD CBonTuner::GetCurChannel(void)
 
 void CBonTuner::Release()
 {
-	delete this;
+	if(BonTunersMultiInstance) {
+	  ::EnterCriticalSection(&secBonTuners);
+	  if(BonTuners.find(this)!=BonTuners.end())
+	    delete this;
+	  ::LeaveCriticalSection(&secBonTuners);
+	}else if(BonSingleInstance)
+	  delete this ;
 }
 
 

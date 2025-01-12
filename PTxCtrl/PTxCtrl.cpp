@@ -14,6 +14,9 @@
 // サービス実行中にクライアントが居なくなったらSDKを閉じてメモリを開放するかどうか
 BOOL g_bXCompactService = FALSE ;
 
+// クライアントが居なくなったあとにサービスを閉じるまでの最大待機時間(msec)
+DWORD g_dwXServiceDeactWaitMSec = 5000 ;
+
 CPTCtrlMain g_cMain3(PT0_GLOBAL_LOCK_MUTEX, CMD_PT3_CTRL_EVENT_WAIT_CONNECT, CMD_PT3_CTRL_PIPE, FALSE);
 CPTCtrlMain g_cMain1(PT0_GLOBAL_LOCK_MUTEX, CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_CTRL_PIPE, FALSE);
 
@@ -47,7 +50,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	}
 
 	strIni += L"\\BonDriver_PTx-ST.ini";
-	g_bXCompactService = GetPrivateProfileInt(L"SET", L"xCompactService", 0, strIni.c_str());
+	g_bXCompactService = GetPrivateProfileInt(L"SET", L"xCompactService", g_bXCompactService, strIni.c_str());
+	g_dwXServiceDeactWaitMSec = GetPrivateProfileInt(L"SET", L"xServiceDeactWaitMSec", g_dwXServiceDeactWaitMSec, strIni.c_str());
 	SetHRTimerMode(GetPrivateProfileInt(L"SET", L"UseHRTimer", 0, strIni.c_str()));
 
 	if( _tcslen(lpCmdLine) > 0 ){
@@ -261,19 +265,22 @@ BOOL CPTxCtrlCmdServiceOperator::ResActivatePt(DWORD PtVer)
 
 	BOOL Result = FALSE ;
 
+	if(!Pt1Manager) Pt1Manager = CreatePT1Manager();
+	if(!Pt3Manager) Pt3Manager = CreatePT3Manager();
+
 	if( PtActivated &(1<<(PtVer-1)) ) {
 		DBGOUT("PTxCtrl: PT%d is Already Activated.\n",PtVer);
 		Result = TRUE;
 	}else if(PtVer==3) {
 		if(g_cMain3.Init(PtService, Pt3Manager)) {
-			PtPipeServer3 = g_cMain3.MakePipeServer() ;
+			if(!PtPipeServer3) PtPipeServer3 = g_cMain3.MakePipeServer() ;
 			PtActivated |= 1<<2 ;
 			DBGOUT("PTxCtrl: PT3 was Re-Activated.\n");
 			Result = TRUE ;
 		}
 	}else if(PtVer==1) {
 		if(g_cMain1.Init(PtService, Pt1Manager)) {
-			PtPipeServer1 = g_cMain1.MakePipeServer() ;
+			if(!PtPipeServer1) PtPipeServer1 = g_cMain1.MakePipeServer() ;
 			PtActivated |= 1 ;
 			DBGOUT("PTxCtrl: PT1 was Re-Activated.\n");
 			Result = TRUE ;
@@ -301,10 +308,10 @@ void CPTxCtrlCmdServiceOperator::Main()
 		DWORD dwServiceWait=15000;
 		DWORD dwDurLastAct = dur(LastActivated) ;
 
-		if(dwDurLastAct<5000) {
+		if(dwDurLastAct<g_dwXServiceDeactWaitMSec) {
 
-			// 新規クライアントアクティブ化問合わせから5秒間は破棄処理禁止
-			dwServiceWait=5000-dwDurLastAct;
+			// 新規クライアントアクティブ化問合わせからg_dwXServiceDeactWaitMSecﾐﾘ秒間は破棄処理禁止
+			dwServiceWait=g_dwXServiceDeactWaitMSec-dwDurLastAct;
 
 		}else {
 
@@ -317,8 +324,9 @@ void CPTxCtrlCmdServiceOperator::Main()
 						bRstStEnable=TRUE ;
 					}
 					if(g_bXCompactService||!PtService) {
-						SAFE_DELETE(PtPipeServer3);
+						if(g_bXCompactService) SAFE_DELETE(PtPipeServer3);
 						g_cMain3.UnInit();
+						if(g_bXCompactService) SAFE_DELETE(Pt3Manager) ;
 						PtActivated &= ~(1<<2) ;
 						DBGOUT("PTxCtrl: PT3 was De-Activated.\n");
 						if(!PtActivated) LastDeactivated = GetTickCount();
@@ -334,8 +342,9 @@ void CPTxCtrlCmdServiceOperator::Main()
 						bRstStEnable=TRUE ;
 					}
 					if(g_bXCompactService||!PtService) {
-						SAFE_DELETE(PtPipeServer1);
+						if(g_bXCompactService) SAFE_DELETE(PtPipeServer1);
 						g_cMain1.UnInit();
+						if(g_bXCompactService) SAFE_DELETE(Pt1Manager) ;
 						PtActivated &= ~1 ;
 						DBGOUT("PTxCtrl: PT1 was De-Activated.\n");
 						if(!PtActivated) LastDeactivated = GetTickCount();
@@ -350,11 +359,11 @@ void CPTxCtrlCmdServiceOperator::Main()
 			// すべてのクライアントが居なくなった状態
 			DWORD dwDurLastDeact = dur(LastDeactivated) ;
 			// T->Sなどの切替の際のPTxCtrl.exeの再起動を一定時間抑制する処理
-			if(!g_bXCompactService && dwDurLastDeact<500) {
-				// 500ミリ秒だけ新規クライアントに接続のチャンスを与える
-				dwServiceWait=500-dwDurLastDeact;
+			if(dwDurLastDeact<g_dwXServiceDeactWaitMSec) {
+				// g_dwXServiceDeactWaitMSecミリ秒だけ新規クライアントに接続のチャンスを与える
+				dwServiceWait=g_dwXServiceDeactWaitMSec-dwDurLastDeact;
 			}else {
-				// 500ミリ秒経過しても新規クライアントが現れなかったら終了する
+				// g_dwXServiceDeactWaitMSecミリ秒経過しても新規クライアントが現れなかったら終了する
 				PtTerminated=TRUE; continue;
 			}
 		}
@@ -400,8 +409,8 @@ void CPTxCtrlCmdServiceOperator::Main()
 BOOL CPTxCtrlCmdServiceOperator::PtTerminated=FALSE;
 void CPTxCtrlCmdServiceOperator::Stop()
 {
-	g_cMain1.StopMain();
 	g_cMain3.StopMain();
+	g_cMain1.StopMain();
 	PtTerminated = TRUE ;
 }
 
