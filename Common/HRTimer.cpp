@@ -38,9 +38,28 @@ static HANDLE makeTimer()
 #define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
 #endif
 	if(s_bHighResolutionTimerMode)  {
-		HANDLE hTimer = CreateWaitableTimerEx(NULL, NULL,
+		// Windows Xp Ç…Ç‡ëŒâûÇ∑ÇÈÇΩÇﬂÅAGetProcAddress()Ç≈ä÷êîÇéÊìæÇ∑ÇÈ
+		typedef HANDLE (*PCREATEWAITABLETIMEREXW)(
+			LPSECURITY_ATTRIBUTES lpTimerAttributes,
+			LPCWSTR               lpTimerName,
+			DWORD                 dwFlags,
+			DWORD                 dwDesiredAccess);
+		PCREATEWAITABLETIMEREXW waitableExFunc =
+			(PCREATEWAITABLETIMEREXW)
+				GetProcAddress(
+					GetModuleHandle(TEXT("kernel32.dll")),
+						"CreateWaitableTimerExW");
+		if(waitableExFunc!=NULL) {
+			HANDLE hTimer = waitableExFunc(NULL, NULL,
 					CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
-		if(hTimer!=NULL) return hTimer ;
+			if(hTimer!=NULL) return hTimer ;
+		}
+		#if 0
+		else {
+			MessageBox(NULL, L"CreateWaitableTimerExWÇ™å©Ç¬Ç©ÇÁÇ»Ç¢",
+				L"KERNEL32.DLL", MB_OK|MB_ICONEXCLAMATION);
+		}
+		#endif
 	}
 #endif
 	return CreateWaitableTimer(NULL, FALSE, NULL);
