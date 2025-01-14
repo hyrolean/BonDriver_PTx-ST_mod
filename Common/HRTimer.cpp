@@ -33,7 +33,6 @@ static DWORD doTimerSleep(HANDLE hTimer, const LARGE_INTEGER &time, HANDLE hObj=
 
 static HANDLE makeTimer()
 {
-#if _WIN32_WINNT >= 0x0600
 #ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
 #define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
 #endif
@@ -61,7 +60,6 @@ static HANDLE makeTimer()
 		}
 		#endif
 	}
-#endif
 	return CreateWaitableTimer(NULL, FALSE, NULL);
 }
 
