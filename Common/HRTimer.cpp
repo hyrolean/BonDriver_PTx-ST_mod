@@ -39,7 +39,7 @@ static HANDLE makeTimer()
 #endif
 	if(s_bHighResolutionTimerMode)  {
 		// Windows Xp ‚É‚à‘Î‰‚·‚é‚½‚ßAGetProcAddress()‚ÅŠÖ”‚ğæ“¾‚·‚é
-		typedef HANDLE (*PCREATEWAITABLETIMEREXW)(
+		typedef HANDLE (WINAPI *PCREATEWAITABLETIMEREXW)(
 			LPSECURITY_ATTRIBUTES lpTimerAttributes,
 			LPCWSTR               lpTimerName,
 			DWORD                 dwFlags,
