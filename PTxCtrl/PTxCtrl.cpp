@@ -307,7 +307,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 
 	while(!PtTerminated) {
 
-		DWORD dwServiceWait=15000;
+		DWORD dwServiceWait=g_dwXServiceDeactWaitMSec;
 		DWORD dwDurLastAct = dur(LastActivated) ;
 
 		if(dwDurLastAct<g_dwXServiceDeactWaitMSec) {
@@ -372,8 +372,10 @@ void CPTxCtrlCmdServiceOperator::Main()
 						}
 					}
 
-					ReleaseMutex(h);
-					CloseHandle(h);
+					if(h) {
+						ReleaseMutex(h);
+						CloseHandle(h);
+					}
 				}
 
 			}
@@ -398,20 +400,31 @@ void CPTxCtrlCmdServiceOperator::Main()
 		}
 
 		if(WaitForCmd(dwServiceWait)==WAIT_OBJECT_0) {
+
 			if(!ServiceReaction()) {
 				DBGOUT("PTxCtrl: The service reaction was failed.\n");
 			}
-		}else{
+
+		}else {
+
 			//アプリ層死んだ時用のチェック
+			HANDLE h = _CreateMutex(TRUE, PT0_GLOBAL_LOCK_MUTEX);
+
 			if(PtActivated&(1<<2)) { // PT3
 				if( Pt3Manager->CloseChk() == FALSE){
 					if(!PtService) SetEvent(g_cMain3.GetStopEvent()) ;
 				}
 			}
+
 			if(PtActivated&1) { // PT1/PT2
 				if( Pt1Manager->CloseChk() == FALSE){
 					if(!PtService) SetEvent(g_cMain1.GetStopEvent()) ;
 				}
+			}
+
+			if(h) {
+				ReleaseMutex(h);
+				CloseHandle(h);
 			}
 		}
 

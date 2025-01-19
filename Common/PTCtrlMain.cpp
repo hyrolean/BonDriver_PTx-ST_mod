@@ -76,13 +76,19 @@ void CPTCtrlMain::StartMain(BOOL bService, IPTManager *pManager)
 	//Pipeサーバースタート
 	shared_ptr<CPipeServer> pipeServer(MakePipeServer());
 
-	while(1){
+	bool terminated = false ;
+	while(!terminated){
 		if( HRWaitForSingleObject(m_hStopEvent, 15*1000) != WAIT_TIMEOUT ){
-			break;
+			terminated = true ;
 		}else{
+			HANDLE h = _CreateMutex(TRUE, m_strGlobalLockMutex.c_str());
 			//アプリ層死んだ時用のチェック
 			if( m_pManager->CloseChk() == FALSE && m_bService == FALSE){
-				break;
+				terminated = true ;
+			}
+			if(h) {
+				ReleaseMutex(h);
+				CloseHandle(h);
 			}
 		}
 	}
@@ -203,6 +209,9 @@ void CPTCtrlMain::CmdOpenTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	BOOL bSate;
 	CopyDefData((DWORD*)&bSate, pCmdParam->bData);
+
+	HANDLE h = _CreateMutex(TRUE, m_strGlobalLockMutex.c_str());
+
 	int iID = m_pManager->OpenTuner(bSate);
 	if( iID != -1 ){
 		ResetEvent(m_hStopEvent); // 終了処理の取消
@@ -210,6 +219,12 @@ void CPTCtrlMain::CmdOpenTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 	}else{
 		pResParam->dwParam = CMD_ERR;
 	}
+
+	if(h) {
+		ReleaseMutex(h);
+		CloseHandle(h);
+	}
+
 	CreateDefStream(iID, pResParam);
 }
 
@@ -218,16 +233,21 @@ void CPTCtrlMain::CmdCloseTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	int iID;
 	CopyDefData((DWORD*)&iID, pCmdParam->bData);
+
+	HANDLE h = _CreateMutex(TRUE, m_strGlobalLockMutex.c_str());
+
 	if(iID!=0xFFFFFFFF) m_pManager->CloseTuner(iID);
 	pResParam->dwParam = CMD_SUCCESS;
 	if (m_bService == FALSE) {
-		HANDLE h = _CreateMutex(TRUE, m_strGlobalLockMutex.c_str());
 		if (m_pManager->IsFindOpen() == FALSE) {
 			// 今から終了するので問題が無くなるタイミングまで別プロセスの開始を抑制
 			if(m_bResetStartEnableOnClose)
 				ResetEvent(g_hStartEnableEvent);
 			StopMain();
 		}
+	}
+
+	if(h) {
 		ReleaseMutex(h);
 		CloseHandle(h);
 	}
