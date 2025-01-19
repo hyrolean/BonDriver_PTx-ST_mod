@@ -303,6 +303,8 @@ void CPTxCtrlCmdServiceOperator::Main()
 	DWORD LastDeactivated = GetTickCount();
 	BOOL bRstStEnable=FALSE ;
 
+	DWORD PrevPtDeactivated = 0 ;
+
 	while(!PtTerminated) {
 
 		DWORD dwServiceWait=15000;
@@ -313,44 +315,67 @@ void CPTxCtrlCmdServiceOperator::Main()
 			// 新規クライアントアクティブ化問合わせからg_dwXServiceDeactWaitMSecﾐﾘ秒間は破棄処理禁止
 			dwServiceWait=g_dwXServiceDeactWaitMSec-dwDurLastAct;
 
-		}else {
+		}else if(PtActivated) {
 
 			// 破棄処理
+			DWORD PtDeactivated = 0 ;
+			if(HRWaitForSingleObject(g_cMain3.GetStopEvent(),0)==WAIT_OBJECT_0)
+				PtDeactivated |= 1<<2 ;
+			if(HRWaitForSingleObject(g_cMain1.GetStopEvent(),0)==WAIT_OBJECT_0)
+				PtDeactivated |= 1 ;
 
-			if(PtActivated&(1<<2)) { // PT3
-				if(HRWaitForSingleObject(g_cMain3.GetStopEvent(),0)==WAIT_OBJECT_0) {
-					if(!bRstStEnable) {
-						ResetEvent(g_hStartEnableEvent);
-						bRstStEnable=TRUE ;
-					}
-					if(g_bXCompactService||!PtService) {
-						if(g_bXCompactService) SAFE_DELETE(PtPipeServer3);
-						g_cMain3.UnInit();
-						if(g_bXCompactService) SAFE_DELETE(Pt3Manager) ;
-						PtActivated &= ~(1<<2) ;
-						DBGOUT("PTxCtrl: PT3 was De-Activated.\n");
-						if(!PtActivated) LastDeactivated = GetTickCount();
-					}
-					ResetEvent(g_cMain3.GetStopEvent());
-				}
+			if(PrevPtDeactivated!=PtDeactivated) {
+				PrevPtDeactivated = PtDeactivated;
+				LastDeactivated = GetTickCount();
 			}
 
-			if(PtActivated&1) { // PT1/PT2
-				if(HRWaitForSingleObject(g_cMain1.GetStopEvent(),0)==WAIT_OBJECT_0) {
-					if(!bRstStEnable) {
-						ResetEvent(g_hStartEnableEvent);
-						bRstStEnable=TRUE ;
+			// すべてのクライアントが居なくなった状態
+			if((PtDeactivated&PtActivated)==PtActivated) {
+
+				DWORD dwDurLastDeact = dur(LastDeactivated) ;
+				// 一定時間破棄を抑制する
+				if(dwDurLastDeact>=g_dwXServiceDeactWaitMSec) {
+
+					HANDLE h = _CreateMutex(TRUE, PT0_GLOBAL_LOCK_MUTEX);
+
+					if(PtActivated&(1<<2)) { // PT3
+						if(Pt3Manager->IsFindOpen() == FALSE) {
+							if(!bRstStEnable) {
+								ResetEvent(g_hStartEnableEvent);
+								bRstStEnable=TRUE ;
+							}
+							if(g_bXCompactService||!PtService) {
+								if(g_bXCompactService) SAFE_DELETE(PtPipeServer3);
+								g_cMain3.UnInit();
+								if(g_bXCompactService) SAFE_DELETE(Pt3Manager) ;
+								PtActivated &= ~(1<<2) ;
+								DBGOUT("PTxCtrl: PT3 was De-Activated.\n");
+							}
+							ResetEvent(g_cMain3.GetStopEvent());
+						}
 					}
-					if(g_bXCompactService||!PtService) {
-						if(g_bXCompactService) SAFE_DELETE(PtPipeServer1);
-						g_cMain1.UnInit();
-						if(g_bXCompactService) SAFE_DELETE(Pt1Manager) ;
-						PtActivated &= ~1 ;
-						DBGOUT("PTxCtrl: PT1 was De-Activated.\n");
-						if(!PtActivated) LastDeactivated = GetTickCount();
+
+					if(PtActivated&1) { // PT1/PT2
+						if(Pt1Manager->IsFindOpen() == FALSE) {
+							if(!bRstStEnable) {
+								ResetEvent(g_hStartEnableEvent);
+								bRstStEnable=TRUE ;
+							}
+							if(g_bXCompactService||!PtService) {
+								if(g_bXCompactService) SAFE_DELETE(PtPipeServer1);
+								g_cMain1.UnInit();
+								if(g_bXCompactService) SAFE_DELETE(Pt1Manager) ;
+								PtActivated &= ~1 ;
+								DBGOUT("PTxCtrl: PT1 was De-Activated.\n");
+							}
+							ResetEvent(g_cMain1.GetStopEvent());
+						}
 					}
-					ResetEvent(g_cMain1.GetStopEvent());
+
+					ReleaseMutex(h);
+					CloseHandle(h);
 				}
+
 			}
 
 		}

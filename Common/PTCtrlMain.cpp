@@ -205,8 +205,7 @@ void CPTCtrlMain::CmdOpenTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 	CopyDefData((DWORD*)&bSate, pCmdParam->bData);
 	int iID = m_pManager->OpenTuner(bSate);
 	if( iID != -1 ){
-		if(HRWaitForSingleObject(m_hStopEvent,0)==WAIT_OBJECT_0)
-			ResetEvent(m_hStopEvent); // 終了処理の取消
+		ResetEvent(m_hStopEvent); // 終了処理の取消
 		pResParam->dwParam = CMD_SUCCESS;
 	}else{
 		pResParam->dwParam = CMD_ERR;
@@ -219,7 +218,7 @@ void CPTCtrlMain::CmdCloseTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	int iID;
 	CopyDefData((DWORD*)&iID, pCmdParam->bData);
-	m_pManager->CloseTuner(iID);
+	if(iID!=0xFFFFFFFF) m_pManager->CloseTuner(iID);
 	pResParam->dwParam = CMD_SUCCESS;
 	if (m_bService == FALSE) {
 		HANDLE h = _CreateMutex(TRUE, m_strGlobalLockMutex.c_str());
@@ -272,8 +271,7 @@ void CPTCtrlMain::CmdOpenTuner2(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 	CopyDefData2((DWORD*)&bSate, (DWORD*)&iTunerID, pCmdParam->bData);
 	int iID = m_pManager->OpenTuner2(bSate, iTunerID);
 	if( iID != -1 ){
-		if(HRWaitForSingleObject(m_hStopEvent,0)==WAIT_OBJECT_0)
-			ResetEvent(m_hStopEvent); // 終了処理の取消
+		ResetEvent(m_hStopEvent); // 終了処理の取消
 		pResParam->dwParam = CMD_SUCCESS;
 	}else{
 		pResParam->dwParam = CMD_ERR;

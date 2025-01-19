@@ -542,6 +542,7 @@ BOOL CBonTuner::TryOpenTuner()
 				if(m_pCmdSender->GetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS) {
 					if(tid>=0 && DWORD(tid)>=dwNumTuner) {
 						tid-=dwNumTuner ;
+						m_pCmdSender->CloseTuner(0xFFFFFFFF);
 						continue;
 					}
 					m_iID=-1 ;
