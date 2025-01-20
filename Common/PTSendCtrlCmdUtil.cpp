@@ -97,6 +97,18 @@ CPTSendCtrlCmdBase::CPTSendCtrlCmdBase(int iPT, DWORD Timeout__)
   : m_iPT(iPT),Timeout_(Timeout__)
 {}
 
+DWORD CPTSendCtrlCmdBase::KeepAlive()
+{
+	CMD_STREAM stSend;
+	CMD_STREAM stRes;
+
+	stSend.dwParam = CMD_KEEP_ALIVE;
+
+	DWORD dwRet = SendCmd(stSend, stRes);
+
+	return dwRet;
+}
+
 DWORD CPTSendCtrlCmdBase::CloseExe()
 {
 	CMD_STREAM stSend;

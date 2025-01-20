@@ -61,9 +61,6 @@ extern "C" __declspec(dllexport) IBonDriver * CreateBonDriver()
 
 HINSTANCE CBonTuner::m_hModule = NULL;
 
-	//チューナー検出中ミューテックス名
-	#define LAUNCH_PTX_CTRL_MUTEX L"LAUNCH_PTX_CTRL_EXE_MUTEX"
-
 	//PTxCtrl実行ファイルのミューテックス名
 	#define PT0_CTRL_MUTEX L"PT0_CTRL_EXE_MUTEX" // PTxCtrl.exe
 	#define PT1_CTRL_MUTEX L"PT1_CTRL_EXE_MUTEX" // PTCtrl.exe
@@ -388,39 +385,6 @@ void CBonTuner::FlushPtBuff(BOOL dispose)
 
 BOOL CBonTuner::LaunchPTCtrl(int iPT)
 {
-	class mutex_locker_t {
-		bool locking_;
-		HANDLE mutex_;
-	public:
-		mutex_locker_t(wstring name) {
-			mutex_ = _CreateMutex(FALSE, name.c_str());
-			locking_ = false ;
-		}
-		~mutex_locker_t() {
-			if(locking_) unlock();
-			if(mutex_) CloseHandle(mutex_);
-		}
-		bool lock(DWORD timeout) {
-			if(!locking_) {
-				if(!mutex_) return false ;
-				locking_ = HRWaitForSingleObject(mutex_, timeout) == WAIT_OBJECT_0 ;
-			}
-			return locking_;
-		}
-		bool unlock() {
-			if(locking_) {
-				if(!mutex_) return false ;
-				if(!ReleaseMutex(mutex_)) return false ;
-				locking_ = false ;
-			}
-			return !locking_;
-		}
-	};
-
-	// 排他で実行ファイルを起動するためにﾐｭｰﾃｯｸｽをlockする
-	mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
-	if(!locker.lock(PTXCTRLCMDTIMEOUT)) return FALSE;
-
 	PROCESS_INFORMATION pi;
 	STARTUPINFO si;
 	ZeroMemory(&si,sizeof(si));
@@ -529,15 +493,22 @@ BOOL CBonTuner::TryOpenTuner()
 			for(int i=0;i<2;i++) {
 				int iPT = m_bXFirstPT3 ? (i?1:3) : (i?3:1) ;
 				BOOL ptx = FALSE ;
-				if(!LaunchPTCtrl(iPT)) {
-					if(!launchPTxCtrl(iPT))
-						continue;
-				}else {
-					SAFE_DELETE(m_pPTxCtrlOp);
-				}
-				switch(iPT) {
-				case 1:	m_pCmdSender = &PT1CmdSender; break;
-				case 3:	m_pCmdSender = &PT3CmdSender; break;
+				{
+					// 排他で実行ファイルを起動するためにﾐｭｰﾃｯｸｽをlockする
+					mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
+					if(!locker.lock(LAUNCH_PTX_CTRL_TIMEOUT)) break;
+					// 起動
+					if(!LaunchPTCtrl(iPT)) {
+						if(!launchPTxCtrl(iPT))
+							continue;
+					}else {
+						SAFE_DELETE(m_pPTxCtrlOp);
+					}
+					switch(iPT) {
+					case 1:	m_pCmdSender = &PT1CmdSender; break;
+					case 3:	m_pCmdSender = &PT3CmdSender; break;
+					}
+					if(m_pCmdSender->KeepAlive()!=CMD_SUCCESS) continue;
 				}
 				DWORD dwNumTuner=0;
 				if(m_pCmdSender->GetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS) {
@@ -558,9 +529,18 @@ BOOL CBonTuner::TryOpenTuner()
 
 		}else do { // PT1/2/3 or pt2wdm ( manual )
 
-			if(!LaunchPTCtrl(m_iPT)) {
-				if(!launchPTxCtrl(m_iPT))
-					break;
+			{
+				// 排他で実行ファイルを起動するためにﾐｭｰﾃｯｸｽをlockする
+				mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
+				if(!locker.lock(LAUNCH_PTX_CTRL_TIMEOUT)) break;
+				// 起動
+				if(!LaunchPTCtrl(m_iPT)) {
+					if(!launchPTxCtrl(m_iPT))
+						break;
+				}else {
+					SAFE_DELETE(m_pPTxCtrlOp);
+				}
+				if(m_pCmdSender->KeepAlive()!=CMD_SUCCESS) break;
 			}
 			if(!TryOpenTunerByID(m_iTunerID, &m_iID)){
 				if(m_iTunerID<0 || !m_bTrySpares || !TryOpenTunerByID(-1, &m_iID))
@@ -990,6 +970,10 @@ void CBonTuner::GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive)
 		if(lpdwActive) *lpdwActive=0;
 		for(int i=1;i<=3;i++) {
 			if((!m_iPT&&i!=2)||m_iPT==i) {
+				// 排他で実行ファイルを起動するためにﾐｭｰﾃｯｸｽをlockする
+				mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
+				if(!locker.lock(LAUNCH_PTX_CTRL_TIMEOUT)) break;
+				// 起動
 				if(LaunchPTCtrl(i)) {
 					CPTSendCtrlCmdBase *sender;
 					switch(i) {

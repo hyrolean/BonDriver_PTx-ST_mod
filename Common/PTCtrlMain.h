@@ -11,7 +11,7 @@ public:
 	CPTCtrlMain(
 		wstring strGlobalLockMutex,
 		wstring strPipeEvent,
-		wstring strPipeName, BOOL bResetStartEnableOnClose=TRUE );
+		wstring strPipeName );
 
 	~CPTCtrlMain(void);
 
@@ -32,7 +32,6 @@ protected:
 	IPTManager *m_pManager;
 
 	BOOL m_bService;
-	BOOL m_bResetStartEnableOnClose;
 
 	wstring m_strGlobalLockMutex ;
 	wstring m_strPipeEvent, m_strPipeName ;
@@ -40,7 +39,9 @@ protected:
 protected:
 	static int CALLBACK OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdParam, CMD_STREAM* pResParam, BOOL* pbResDataAbandon);
 
-	//CMD_CLOSE_EXE PT1Ctrl.exeの強制終了コマンド 通常は使用しない
+	//CMD_KEEP_ALIVE PTxCtrl.exeの活動維持コマンド
+	void CmdKeepAlive(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
+	//CMD_CLOSE_EXE PTxCtrl.exeの強制終了コマンド 通常は使用しない
 	void CmdCloseExe(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);
 	//CMD_GET_TOTAL_TUNER_COUNT GetTotalTunerCount
 	void CmdGetTotalTunerCount(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam);

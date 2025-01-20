@@ -42,6 +42,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	if (IsInstallService(SERVICE_NAME) == FALSE) {
 		//普通にexeとして起動を行う
+		#if 0 //??
 		HANDLE h = ::OpenMutexW(SYNCHRONIZE, FALSE, PT2_GLOBAL_LOCK_MUTEX);
 		if (h != NULL) {
 			BOOL bErr = FALSE;
@@ -54,25 +55,29 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				return -1;
 			}
 		}
+		#endif
 
-		g_hStartEnableEvent = _CreateEvent(TRUE, TRUE, PT2_STARTENABLE_EVENT);
+		g_hStartEnableEvent = _CreateEvent(TRUE, FALSE, PT2_STARTENABLE_EVENT);
 		if (g_hStartEnableEvent == NULL) {
 			return -2;
 		}
+		#if 0
 		// 別プロセスが終了処理中の場合は終了を待つ(最大1秒)
 		if (::HRWaitForSingleObject(g_hStartEnableEvent, 1000) == WAIT_TIMEOUT) {
 			::CloseHandle(g_hStartEnableEvent);
 			return -3;
 		}
+		#endif
 
 		g_hMutex = _CreateMutex(TRUE, PT_CTRL_MUTEX);
 		if (g_hMutex == NULL) {
 			::CloseHandle(g_hStartEnableEvent);
 			return -4;
 		}
-		if (::HRWaitForSingleObject(g_hMutex, 100) == WAIT_TIMEOUT) {
+		if (::HRWaitForSingleObject(g_hMutex, 0) == WAIT_TIMEOUT) {
 			// 別プロセスが実行中だった
 			::CloseHandle(g_hMutex);
+			::SetEvent(g_hStartEnableEvent); // 再始動要請
 			::CloseHandle(g_hStartEnableEvent);
 			return -5;
 		}

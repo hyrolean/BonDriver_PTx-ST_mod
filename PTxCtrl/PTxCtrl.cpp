@@ -7,18 +7,14 @@
 #include "../Common/ServiceUtil.h"
 #include "PTxCtrl.h"
 
-#ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
-#define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
-#endif
-
 // サービス実行中にクライアントが居なくなったらSDKを閉じてメモリを開放するかどうか
 BOOL g_bXCompactService = FALSE ;
 
 // クライアントが居なくなったあとにサービスを閉じるまでの最大待機時間(msec)
 DWORD g_dwXServiceDeactWaitMSec = 5000 ;
 
-CPTCtrlMain g_cMain3(PT0_GLOBAL_LOCK_MUTEX, CMD_PT3_CTRL_EVENT_WAIT_CONNECT, CMD_PT3_CTRL_PIPE, FALSE);
-CPTCtrlMain g_cMain1(PT0_GLOBAL_LOCK_MUTEX, CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_CTRL_PIPE, FALSE);
+CPTCtrlMain g_cMain3(PT0_GLOBAL_LOCK_MUTEX, CMD_PT3_CTRL_EVENT_WAIT_CONNECT, CMD_PT3_CTRL_PIPE);
+CPTCtrlMain g_cMain1(PT0_GLOBAL_LOCK_MUTEX, CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_CTRL_PIPE);
 
 HANDLE g_hMutex;
 SERVICE_STATUS_HANDLE g_hStatusHandle;
@@ -70,6 +66,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	if( IsInstallService(SERVICE_NAME) == FALSE ){
 		//普通にexeとして起動を行う
+		#if 0 // ??
 		HANDLE h = ::OpenMutexW(SYNCHRONIZE, FALSE, PT0_GLOBAL_LOCK_MUTEX);
 		if (h != NULL) {
 			BOOL bErr = FALSE;
@@ -82,25 +79,29 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				return -1;
 			}
 		}
+		#endif
 
-		g_hStartEnableEvent = _CreateEvent(TRUE, TRUE, PT0_STARTENABLE_EVENT);
+		g_hStartEnableEvent = _CreateEvent(TRUE, FALSE, PT0_STARTENABLE_EVENT);
 		if (g_hStartEnableEvent == NULL) {
 			return -2;
 		}
+		#if 0
 		// 別プロセスが終了処理中の場合は終了を待つ(最大1.5秒)
 		if (::HRWaitForSingleObject(g_hStartEnableEvent, g_bXCompactService?1000:1500) == WAIT_TIMEOUT) {
 			::CloseHandle(g_hStartEnableEvent);
 			return -3;
 		}
+		#endif
 
 		g_hMutex = _CreateMutex(TRUE, PT_CTRL_MUTEX);
 		if (g_hMutex == NULL) {
 			::CloseHandle(g_hStartEnableEvent);
 			return -4;
 		}
-		if (::HRWaitForSingleObject(g_hMutex, 100) == WAIT_TIMEOUT) {
+		if (::HRWaitForSingleObject(g_hMutex, 0) == WAIT_TIMEOUT) {
 			// 別プロセスが実行中だった
 			::CloseHandle(g_hMutex);
+			::SetEvent(g_hStartEnableEvent); // 再始動要請
 			::CloseHandle(g_hStartEnableEvent);
 			return -5;
 		}
@@ -300,8 +301,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 
 	DBGOUT("PTxCtrl: The service is started.\n");
 
-	DWORD LastDeactivated = GetTickCount();
-	BOOL bRstStEnable=FALSE ;
+	DWORD LastDeactivated = dur();
 
 	DWORD PrevPtDeactivated = 0 ;
 
@@ -326,24 +326,30 @@ void CPTxCtrlCmdServiceOperator::Main()
 
 			if(PrevPtDeactivated!=PtDeactivated) {
 				PrevPtDeactivated = PtDeactivated;
-				LastDeactivated = GetTickCount();
+				LastDeactivated = dur();
 			}
 
 			// すべてのクライアントが居なくなった状態
 			if((PtDeactivated&PtActivated)==PtActivated) {
 
+				auto launchMutexCheck = []() ->bool {
+					HANDLE h = ::OpenMutex(SYNCHRONIZE, FALSE, LAUNCH_PTX_CTRL_MUTEX);
+					if (h != NULL) {
+						::ReleaseMutex(h);
+						::CloseHandle(h);
+						return true ;
+					}
+					return false ;
+				};
+
 				DWORD dwDurLastDeact = dur(LastDeactivated) ;
 				// 一定時間破棄を抑制する
-				if(dwDurLastDeact>=g_dwXServiceDeactWaitMSec) {
+				if(dwDurLastDeact>=g_dwXServiceDeactWaitMSec&&!launchMutexCheck()) {
 
 					HANDLE h = _CreateMutex(TRUE, PT0_GLOBAL_LOCK_MUTEX);
 
 					if(PtActivated&(1<<2)) { // PT3
 						if(Pt3Manager->IsFindOpen() == FALSE) {
-							if(!bRstStEnable) {
-								ResetEvent(g_hStartEnableEvent);
-								bRstStEnable=TRUE ;
-							}
 							if(g_bXCompactService||!PtService) {
 								if(g_bXCompactService) SAFE_DELETE(PtPipeServer3);
 								g_cMain3.UnInit();
@@ -357,10 +363,6 @@ void CPTxCtrlCmdServiceOperator::Main()
 
 					if(PtActivated&1) { // PT1/PT2
 						if(Pt1Manager->IsFindOpen() == FALSE) {
-							if(!bRstStEnable) {
-								ResetEvent(g_hStartEnableEvent);
-								bRstStEnable=TRUE ;
-							}
 							if(g_bXCompactService||!PtService) {
 								if(g_bXCompactService) SAFE_DELETE(PtPipeServer1);
 								g_cMain1.UnInit();
@@ -375,6 +377,14 @@ void CPTxCtrlCmdServiceOperator::Main()
 					if(h) {
 						ReleaseMutex(h);
 						CloseHandle(h);
+					}
+
+					SetEvent(g_hStartEnableEvent);
+
+				}else {
+					if(HRWaitForSingleObject(g_hStartEnableEvent, 0) == WAIT_OBJECT_0) {
+						LastDeactivated = dur();
+						ResetEvent(g_hStartEnableEvent);
 					}
 				}
 
@@ -393,10 +403,6 @@ void CPTxCtrlCmdServiceOperator::Main()
 				// g_dwXServiceDeactWaitMSecミリ秒経過しても新規クライアントが現れなかったら終了する
 				PtTerminated=TRUE; continue;
 			}
-		}
-		else if(bRstStEnable) {
-			SetEvent(g_hStartEnableEvent);
-			bRstStEnable=FALSE;
 		}
 
 		if(WaitForCmd(dwServiceWait)==WAIT_OBJECT_0) {

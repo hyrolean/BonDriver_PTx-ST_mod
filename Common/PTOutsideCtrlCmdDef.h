@@ -99,6 +99,7 @@
 #define CMD_CTRL_EVENT_WAIT _T("CtrlCmdEvent")
 
 //コマンド
+#define CMD_KEEP_ALIVE 0
 #define CMD_CLOSE_EXE 1
 #define CMD_OPEN_TUNER 2
 #define CMD_CLOSE_TUNER 3
@@ -148,5 +149,8 @@ typedef struct _CMD_STREAM{
 using PTBUFFER = pool_buffer<BYTE> ;
 using PTBUFFER_OBJECT = pool_buffer_object<BYTE> ;
 
+//チューナー検出中ミューテックス名とタイムアウト値
+#define LAUNCH_PTX_CTRL_MUTEX _T("LAUNCH_PTX_CTRL_EXE_MUTEX")
+#define LAUNCH_PTX_CTRL_TIMEOUT (3*60*1000) // 3分間
 
 #endif

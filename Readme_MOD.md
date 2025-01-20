@@ -12,7 +12,7 @@
   ; サーバー非アクティブ化までの常駐時間
   xServiceDeactWaitMSec=5000
   ```
-- [mod7.6 BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS+SparePTw+UseHRTimer+SrvDeactWait fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod7.6)
+- [mod7.7 BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS+SparePTw+UseHRTimer+SrvDeactWait fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod7.7)
 (Described by 2025/01/19 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 
 ### ■ ハイレゾリューションタイマー導入によるストリーム転送とチャンネルスキャンの高速化。

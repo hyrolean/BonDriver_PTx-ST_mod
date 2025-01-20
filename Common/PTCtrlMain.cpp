@@ -5,9 +5,8 @@
 CPTCtrlMain::CPTCtrlMain(
 	wstring strGlobalLockMutex,
 	wstring strPipeEvent,
-	wstring strPipeName, BOOL bResetStartEnableOnClose )
+	wstring strPipeName )
 {
-	m_bResetStartEnableOnClose = bResetStartEnableOnClose ;
 	m_pManager = NULL;
 	m_strGlobalLockMutex = strGlobalLockMutex;
 	m_strPipeEvent = strPipeEvent;
@@ -74,23 +73,61 @@ void CPTCtrlMain::StartMain(BOOL bService, IPTManager *pManager)
 	}
 
 	//Pipeサーバースタート
-	shared_ptr<CPipeServer> pipeServer(MakePipeServer());
+	std::unique_ptr<CPipeServer> pipeServer(MakePipeServer());
 
-	bool terminated = false ;
-	while(!terminated){
-		if( HRWaitForSingleObject(m_hStopEvent, 15*1000) != WAIT_TIMEOUT ){
-			terminated = true ;
-		}else{
-			HANDLE h = _CreateMutex(TRUE, m_strGlobalLockMutex.c_str());
-			//アプリ層死んだ時用のチェック
-			if( m_pManager->CloseChk() == FALSE && m_bService == FALSE){
-				terminated = true ;
+	bool terminated = false, deactivated=false ;
+	DWORD lastDeactivated = dur() ;
+	const DWORD WAIT = 15000, DEACT_WAIT = 5000 ;
+	while(!terminated) {
+
+		if(!deactivated) {
+
+			if( HRWaitForSingleObject(m_hStopEvent, WAIT) != WAIT_TIMEOUT ){
+				deactivated=true; lastDeactivated=dur();
+				ResetEvent(g_hStartEnableEvent);
+			}else {
+				HANDLE h = _CreateMutex(TRUE, m_strGlobalLockMutex.c_str());
+				//アプリ層死んだ時用のチェック
+				if( m_pManager->CloseChk() == FALSE && m_bService == FALSE){
+					deactivated=true; lastDeactivated=dur();
+				}
+				if(h) {
+					ReleaseMutex(h);
+					CloseHandle(h);
+				}
 			}
-			if(h) {
-				ReleaseMutex(h);
-				CloseHandle(h);
+
+		}else {
+
+			auto launchMutexCheck = []() ->bool {
+				HANDLE h = ::OpenMutex(SYNCHRONIZE, FALSE, LAUNCH_PTX_CTRL_MUTEX);
+				if (h != NULL) {
+					::ReleaseMutex(h);
+					::CloseHandle(h);
+					return true ;
+				}
+				return false ;
+			};
+
+			while(dur(lastDeactivated)<DEACT_WAIT||launchMutexCheck()) {
+				if(HRWaitForSingleObject(m_hStopEvent, 0) != WAIT_OBJECT_0) {
+					deactivated=false; break;
+				}
+				if(HRWaitForSingleObject(g_hStartEnableEvent, 10) == WAIT_OBJECT_0) {
+					lastDeactivated=dur();
+					ResetEvent(g_hStartEnableEvent);
+				}
+			}
+			if(deactivated) {
+				if(HRWaitForSingleObject(g_hStartEnableEvent,0) == WAIT_OBJECT_0) {
+					lastDeactivated=dur();
+					ResetEvent(g_hStartEnableEvent);
+				}else {
+					terminated=true ;
+				}
 			}
 		}
+
 	}
 
 	pipeServer->StopServer();
@@ -109,6 +146,9 @@ int CALLBACK CPTCtrlMain::OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdParam
 	CPTCtrlMain* pSys = (CPTCtrlMain*)pParam;
 
 	switch( pCmdParam->dwParam ){
+		case CMD_KEEP_ALIVE:
+			pSys->CmdKeepAlive(pCmdParam, pResParam);
+			break;
 		case CMD_CLOSE_EXE:
 			pSys->CmdCloseExe(pCmdParam, pResParam);
 			break;
@@ -158,7 +198,14 @@ int CALLBACK CPTCtrlMain::OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdParam
 	return 0;
 }
 
-//CMD_CLOSE_EXE PT3Ctrl.exeの終了
+//CMD_KEEP_ALIVE PTxCtrl.exeの活動維持コマンド
+void CPTCtrlMain::CmdKeepAlive(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
+{
+	pResParam->dwParam = CMD_SUCCESS;
+	SetEvent(g_hStartEnableEvent);
+}
+
+//CMD_CLOSE_EXE PTxCtrl.exeの終了
 void CPTCtrlMain::CmdCloseExe(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	pResParam->dwParam = CMD_SUCCESS;
@@ -240,9 +287,6 @@ void CPTCtrlMain::CmdCloseTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 	pResParam->dwParam = CMD_SUCCESS;
 	if (m_bService == FALSE) {
 		if (m_pManager->IsFindOpen() == FALSE) {
-			// 今から終了するので問題が無くなるタイミングまで別プロセスの開始を抑制
-			if(m_bResetStartEnableOnClose)
-				ResetEvent(g_hStartEnableEvent);
 			StopMain();
 		}
 	}

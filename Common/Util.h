@@ -74,14 +74,44 @@ void _OutputDebugString(const TCHAR *pOutputString, ...);
 
 #endif
 
+	#include "HRTimer.h"
+
 	auto inline dur(DWORD s=0, DWORD e=GetTickCount()) -> DWORD {
 		// duration ( s -> e )
 		return s <= e ? e - s : 0xFFFFFFFFUL - s + 1 + e;
 	};
 
+	class mutex_locker_t {
+		bool locking_;
+		HANDLE mutex_;
+	public:
+		mutex_locker_t(wstring name) {
+			mutex_ = _CreateMutex(FALSE, name.c_str());
+			locking_ = false ;
+		}
+		~mutex_locker_t() {
+			if(locking_) unlock();
+			if(mutex_) CloseHandle(mutex_);
+		}
+		bool lock(DWORD timeout) {
+			if(!locking_) {
+				if(!mutex_) return false ;
+				locking_ = HRWaitForSingleObject(mutex_, timeout) == WAIT_OBJECT_0 ;
+			}
+			return locking_;
+		}
+		bool unlock() {
+			if(locking_) {
+				if(!mutex_) return false ;
+				if(!ReleaseMutex(mutex_)) return false ;
+				locking_ = false ;
+			}
+			return !locking_;
+		}
+	};
+
+	int FileDosAgeOf(LPCTSTR filename);
+	bool FileIsExisted(LPCTSTR filename);
+
 #endif
-
-
-int FileDosAgeOf(LPCTSTR filename);
-bool FileIsExisted(LPCTSTR filename);
 

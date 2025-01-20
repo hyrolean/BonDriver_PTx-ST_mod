@@ -257,6 +257,9 @@ public:
 					if(HANDLE mutex = OpenMutex(MUTEX_ALL_ACCESS,FALSE,Op.Name().c_str())) {
 						Op.KeepAlive();
 						CloseHandle(mutex);
+					}else if(HRWaitForSingleObject(g_hStartEnableEvent, 0) == WAIT_OBJECT_0) {
+						Op.KeepAlive();
+						ResetEvent(g_hStartEnableEvent);
 					}else {
 						DBGOUT("service timeout.\n");
 						return -1;

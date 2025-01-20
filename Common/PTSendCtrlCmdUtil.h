@@ -22,6 +22,7 @@ public:
 	DWORD Timeout() { return Timeout_ ; }
 	void SetTimeout(DWORD Timeout__) { Timeout_ = Timeout__ ; }
 	// main commands
+	DWORD KeepAlive();
 	DWORD CloseExe();
 	DWORD GetTotalTunerCount(DWORD* pdwNumTuner);
 	DWORD GetActiveTunerCount(BOOL bSate, DWORD* pdwNumTuner);
