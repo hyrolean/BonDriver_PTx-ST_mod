@@ -236,7 +236,7 @@ void CPTCtrlMain::CmdCloseTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 
 	HANDLE h = _CreateMutex(TRUE, m_strGlobalLockMutex.c_str());
 
-	if(iID!=0xFFFFFFFF) m_pManager->CloseTuner(iID);
+	if(iID!=0xFFFF'FFFF) m_pManager->CloseTuner(iID);
 	pResParam->dwParam = CMD_SUCCESS;
 	if (m_bService == FALSE) {
 		if (m_pManager->IsFindOpen() == FALSE) {

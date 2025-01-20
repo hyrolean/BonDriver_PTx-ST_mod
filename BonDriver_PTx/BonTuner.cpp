@@ -487,6 +487,7 @@ BOOL CBonTuner::TryOpenTunerByID(int iTunerID, int *piID)
 	_RPT3(_CRT_WARN, "*** CBonTuner::TryOpenTunerByID() ***\ndwRet[%u]\n", dwRet);
 
 	if( dwRet != CMD_SUCCESS ){
+		m_pCmdSender->CloseTuner(0xFFFF'FFFF);
 		return FALSE;
 	}
 
@@ -542,7 +543,7 @@ BOOL CBonTuner::TryOpenTuner()
 				if(m_pCmdSender->GetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS) {
 					if(tid>=0 && DWORD(tid)>=dwNumTuner) {
 						tid-=dwNumTuner ;
-						m_pCmdSender->CloseTuner(0xFFFFFFFF);
+						m_pCmdSender->CloseTuner(0xFFFF'FFFF);
 						continue;
 					}
 					m_iID=-1 ;
@@ -552,7 +553,7 @@ BOOL CBonTuner::TryOpenTuner()
 						if(tid>=0) tid=-1, i=-1 ;
 					}
 					if(tid>=0) break;
-				}
+				}else m_pCmdSender->CloseTuner(0xFFFF'FFFF);
 			}
 
 		}else do { // PT1/2/3 or pt2wdm ( manual )
@@ -1004,6 +1005,7 @@ void CBonTuner::GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive)
 					if(lpdwActive && sender->GetActiveTunerCount(m_isISDB_S,&dwNumTuner) == CMD_SUCCESS) {
 						*lpdwActive += dwNumTuner ;
 					}
+					sender->CloseTuner(0xFFFF'FFFF);
 				}
 			}
 		}
