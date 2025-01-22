@@ -502,8 +502,10 @@ BOOL CBonTuner::TryOpenTuner()
 						if(!m_pPTxCtrlOp) {
 							if(!LaunchPTCtrl(iPT))
 								continue;
-						}else
+						}else {
 							SAFE_DELETE(m_pPTxCtrlOp);
+							continue;
+						}
 					}
 					switch(iPT) {
 					case 1:	m_pCmdSender = &PT1CmdSender; break;
@@ -539,8 +541,10 @@ BOOL CBonTuner::TryOpenTuner()
 					if(!m_pPTxCtrlOp) {
 						if(!LaunchPTCtrl(m_iPT))
 							break;
-					}else
+					}else {
 						SAFE_DELETE(m_pPTxCtrlOp);
+						break;
+					}
 				}
 				if(m_pCmdSender->KeepAlive()!=CMD_SUCCESS) break;
 			}

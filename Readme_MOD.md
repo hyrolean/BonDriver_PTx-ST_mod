@@ -13,7 +13,7 @@
   xServiceDeactWaitMSec=5000
   ```
 - [mod7.8 BSAlmighty+DeltaHz+DefSpace+PTx+PTxScanS+SparePTw+UseHRTimer+SrvDeactWait fixes](https://github.com/hyrolean/BonDriver_PTx-ST_mod/releases/tag/mod7.8)
-(Described by 2025/01/22 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
+(Described by 2025/01/23 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 
 ### ■ ハイレゾリューションタイマー導入によるストリーム転送とチャンネルスキャンの高速化。
 
