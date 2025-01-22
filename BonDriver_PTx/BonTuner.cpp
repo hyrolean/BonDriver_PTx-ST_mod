@@ -43,7 +43,7 @@ extern "C" __declspec(dllexport) IBonDriver * CreateBonDriver()
 {
 	CBonTuner *p = NULL ;
 	if(BonTunersMultiInstance) {
-		// åŒä¸€ãƒ—ãƒ­ã‚»ã‚¹ã‹ã‚‰ã®è¤‡æ•°ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹å–å¾—å¯èƒ½(IBonDriver3å¯¾å¿œã«ã‚ˆã‚Š)
+		// “¯ˆêƒvƒƒZƒX‚©‚ç‚Ì•¡”ƒCƒ“ƒXƒ^ƒ“ƒXæ“¾‰Â”\(IBonDriver3‘Î‰‚É‚æ‚è)
 		::EnterCriticalSection(&secBonTuners);
 		p = new CBonTuner ;
 		if(p!=NULL) BonTuners.insert(p);
@@ -61,13 +61,13 @@ extern "C" __declspec(dllexport) IBonDriver * CreateBonDriver()
 
 HINSTANCE CBonTuner::m_hModule = NULL;
 
-	//PTxCtrlå®Ÿè¡Œãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒŸãƒ¥ãƒ¼ãƒ†ãƒƒã‚¯ã‚¹å
+	//PTxCtrlÀsƒtƒ@ƒCƒ‹‚Ìƒ~ƒ…[ƒeƒbƒNƒX–¼
 	#define PT0_CTRL_MUTEX L"PT0_CTRL_EXE_MUTEX" // PTxCtrl.exe
 	#define PT1_CTRL_MUTEX L"PT1_CTRL_EXE_MUTEX" // PTCtrl.exe
 	#define PT3_CTRL_MUTEX L"PT3_CTRL_EXE_MUTEX" // PT3Ctrl.exe
 	#define PT2_CTRL_MUTEX L"PT2_CTRL_EXE_MUTEX" // PTwCtrl.exe
 
-	//PTxCtrlã¸ã®ã‚³ãƒãƒ³ãƒ‰é€ä¿¡ç”¨ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆ
+	//PTxCtrl‚Ö‚ÌƒRƒ}ƒ“ƒh‘—M—pƒIƒuƒWƒFƒNƒg
 	CPTSendCtrlCmdPipe
 		PT1CmdSender(1), PT3CmdSender(3), // PT1/2/3
 		PTwCmdSender(2); // pt2wdm
@@ -94,7 +94,7 @@ CBonTuner::CBonTuner()
 	WCHAR strExePath[512] = L"";
 	GetModuleFileName(m_hModule, strExePath, 512);
 
-	WCHAR szPath[_MAX_PATH];	// ãƒ‘ã‚¹
+	WCHAR szPath[_MAX_PATH];	// ƒpƒX
 	WCHAR szDrive[_MAX_DRIVE];
 	WCHAR szDir[_MAX_DIR];
 	WCHAR szFname[_MAX_FNAME];
@@ -197,7 +197,7 @@ CBonTuner::CBonTuner()
 	const LPCWSTR CSV_ST_EXT = L"-ST.ch.txt" ;
 	wstring strChSet;
 
-	//dllåã¨åŒã˜åå‰ã®.ChSet.txtã‚’å…ˆã«å„ªå…ˆã—ã¦èª­ã¿è¾¼ã¿ã‚’è©¦è¡Œã™ã‚‹
+	//dll–¼‚Æ“¯‚¶–¼‘O‚Ì.ChSet.txt‚ğæ‚É—Dæ‚µ‚Ä“Ç‚İ‚İ‚ğs‚·‚é
 	//(fixed by 2020 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 	strChSet = szPath;	strChSet += szFname;
 	if(		!m_chSet.ParseText(strChSet.c_str(), CHSET_EXT) &&
@@ -251,7 +251,7 @@ CBonTuner::~CBonTuner()
 
 void CBonTuner::BuildDefSpace(wstring strIni)
 {
-	//.ChSet.txtãŒå­˜åœ¨ã—ãªã„å ´åˆã¯ã€æ—¢å®šã®ãƒãƒ£ãƒ³ãƒãƒ«æƒ…å ±ã‚’æ§‹ç¯‰ã™ã‚‹
+	//.ChSet.txt‚ª‘¶İ‚µ‚È‚¢ê‡‚ÍAŠù’è‚Ìƒ`ƒƒƒ“ƒlƒ‹î•ñ‚ğ\’z‚·‚é
 	//(added by 2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 
 	BOOL UHF=TRUE, CATV=FALSE, VHF=FALSE, BS=TRUE, CS110=TRUE;
@@ -338,7 +338,7 @@ void CBonTuner::BuildDefSpace(wstring strIni)
 			entry_spc(L"CS110");
 		}
 
-	}else { // åœ°ãƒ‡ã‚¸
+	}else { // ’nƒfƒW
 
 		DWORD i,offs,C;
 		auto entry_ch = [&](DWORD (*pt1conv)(DWORD i)) {
@@ -353,17 +353,17 @@ void CBonTuner::BuildDefSpace(wstring strIni)
 
 		if(UHF) {
 			for(offs=13,C=i=0;i<50;i++) entry_ch([](DWORD i){return i+63;});
-			entry_spc(L"åœ°ãƒ‡ã‚¸(UHF)") ;
+			entry_spc(L"’nƒfƒW(UHF)") ;
 		}
 
 		if(CATV) {
 			for(offs=13,C=1,i=0;i<51;i++) entry_ch([](DWORD i){return i+(i>=10?12:3);});
-			entry_spc(L"åœ°ãƒ‡ã‚¸(CATV)") ;
+			entry_spc(L"’nƒfƒW(CATV)") ;
 		}
 
 		if(VHF) {
 			for(offs=1,C=i=0;i<12;i++) entry_ch([](DWORD i){return i+(i>=3?10:0);});
-			entry_spc(L"åœ°ãƒ‡ã‚¸(VHF)") ;
+			entry_spc(L"’nƒfƒW(VHF)") ;
 		}
 
 	}
@@ -414,7 +414,7 @@ BOOL CBonTuner::LaunchPTCtrl(int iPT)
 
 	bool hasMutex = FALSE ;
 	if(HANDLE Mutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, mutexName.c_str())) {
-		// æ—¢ã«èµ·å‹•ä¸­
+		// Šù‚É‹N“®’†
 		hasMutex = TRUE ;
 		CloseHandle(Mutex) ;
 		if(m_bExecPT[iPT])
@@ -422,7 +422,7 @@ BOOL CBonTuner::LaunchPTCtrl(int iPT)
 	}
 
 	if(!FileIsExisted(strPTCtrlExe.c_str())) {
-		// å®Ÿè¡Œãƒ•ã‚¡ã‚¤ãƒ«ãŒå­˜åœ¨ã—ãªã„
+		// Àsƒtƒ@ƒCƒ‹‚ª‘¶İ‚µ‚È‚¢
 		return hasMutex ;
 	}
 
@@ -460,7 +460,7 @@ BOOL CBonTuner::TryOpenTunerByID(int iTunerID, int *piID)
 
 BOOL CBonTuner::TryOpenTuner()
 {
-	//ã‚¤ãƒ™ãƒ³ãƒˆ
+	//ƒCƒxƒ“ƒg
 	m_hOnStreamEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 
 	_RPT3(_CRT_WARN, "*** CBonTuner::TryOpenTuner() ***\nm_hOnStreamEvent[%p]\n", m_hOnStreamEvent);
@@ -487,17 +487,17 @@ BOOL CBonTuner::TryOpenTuner()
 
 		if(!m_iPT) { // PTx ( PT1/2/3 - auto detect )
 
-			//PTxè‡ªå‹•æ¤œå‡ºæ©Ÿèƒ½ã®è¿½åŠ 
+			//PTx©“®ŒŸo‹@”\‚Ì’Ç‰Á
 			//(added by 2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 			int tid = m_iTunerID ;
 			for(int i=0;i<2;i++) {
 				int iPT = m_bXFirstPT3 ? (i?1:3) : (i?3:1) ;
 				BOOL ptx = FALSE ;
 				{
-					// æ’ä»–ã§å®Ÿè¡Œãƒ•ã‚¡ã‚¤ãƒ«ã‚’èµ·å‹•ã™ã‚‹ãŸã‚ã«ï¾ï½­ï½°ï¾ƒï½¯ï½¸ï½½ã‚’lockã™ã‚‹
+					// ”r‘¼‚ÅÀsƒtƒ@ƒCƒ‹‚ğ‹N“®‚·‚é‚½‚ß‚ÉĞ­°Ã¯¸½‚ğlock‚·‚é
 					mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
 					if(!locker.lock(LAUNCH_PTX_CTRL_TIMEOUT)) break;
-					// èµ·å‹•
+					// ‹N“®
 					if(!launchPTxCtrl(iPT)) {
 						if(!m_pPTxCtrlOp) {
 							if(!LaunchPTCtrl(iPT))
@@ -533,10 +533,10 @@ BOOL CBonTuner::TryOpenTuner()
 		}else do { // PT1/2/3 or pt2wdm ( manual )
 
 			{
-				// æ’ä»–ã§å®Ÿè¡Œãƒ•ã‚¡ã‚¤ãƒ«ã‚’èµ·å‹•ã™ã‚‹ãŸã‚ã«ï¾ï½­ï½°ï¾ƒï½¯ï½¸ï½½ã‚’lockã™ã‚‹
+				// ”r‘¼‚ÅÀsƒtƒ@ƒCƒ‹‚ğ‹N“®‚·‚é‚½‚ß‚ÉĞ­°Ã¯¸½‚ğlock‚·‚é
 				mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
 				if(!locker.lock(LAUNCH_PTX_CTRL_TIMEOUT)) break;
-				// èµ·å‹•
+				// ‹N“®
 				if(m_iPT==2||!launchPTxCtrl(m_iPT)) {
 					if(!m_pPTxCtrlOp) {
 						if(!LaunchPTCtrl(m_iPT))
@@ -612,7 +612,7 @@ void CBonTuner::CloseTuner(void)
 	auto closeThread = [&]() {
 		if( m_hThread != INVALID_HANDLE_VALUE ){
 			::SetEvent(m_hStopEvent);
-			// ã‚¹ãƒ¬ãƒƒãƒ‰çµ‚äº†å¾…ã¡
+			// ƒXƒŒƒbƒhI—¹‘Ò‚¿
 			if ( ::HRWaitForSingleObject(m_hThread, 15000) == WAIT_TIMEOUT ){
 				::TerminateThread(m_hThread, 0xffffffff);
 			}
@@ -636,13 +636,13 @@ void CBonTuner::CloseTuner(void)
 		SAFE_DELETE(m_pPTxCtrlOp);
 	};
 
-	// ã‚¹ãƒˆãƒªãƒ¼ãƒŸãƒ³ã‚°ã®ç¨®é¡ã«ã‚ˆã£ã¦é–‰ã˜æ–¹ã®ãƒ‘ã‚¿ãƒ¼ãƒ³ã‚’å¤‰ãˆã‚‹
+	// ƒXƒgƒŠ[ƒ~ƒ“ƒO‚Ìí—Ş‚É‚æ‚Á‚Ä•Â‚¶•û‚Ìƒpƒ^[ƒ“‚ğ•Ï‚¦‚é
 	if(m_hSharedMemTransportMutex!=NULL) {
-		// ãƒãƒ¥ãƒ¼ãƒŠãƒ¼ã‚’é–‰ã˜ã¦ã‹ã‚‰ã‚¹ãƒ¬ãƒƒãƒ‰ã‚’é–‰ã˜ã‚‹ [PTSTREAMING_SHAREDMEM]
+		// ƒ`ƒ…[ƒi[‚ğ•Â‚¶‚Ä‚©‚çƒXƒŒƒbƒh‚ğ•Â‚¶‚é [PTSTREAMING_SHAREDMEM]
 		closeTuner();
 		closeThread();
 	}else {
-		// ã‚¹ãƒ¬ãƒƒãƒ‰ã‚’é–‰ã˜ã¦ã‹ã‚‰ãƒãƒ¥ãƒ¼ãƒŠãƒ¼ã‚’é–‰ã˜ã‚‹ [PTSTREAMING_PIPEIO]
+		// ƒXƒŒƒbƒh‚ğ•Â‚¶‚Ä‚©‚çƒ`ƒ…[ƒi[‚ğ•Â‚¶‚é [PTSTREAMING_PIPEIO]
 		closeThread();
 		closeTuner();
 	}
@@ -656,7 +656,7 @@ void CBonTuner::CloseTuner(void)
 		m_hOnStreamEvent = NULL;
 	}
 
-	//ãƒãƒƒãƒ•ã‚¡è§£æ”¾
+	//ƒoƒbƒtƒ@‰ğ•ú
 	::EnterCriticalSection(&m_CriticalSection);
 	FlushPtBuff();
 	::LeaveCriticalSection(&m_CriticalSection);
@@ -685,22 +685,22 @@ const DWORD CBonTuner::WaitTsStream(const DWORD dwTimeOut)
 	if( m_hOnStreamEvent == NULL ){
 		return WAIT_ABANDONED;
 	}
-	// ã‚¤ãƒ™ãƒ³ãƒˆãŒã‚·ã‚°ãƒŠãƒ«çŠ¶æ…‹ã«ãªã‚‹ã®ã‚’å¾…ã¤
+	// ƒCƒxƒ“ƒg‚ªƒVƒOƒiƒ‹ó‘Ô‚É‚È‚é‚Ì‚ğ‘Ò‚Â
 	const DWORD dwRet = ::HRWaitForSingleObject(m_hOnStreamEvent, (dwTimeOut)? dwTimeOut : INFINITE);
 
 	switch(dwRet){
 		case WAIT_ABANDONED :
-			// ãƒãƒ¥ãƒ¼ãƒŠãŒé–‰ã˜ã‚‰ã‚ŒãŸ
+			// ƒ`ƒ…[ƒi‚ª•Â‚¶‚ç‚ê‚½
 			return WAIT_ABANDONED;
 
 		case WAIT_OBJECT_0 :
 		case WAIT_TIMEOUT :
-			// ã‚¹ãƒˆãƒªãƒ¼ãƒ å–å¾—å¯èƒ½
+			// ƒXƒgƒŠ[ƒ€æ“¾‰Â”\
 			return dwRet;
 
 		case WAIT_FAILED :
 		default:
-			// ä¾‹å¤–
+			// —áŠO
 			return WAIT_FAILED;
 	}
 }
@@ -754,7 +754,7 @@ const BOOL CBonTuner::GetTsStream(BYTE **ppDst, DWORD *pdwSize, DWORD *pdwRemain
 
 void CBonTuner::PurgeTsStream(void)
 {
-	//ãƒãƒƒãƒ•ã‚¡è§£æ”¾
+	//ƒoƒbƒtƒ@‰ğ•ú
 	::EnterCriticalSection(&m_CriticalSection);
 	FlushPtBuff();
 	::LeaveCriticalSection(&m_CriticalSection);
@@ -860,7 +860,7 @@ UINT WINAPI CBonTuner::RecvThreadPipeIOProc(LPVOID pParam)
 
 	for (suspend_preventer sp(pSys);;) {
 		if (::HRWaitForSingleObject( pSys->m_hStopEvent, 0 ) != WAIT_TIMEOUT) {
-			//ä¸­æ­¢
+			//’†~
 			break;
 		}
 		if(pPtBuffObj==nullptr) {
@@ -873,7 +873,7 @@ UINT WINAPI CBonTuner::RecvThreadPipeIOProc(LPVOID pParam)
 			}
 			::LeaveCriticalSection(&pSys->m_CriticalSection);
 			if(pPtBuffObj==nullptr) {
-				//ä¸­æ­¢
+				//’†~
 				break;
 			}
 		}
@@ -915,7 +915,7 @@ UINT WINAPI CBonTuner::RecvThreadSharedMemProc(LPVOID pParam)
 	PTBUFFER_OBJECT *pPtBuffObj=nullptr;
 	for (suspend_preventer sp(pSys);;) {
 		if (::HRWaitForSingleObject( pSys->m_hStopEvent, 0 ) != WAIT_TIMEOUT) {
-			//ä¸­æ­¢
+			//’†~
 			break;
 		}
 		DWORD wait_res = rem ? WAIT_OBJECT_0 : streamer.WaitForCmd(MAXWAIT);
@@ -934,12 +934,12 @@ UINT WINAPI CBonTuner::RecvThreadSharedMemProc(LPVOID pParam)
 				}
 				::LeaveCriticalSection(&pSys->m_CriticalSection);
 				if(pPtBuffObj==nullptr) {
-					//ä¸­æ­¢
+					//’†~
 					break;
 				}
 			}
 			if(!pPtBuffObj->resize(SHAREDMEM_TRANSPORT_PACKET_SIZE)) {
-				//ä¸­æ­¢
+				//’†~
 				break;
 			}
 			DWORD dwSize=0;
@@ -968,18 +968,18 @@ UINT WINAPI CBonTuner::RecvThreadSharedMemProc(LPVOID pParam)
 
 void CBonTuner::GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive)
 {
-	if(m_iTunerID>=0) { // IDå›ºå®šãƒãƒ¥ãƒ¼ãƒŠãƒ¼
+	if(m_iTunerID>=0) { // IDŒÅ’èƒ`ƒ…[ƒi[
 		if(lpdwTotal) *lpdwTotal = 1 ;
 		if(lpdwActive) *lpdwActive = m_hThread ? 1 : 0 ;
-	}else { // IDè‡ªå‹•å‰²ã‚Šå½“ã¦ãƒãƒ¥ãƒ¼ãƒŠãƒ¼
+	}else { // ID©“®Š„‚è“–‚Äƒ`ƒ…[ƒi[
 		if(lpdwTotal) *lpdwTotal=0;
 		if(lpdwActive) *lpdwActive=0;
 		for(int i=1;i<=3;i++) {
 			if((!m_iPT&&i!=2)||m_iPT==i) {
-				// æ’ä»–ã§å®Ÿè¡Œãƒ•ã‚¡ã‚¤ãƒ«ã‚’èµ·å‹•ã™ã‚‹ãŸã‚ã«ï¾ï½­ï½°ï¾ƒï½¯ï½¸ï½½ã‚’lockã™ã‚‹
+				// ”r‘¼‚ÅÀsƒtƒ@ƒCƒ‹‚ğ‹N“®‚·‚é‚½‚ß‚ÉĞ­°Ã¯¸½‚ğlock‚·‚é
 				mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
 				if(!locker.lock(LAUNCH_PTX_CTRL_TIMEOUT)) break;
-				// èµ·å‹•
+				// ‹N“®
 				if(LaunchPTCtrl(i)) {
 					CPTSendCtrlCmdBase *sender;
 					switch(i) {
@@ -1013,7 +1013,7 @@ void CBonTuner::PreventSuspending(BOOL bInner)
 	}
 }
 
-	//IBonDriver3ã®æ©Ÿèƒ½ã‚’è¿½åŠ 
+	//IBonDriver3‚Ì‹@”\‚ğ’Ç‰Á
 	//(added by 2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 
 const DWORD CBonTuner::GetTotalDeviceNum(void)
@@ -1032,14 +1032,14 @@ const DWORD CBonTuner::GetActiveDeviceNum(void)
 
 const BOOL CBonTuner::SetLnbPower(const BOOL bEnable)
 {
-	//ãƒãƒ¥ãƒ¼ãƒŠãƒ¼ã‚’ã‚ªãƒ¼ãƒ—ãƒ³ã—ãŸçŠ¶æ…‹ã§å‘¼ã°ãªã„ã¨æ­£ã—ã„å‹•ä½œã¯æœŸå¾…ã§ããªã„
+	//ƒ`ƒ…[ƒi[‚ğƒI[ƒvƒ“‚µ‚½ó‘Ô‚ÅŒÄ‚Î‚È‚¢‚Æ³‚µ‚¢“®ì‚ÍŠú‘Ò‚Å‚«‚È‚¢
 	if(!m_bBon3Lnb) return TRUE;
 	if(!m_hThread) return FALSE;
 	if(m_iID<0) return FALSE;
 	return m_pCmdSender->SetLnbPower(m_iID,bEnable) == CMD_SUCCESS ? TRUE : FALSE ;
 }
 
-	//IBonTransponderã®æ©Ÿèƒ½ã‚’è¿½åŠ 
+	//IBonTransponder‚Ì‹@”\‚ğ’Ç‰Á
 	//(added by 2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 
 LPCTSTR CBonTuner::TransponderEnumerate(const DWORD dwSpace, const DWORD dwTransponder)
@@ -1072,7 +1072,7 @@ const BOOL CBonTuner::TransponderSelect(const DWORD dwSpace, const DWORD dwTrans
 	if( dwRet==CMD_SUCCESS ) {
 		m_dwCurSpace = dwSpace;
 		m_dwCurChannel = dwTransponder | TRANSPONDER_CHMASK ;
-		m_hasStream = FALSE; // TransponderSetCurID ã¯ã¾ã è¡Œã£ã¦ã„ãªã„ã®ã§
+		m_hasStream = FALSE; // TransponderSetCurID ‚Í‚Ü‚¾s‚Á‚Ä‚¢‚È‚¢‚Ì‚Å
 		return TRUE;
 	}
 
@@ -1156,7 +1156,7 @@ const BOOL CBonTuner::TransponderGetCurID(LPDWORD lpdwID)
 	return FALSE;
 }
 
-	//IBonPTxã®æ©Ÿèƒ½ã‚’è¿½åŠ 
+	//IBonPTx‚Ì‹@”\‚ğ’Ç‰Á
 	//(added by 2021 LVhJPic0JSk5LiQ1ITskKVk9UGBg)
 
 const DWORD CBonTuner::TransponderGetPTxCh(const DWORD dwSpace, const DWORD dwTransponder)
