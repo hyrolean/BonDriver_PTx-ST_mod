@@ -498,11 +498,12 @@ BOOL CBonTuner::TryOpenTuner()
 					mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
 					if(!locker.lock(LAUNCH_PTX_CTRL_TIMEOUT)) break;
 					// ‹N“®
-					if(!LaunchPTCtrl(iPT)) {
-						if(!launchPTxCtrl(iPT))
-							continue;
-					}else {
-						SAFE_DELETE(m_pPTxCtrlOp);
+					if(!launchPTxCtrl(iPT)) {
+						if(!m_pPTxCtrlOp) {
+							if(!LaunchPTCtrl(iPT))
+								continue;
+						}else
+							SAFE_DELETE(m_pPTxCtrlOp);
 					}
 					switch(iPT) {
 					case 1:	m_pCmdSender = &PT1CmdSender; break;
@@ -534,11 +535,12 @@ BOOL CBonTuner::TryOpenTuner()
 				mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
 				if(!locker.lock(LAUNCH_PTX_CTRL_TIMEOUT)) break;
 				// ‹N“®
-				if(!LaunchPTCtrl(m_iPT)) {
-					if(!launchPTxCtrl(m_iPT))
-						break;
-				}else {
-					SAFE_DELETE(m_pPTxCtrlOp);
+				if(!launchPTxCtrl(m_iPT)) {
+					if(!m_pPTxCtrlOp) {
+						if(!LaunchPTCtrl(m_iPT))
+							break;
+					}else
+						SAFE_DELETE(m_pPTxCtrlOp);
 				}
 				if(m_pCmdSender->KeepAlive()!=CMD_SUCCESS) break;
 			}

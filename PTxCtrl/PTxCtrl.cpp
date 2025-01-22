@@ -349,31 +349,43 @@ void CPTxCtrlCmdServiceOperator::Main()
 
 					if(PtActivated&(1<<2)) { // PT3
 						if(Pt3Manager->IsFindOpen() == FALSE) {
-							if(g_bXCompactService||!PtService) {
-								if(g_bXCompactService) SAFE_DELETE(PtPipeServer3);
-								g_cMain3.UnInit();
-								if(g_bXCompactService) SAFE_DELETE(Pt3Manager) ;
-								PtActivated &= ~(1<<2) ;
-								DBGOUT("PTxCtrl: PT3 was De-Activated.\n");
+							DWORD last = g_cMain3.LastDeactivated(), cur = dur();
+							if(dur(last,cur) < dur(LastDeactivated,cur)) {
+								LastDeactivated = last ;
 							}
-							ResetEvent(g_cMain3.GetStopEvent());
+							if(dur(LastDeactivated)>=g_dwXServiceDeactWaitMSec) {
+								if(g_bXCompactService||!PtService) {
+									if(g_bXCompactService) SAFE_DELETE(PtPipeServer3);
+									g_cMain3.UnInit();
+									if(g_bXCompactService) SAFE_DELETE(Pt3Manager) ;
+									PtActivated &= ~(1<<2) ;
+									DBGOUT("PTxCtrl: PT3 was De-Activated.\n");
+								}
+								ResetEvent(g_cMain3.GetStopEvent());
+							}
 						}
 					}
 
 					if(PtActivated&1) { // PT1/PT2
 						if(Pt1Manager->IsFindOpen() == FALSE) {
-							if(g_bXCompactService||!PtService) {
-								if(g_bXCompactService) SAFE_DELETE(PtPipeServer1);
-								g_cMain1.UnInit();
-								if(g_bXCompactService) SAFE_DELETE(Pt1Manager) ;
-								PtActivated &= ~1 ;
-								DBGOUT("PTxCtrl: PT1 was De-Activated.\n");
+							DWORD last = g_cMain1.LastDeactivated(), cur = dur();
+							if(dur(last,cur) < dur(LastDeactivated,cur)) {
+								LastDeactivated = last ;
 							}
-							ResetEvent(g_cMain1.GetStopEvent());
+							if(dur(LastDeactivated)>=g_dwXServiceDeactWaitMSec) {
+								if(g_bXCompactService||!PtService) {
+									if(g_bXCompactService) SAFE_DELETE(PtPipeServer1);
+									g_cMain1.UnInit();
+									if(g_bXCompactService) SAFE_DELETE(Pt1Manager) ;
+									PtActivated &= ~1 ;
+									DBGOUT("PTxCtrl: PT1 was De-Activated.\n");
+								}
+								ResetEvent(g_cMain1.GetStopEvent());
+							}
 						}
 					}
 
-					SetEvent(g_hStartEnableEvent);
+					if(!PtActivated) SetEvent(g_hStartEnableEvent);
 
 				}else {
 					if(HRWaitForSingleObject(g_hStartEnableEvent, 0) == WAIT_OBJECT_0) {
@@ -414,20 +426,12 @@ void CPTxCtrlCmdServiceOperator::Main()
 			if(PtActivated&(1<<2)) { // PT3
 				if( Pt3Manager->CloseChk() == FALSE){
 					if(!PtService) SetEvent(g_cMain3.GetStopEvent()) ;
-					DWORD last = g_cMain3.LastDeactivated(), cur = dur();
-					if(dur(last,cur) < dur(LastDeactivated,cur)) {
-						LastDeactivated = last ;
-					}
 				}
 			}
 
 			if(PtActivated&1) { // PT1/PT2
 				if( Pt1Manager->CloseChk() == FALSE){
 					if(!PtService) SetEvent(g_cMain1.GetStopEvent()) ;
-					DWORD last = g_cMain1.LastDeactivated(), cur = dur();
-					if(dur(last,cur) < dur(LastDeactivated,cur)) {
-						LastDeactivated = last ;
-					}
 				}
 			}
 
