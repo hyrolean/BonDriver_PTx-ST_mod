@@ -20,6 +20,9 @@ public:
 
 	CPipeServer *MakePipeServer();
 
+	void DoKeepAlive();
+	DWORD LastDeactivated();
+
 	void StartMain(BOOL bService, IPTManager *pManager);
 	void StopMain();
 
@@ -32,6 +35,7 @@ protected:
 	IPTManager *m_pManager;
 
 	BOOL m_bService;
+	DWORD m_dwLastDeactivated;
 
 	wstring m_strGlobalLockMutex ;
 	wstring m_strPipeEvent, m_strPipeName ;

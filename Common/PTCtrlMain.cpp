@@ -45,6 +45,8 @@ BOOL CPTCtrlMain::Init(BOOL bService, IPTManager *pManager)
 	}
 	m_bService = bService;
 
+	DoKeepAlive();
+
 	return bInit ;
 }
 
@@ -65,6 +67,18 @@ CPipeServer *CPTCtrlMain::MakePipeServer()
 	return pcPipeServer ;
 }
 
+void CPTCtrlMain::DoKeepAlive()
+{
+	mutex_locker_t locker(m_strGlobalLockMutex,true) ;
+	m_dwLastDeactivated=dur();
+}
+
+DWORD CPTCtrlMain::LastDeactivated()
+{
+	mutex_locker_t locker(m_strGlobalLockMutex,true) ;
+	return m_dwLastDeactivated ;
+}
+
 void CPTCtrlMain::StartMain(BOOL bService, IPTManager *pManager)
 {
 	if(!Init(bService, pManager)) {
@@ -76,24 +90,24 @@ void CPTCtrlMain::StartMain(BOOL bService, IPTManager *pManager)
 	std::unique_ptr<CPipeServer> pipeServer(MakePipeServer());
 
 	bool terminated = false, deactivated=false ;
-	DWORD lastDeactivated = dur() ;
+	DoKeepAlive();
+
 	const DWORD WAIT = 15000, DEACT_WAIT = 5000 ;
 	while(!terminated) {
 
 		if(!deactivated) {
 
 			if( HRWaitForSingleObject(m_hStopEvent, WAIT) != WAIT_TIMEOUT ){
-				deactivated=true; lastDeactivated=dur();
+				deactivated=true;
+				DoKeepAlive();
 				ResetEvent(g_hStartEnableEvent);
 			}else {
-				HANDLE h = _CreateMutex(TRUE, m_strGlobalLockMutex.c_str());
+				mutex_locker_t locker(m_strGlobalLockMutex,true) ;
 				//アプリ層死んだ時用のチェック
 				if( m_pManager->CloseChk() == FALSE && m_bService == FALSE){
-					deactivated=true; lastDeactivated=dur();
-				}
-				if(h) {
-					ReleaseMutex(h);
-					CloseHandle(h);
+					locker.unlock();
+					DoKeepAlive();
+					deactivated=true;
 				}
 			}
 
@@ -109,18 +123,18 @@ void CPTCtrlMain::StartMain(BOOL bService, IPTManager *pManager)
 				return false ;
 			};
 
-			while(dur(lastDeactivated)<DEACT_WAIT||launchMutexCheck()) {
+			while(dur(LastDeactivated())<DEACT_WAIT||launchMutexCheck()) {
 				if(HRWaitForSingleObject(m_hStopEvent, 0) != WAIT_OBJECT_0) {
 					deactivated=false; break;
 				}
-				if(HRWaitForSingleObject(g_hStartEnableEvent, 10) == WAIT_OBJECT_0) {
-					lastDeactivated=dur();
+				if(HRWaitForSingleObject(g_hStartEnableEvent, 100) == WAIT_OBJECT_0) {
+					DoKeepAlive();
 					ResetEvent(g_hStartEnableEvent);
 				}
 			}
 			if(deactivated) {
 				if(HRWaitForSingleObject(g_hStartEnableEvent,0) == WAIT_OBJECT_0) {
-					lastDeactivated=dur();
+					DoKeepAlive();
 					ResetEvent(g_hStartEnableEvent);
 				}else {
 					terminated=true ;
@@ -202,6 +216,7 @@ int CALLBACK CPTCtrlMain::OutsideCmdCallback(void* pParam, CMD_STREAM* pCmdParam
 void CPTCtrlMain::CmdKeepAlive(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 {
 	pResParam->dwParam = CMD_SUCCESS;
+	DoKeepAlive();
 	SetEvent(g_hStartEnableEvent);
 }
 

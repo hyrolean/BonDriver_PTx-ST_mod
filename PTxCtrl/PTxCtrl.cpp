@@ -346,7 +346,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 				// 一定時間破棄を抑制する
 				if(dwDurLastDeact>=g_dwXServiceDeactWaitMSec&&!launchMutexCheck()) {
 
-					HANDLE h = _CreateMutex(TRUE, PT0_GLOBAL_LOCK_MUTEX);
+					mutex_locker_t locker(PT0_GLOBAL_LOCK_MUTEX, true);
 
 					if(PtActivated&(1<<2)) { // PT3
 						if(Pt3Manager->IsFindOpen() == FALSE) {
@@ -372,11 +372,6 @@ void CPTxCtrlCmdServiceOperator::Main()
 							}
 							ResetEvent(g_cMain1.GetStopEvent());
 						}
-					}
-
-					if(h) {
-						ReleaseMutex(h);
-						CloseHandle(h);
 					}
 
 					SetEvent(g_hStartEnableEvent);
@@ -414,7 +409,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 		}else {
 
 			//アプリ層死んだ時用のチェック
-			HANDLE h = _CreateMutex(TRUE, PT0_GLOBAL_LOCK_MUTEX);
+			mutex_locker_t locker(PT0_GLOBAL_LOCK_MUTEX, true);
 
 			if(PtActivated&(1<<2)) { // PT3
 				if( Pt3Manager->CloseChk() == FALSE){
@@ -428,10 +423,6 @@ void CPTxCtrlCmdServiceOperator::Main()
 				}
 			}
 
-			if(h) {
-				ReleaseMutex(h);
-				CloseHandle(h);
-			}
 		}
 
 	}

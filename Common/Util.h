@@ -85,9 +85,9 @@ void _OutputDebugString(const TCHAR *pOutputString, ...);
 		bool locking_;
 		HANDLE mutex_;
 	public:
-		mutex_locker_t(wstring name) {
-			mutex_ = _CreateMutex(FALSE, name.c_str());
-			locking_ = false ;
+		mutex_locker_t(wstring name, bool locking=false) {
+			mutex_ = _CreateMutex(locking?TRUE:FALSE, name.c_str());
+			locking_ = locking && mutex_!=NULL ;
 		}
 		~mutex_locker_t() {
 			if(locking_) unlock();
