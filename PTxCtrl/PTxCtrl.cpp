@@ -342,9 +342,8 @@ void CPTxCtrlCmdServiceOperator::Main()
 					return false ;
 				};
 
-				DWORD dwDurLastDeact = dur(LastDeactivated) ;
 				// 一定時間破棄を抑制する
-				if(dwDurLastDeact>=g_dwXServiceDeactWaitMSec&&!launchMutexCheck()) {
+				if(dur(LastDeactivated)>=g_dwXServiceDeactWaitMSec&&!launchMutexCheck()) {
 
 					mutex_locker_t locker(PT0_GLOBAL_LOCK_MUTEX, true);
 
@@ -409,17 +408,26 @@ void CPTxCtrlCmdServiceOperator::Main()
 		}else {
 
 			//アプリ層死んだ時用のチェック
+
 			mutex_locker_t locker(PT0_GLOBAL_LOCK_MUTEX, true);
 
 			if(PtActivated&(1<<2)) { // PT3
 				if( Pt3Manager->CloseChk() == FALSE){
 					if(!PtService) SetEvent(g_cMain3.GetStopEvent()) ;
+					DWORD last = g_cMain3.LastDeactivated(), cur = dur();
+					if(dur(last,cur) < dur(LastDeactivated,cur)) {
+						LastDeactivated = last ;
+					}
 				}
 			}
 
 			if(PtActivated&1) { // PT1/PT2
 				if( Pt1Manager->CloseChk() == FALSE){
 					if(!PtService) SetEvent(g_cMain1.GetStopEvent()) ;
+					DWORD last = g_cMain1.LastDeactivated(), cur = dur();
+					if(dur(last,cur) < dur(LastDeactivated,cur)) {
+						LastDeactivated = last ;
+					}
 				}
 			}
 
