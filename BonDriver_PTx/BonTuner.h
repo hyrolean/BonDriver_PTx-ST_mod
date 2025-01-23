@@ -115,7 +115,7 @@ protected:
 	CParseChSet m_chSet;
 	void BuildDefSpace(wstring strIni);
 
-	BOOL LaunchPTCtrl(int iPT, BOOL &hasMutex);
+	BOOL LaunchPTCtrl(int iPT);
 	BOOL TryOpenTunerByID(int iTunerID, int *piID);
 	BOOL TryOpenTuner();
 

@@ -251,6 +251,13 @@ CPTxCtrlCmdServiceOperator::~CPTxCtrlCmdServiceOperator()
 	SAFE_DELETE(Pt3Manager) ;
 }
 
+BOOL CPTxCtrlCmdServiceOperator::ResIdle()
+{
+	LastActivated = dur() ;
+	return TRUE;
+}
+
+
 BOOL CPTxCtrlCmdServiceOperator::ResSupported(DWORD &PtBits)
 {
 	PtBits = PtSupported ;
@@ -289,7 +296,7 @@ BOOL CPTxCtrlCmdServiceOperator::ResActivatePt(DWORD PtVer)
 	}
 
 	if(Result) {
-		LastActivated = GetTickCount() ;
+		LastActivated = dur() ;
 	}
 
 	return Result;
@@ -360,6 +367,8 @@ void CPTxCtrlCmdServiceOperator::Main()
 									if(g_bXCompactService) SAFE_DELETE(Pt3Manager) ;
 									PtActivated &= ~(1<<2) ;
 									DBGOUT("PTxCtrl: PT3 was De-Activated.\n");
+								}else {
+									Pt3Manager->FreeDevice();
 								}
 								ResetEvent(g_cMain3.GetStopEvent());
 							}
@@ -380,6 +389,8 @@ void CPTxCtrlCmdServiceOperator::Main()
 									if(g_bXCompactService) SAFE_DELETE(Pt1Manager) ;
 									PtActivated &= ~1 ;
 									DBGOUT("PTxCtrl: PT1 was De-Activated.\n");
+								}else {
+									Pt1Manager->FreeDevice();
 								}
 								ResetEvent(g_cMain1.GetStopEvent());
 							}

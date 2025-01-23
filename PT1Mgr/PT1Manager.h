@@ -14,6 +14,7 @@ public:
 	CPT1Manager(void);
 
 	BOOL LoadSDK();
+	void FreeDevice();
 	BOOL Init();
 	void UnInit();
 

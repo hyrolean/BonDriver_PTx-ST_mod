@@ -106,12 +106,11 @@ void CPTxManager::FreeSDK()
 		if( m_EnumDev[i]->bOpen ){
 			m_EnumDev[i]->cDataIO.Stop();
 			m_EnumDev[i]->pcDevice->Close();
-			m_EnumDev[i]->pcDevice->Delete();
+			m_EnumDev[i]->bOpen = FALSE ;
 		}
-		SAFE_DELETE(m_EnumDev[i]);
 	}
+	FreeDevice();
 	m_EnumDev.clear();
-
 	if( m_cBus != NULL ){
 		m_cBus->Delete();
 		m_cBus = NULL;
@@ -121,34 +120,50 @@ void CPTxManager::FreeSDK()
 	}
 }
 
+void CPTxManager::FreeDevice()
+{
+	for( int i=0; i<(int)m_EnumDev.size(); i++ ){
+		if( !m_EnumDev[i]->bOpen ){
+			if( m_EnumDev[i]->pcDevice ) {
+				m_EnumDev[i]->pcDevice->Delete();
+				m_EnumDev[i]->pcDevice=NULL;
+			}
+		}
+	}
+}
+
+
 BOOL CPTxManager::Init()
 {
 	if( m_cBus == NULL ){
 		DBGOUT("CPTxManager::Init failed(m_cBus==NULL).\n");
 		return FALSE;
 	}
-	m_EnumDev.clear();
+	FreeDevice();
 
-	PT::Bus::DeviceInfo deviceInfo[99];
-	uint32 deviceInfoCount = sizeof(deviceInfo)/sizeof(*deviceInfo);
-	m_cBus->Scan(deviceInfo, &deviceInfoCount);
+	if(m_EnumDev.empty())  {
 
-	for (uint32 i=0; i<deviceInfoCount; i++) {
+		PT::Bus::DeviceInfo deviceInfo[99];
+		uint32 deviceInfoCount = sizeof(deviceInfo)/sizeof(*deviceInfo);
+		m_cBus->Scan(deviceInfo, &deviceInfoCount);
+
+		for (uint32 i=0; i<deviceInfoCount; i++) {
 #if PT_VER==1
-		if( deviceInfo[i].BadBitCount != 0 ) continue ;
+			if( deviceInfo[i].BadBitCount != 0 ) continue ;
 #endif
-		DEV_STATUS* pItem = new DEV_STATUS(m_bMemStreaming);
+			DEV_STATUS* pItem = new DEV_STATUS(m_bMemStreaming);
 #if PT_VER==2
-		#ifdef _DEBUG
-		for(int j=0;j<4;j++) {
-			string devName;
-			WtoA(deviceInfo[i].DevName[j],devName) ;
-			DBGOUT("\tEnumerated Device[%d].Name[%d]:\t%s\n",i,j,devName.c_str());
-		}
-		#endif
+			#ifdef _DEBUG
+			for(int j=0;j<4;j++) {
+				string devName;
+				WtoA(deviceInfo[i].DevName[j],devName) ;
+				DBGOUT("\tEnumerated Device[%d].Name[%d]:\t%s\n",i,j,devName.c_str());
+			}
+			#endif
 #endif
-		pItem->stDevInfo = deviceInfo[i];
-		m_EnumDev.push_back(pItem);
+			pItem->stDevInfo = deviceInfo[i];
+			m_EnumDev.push_back(pItem);
+		}
 	}
 
 	DBGOUT("CPTxManager::Init succeeded.\n");
@@ -307,8 +322,10 @@ BOOL CPTxManager::CloseTuner(int iID)
 			m_EnumDev[iDevID]->pcDevice->SetBufferInfo(NULL);
 #endif
 			m_EnumDev[iDevID]->pcDevice->Close();
+			#if 0
 			m_EnumDev[iDevID]->pcDevice->Delete();
 			m_EnumDev[iDevID]->pcDevice = NULL;
+			#endif
 			m_EnumDev[iDevID]->bOpen = FALSE;
 	}
 
@@ -629,11 +646,13 @@ int CPTxManager::OpenTuner2(BOOL bSate, int iTunerID)
 	status enStatus;
 	if( m_EnumDev[iDevID]->bOpen == FALSE ){
 		//デバイス初オープン
-		enStatus = m_cBus->NewDevice(&m_EnumDev[iDevID]->stDevInfo, &m_EnumDev[iDevID]->pcDevice, NULL);
-		if( enStatus != PT::STATUS_OK ){
-			wsprintfA(log, "m_cBus->NewDevice() error : enStatus[0x%x]\n", enStatus);
-			OutputDebugStringA(log);
-			return -1;
+		if(!m_EnumDev[iDevID]->pcDevice) {
+			enStatus = m_cBus->NewDevice(&m_EnumDev[iDevID]->stDevInfo, &m_EnumDev[iDevID]->pcDevice, NULL);
+			if( enStatus != PT::STATUS_OK ){
+				wsprintfA(log, "m_cBus->NewDevice() error : enStatus[0x%x]\n", enStatus);
+				OutputDebugStringA(log);
+				return -1;
+			}
 		}
 		for( int i = 0; i < 5; i++ ){
 #if PT_VER==1 || PT_VER==3

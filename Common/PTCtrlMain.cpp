@@ -104,10 +104,14 @@ void CPTCtrlMain::StartMain(BOOL bService, IPTManager *pManager)
 			}else {
 				mutex_locker_t locker(m_strGlobalLockMutex,true) ;
 				//アプリ層死んだ時用のチェック
-				if( m_pManager->CloseChk() == FALSE && m_bService == FALSE){
-					locker.unlock();
-					DoKeepAlive();
-					deactivated=true;
+				if( m_pManager->CloseChk() == FALSE ) {
+					if( m_bService == FALSE){
+						locker.unlock();
+						DoKeepAlive();
+						deactivated=true;
+					}else {
+						m_pManager->FreeDevice();
+					}
 				}
 			}
 

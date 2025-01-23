@@ -33,6 +33,7 @@ public:
 	CPTwManager(void);
 
 	BOOL LoadSDK();
+	void FreeDevice();
 	BOOL Init();
 	void UnInit();
 
@@ -291,6 +292,7 @@ public:
 	virtual ~CPTwManager(void);
 
 	BOOL LoadSDK();
+	void FreeDevice(){}
 	BOOL Init();
 	void UnInit();
 

@@ -27,6 +27,7 @@ public:
 	virtual ~CPTxCtrlCmdServiceOperator();
 protected:
 	// for Server Operations (override)
+	BOOL ResIdle();
 	BOOL ResSupported(DWORD &PtBits);
 	BOOL ResActivatePt(DWORD PtVer);
 public:

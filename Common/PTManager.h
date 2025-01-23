@@ -16,6 +16,7 @@ public:
 public:
 
 	virtual BOOL LoadSDK() = 0 ;
+	virtual void FreeDevice() = 0 ;
 	virtual BOOL Init() = 0 ;
 	virtual void UnInit() = 0 ;
 
