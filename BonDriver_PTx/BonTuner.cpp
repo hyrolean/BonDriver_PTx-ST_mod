@@ -383,7 +383,7 @@ void CBonTuner::FlushPtBuff(BOOL dispose)
 	m_dwStartBuffBorder = m_dwStartBuff ;
 }
 
-BOOL CBonTuner::LaunchPTCtrl(int iPT)
+BOOL CBonTuner::LaunchPTCtrl(int iPT, BOOL &hasMutex)
 {
 	PROCESS_INFORMATION pi;
 	STARTUPINFO si;
@@ -412,7 +412,7 @@ BOOL CBonTuner::LaunchPTCtrl(int iPT)
 		break ;
 	}
 
-	bool hasMutex = FALSE ;
+	hasMutex = FALSE ;
 	if(HANDLE Mutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, mutexName.c_str())) {
 		// 既に起動中
 		hasMutex = TRUE ;
@@ -467,19 +467,20 @@ BOOL CBonTuner::TryOpenTuner()
 
 	for(auto &v: m_bExecPT) v = FALSE ;
 
-	auto launchPTxCtrl = [&](int iPT) -> bool {
+	auto launchPTxCtrl = [&](int iPT, BOOL &hasMutex) -> BOOL {
 		DWORD bits=0 ;
-		if(iPT==2) return false;
-		if(!LaunchPTCtrl(0))
-			return false;
+		hasMutex=FALSE;
+		if(iPT==2) return FALSE;
+		if(!LaunchPTCtrl(0,hasMutex))
+			return FALSE;
 		if(m_pPTxCtrlOp==NULL)
 			m_pPTxCtrlOp = new CPTxCtrlCmdOperator(CMD_PTX_CTRL_OP);
 		if( !m_pPTxCtrlOp->CmdSupported(bits) ||
 			!(bits&(1<<(iPT-1))) ||
 			!m_pPTxCtrlOp->CmdActivatePt(iPT) ) {
-				return false;
+				return FALSE;
 		}
-		return true;
+		return TRUE;
 	};
 
 	for( bool opened=false, retry=true ; retry ; ) {
@@ -499,9 +500,10 @@ BOOL CBonTuner::TryOpenTuner()
 					mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
 					if(!locker.lock(LAUNCH_PTX_CTRL_TIMEOUT)) break;
 					// 起動
-					if(!launchPTxCtrl(iPT)) {
+					BOOL hasMutex = FALSE ;
+					if(!launchPTxCtrl(iPT,hasMutex)) {
 						if(!m_pPTxCtrlOp) {
-							if(!LaunchPTCtrl(iPT))
+							if(!LaunchPTCtrl(iPT,hasMutex))
 								continue;
 						}else {
 							SAFE_DELETE(m_pPTxCtrlOp);
@@ -512,7 +514,7 @@ BOOL CBonTuner::TryOpenTuner()
 					case 1:	m_pCmdSender = &PT1CmdSender; break;
 					case 3:	m_pCmdSender = &PT3CmdSender; break;
 					}
-					if(m_pCmdSender->KeepAlive()!=CMD_SUCCESS) continue;
+					if(hasMutex&&m_pCmdSender->KeepAlive()!=CMD_SUCCESS) continue;
 				}
 				DWORD dwNumTuner=0;
 				if(m_pCmdSender->GetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS) {
@@ -538,16 +540,17 @@ BOOL CBonTuner::TryOpenTuner()
 				mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
 				if(!locker.lock(LAUNCH_PTX_CTRL_TIMEOUT)) break;
 				// 起動
-				if(!launchPTxCtrl(m_iPT)) {
+				BOOL hasMutex = FALSE ;
+				if(!launchPTxCtrl(m_iPT,hasMutex)) {
 					if(!m_pPTxCtrlOp) {
-						if(!LaunchPTCtrl(m_iPT))
+						if(!LaunchPTCtrl(m_iPT,hasMutex))
 							break;
 					}else {
 						SAFE_DELETE(m_pPTxCtrlOp);
 						break;
 					}
 				}
-				if(m_pCmdSender->KeepAlive()!=CMD_SUCCESS) break;
+				if(hasMutex&&m_pCmdSender->KeepAlive()!=CMD_SUCCESS) break;
 			}
 			if(!TryOpenTunerByID(m_iTunerID, &m_iID)){
 				if(m_iTunerID<0 || !m_bTrySpares || !TryOpenTunerByID(-1, &m_iID))
@@ -970,19 +973,20 @@ UINT WINAPI CBonTuner::RecvThreadSharedMemProc(LPVOID pParam)
 void CBonTuner::GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive)
 {
 	CPTxCtrlCmdOperator *ptxCtrlOp=NULL;
-	auto launchPTxCtrl = [&](int iPT) -> bool {
+	auto launchPTxCtrl = [&](int iPT, BOOL &hasMutex) -> BOOL {
 		DWORD bits=0 ;
-		if(iPT==2) return false;
-		if(!LaunchPTCtrl(0))
-			return false;
+		hasMutex=FALSE;
+		if(iPT==2) return FALSE;
+		if(!LaunchPTCtrl(0,hasMutex))
+			return FALSE;
 		if(ptxCtrlOp==NULL)
 			ptxCtrlOp = new CPTxCtrlCmdOperator(CMD_PTX_CTRL_OP);
 		if( !ptxCtrlOp->CmdSupported(bits) ||
 			!(bits&(1<<(iPT-1))) ||
 			!ptxCtrlOp->CmdActivatePt(iPT) ) {
-				return false;
+				return FALSE;
 		}
-		return true;
+		return TRUE;
 	};
 
 	if(m_iTunerID>=0) { // ID固定チューナー
@@ -997,9 +1001,9 @@ void CBonTuner::GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive)
 				mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
 				if(!locker.lock(LAUNCH_PTX_CTRL_TIMEOUT)) break;
 				// 起動
-				bool launched = false;
-				if(!(launched=launchPTxCtrl(i))) {
-					if(!ptxCtrlOp) launched = LaunchPTCtrl(i)? true: false;
+				BOOL launched = FALSE, hasMutex=FALSE;
+				if(!(launched=launchPTxCtrl(i,hasMutex))) {
+					if(!ptxCtrlOp) launched = LaunchPTCtrl(i,hasMutex) ;
 				}
 				SAFE_DELETE(ptxCtrlOp);
 				if(launched) {
@@ -1009,6 +1013,7 @@ void CBonTuner::GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive)
 					case 3:	sender = &PT3CmdSender; break;
 					case 2:	sender = &PTwCmdSender; break;
 					}
+					if(hasMutex&&sender->KeepAlive()!=CMD_SUCCESS) continue;
 					DWORD dwNumTuner=0;
 					if(lpdwTotal && sender->GetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS) {
 						*lpdwTotal += dwNumTuner ;

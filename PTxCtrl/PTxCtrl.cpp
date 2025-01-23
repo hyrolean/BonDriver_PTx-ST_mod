@@ -13,8 +13,8 @@ BOOL g_bXCompactService = FALSE ;
 // クライアントが居なくなったあとにサービスを閉じるまでの最大待機時間(msec)
 DWORD g_dwXServiceDeactWaitMSec = 5000 ;
 
-CPTCtrlMain g_cMain3(PT0_GLOBAL_LOCK_MUTEX, CMD_PT3_CTRL_EVENT_WAIT_CONNECT, CMD_PT3_CTRL_PIPE);
-CPTCtrlMain g_cMain1(PT0_GLOBAL_LOCK_MUTEX, CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_CTRL_PIPE);
+CPTCtrlMain g_cMain3(PT3_GLOBAL_LOCK_MUTEX, CMD_PT3_CTRL_EVENT_WAIT_CONNECT, CMD_PT3_CTRL_PIPE);
+CPTCtrlMain g_cMain1(PT1_GLOBAL_LOCK_MUTEX, CMD_PT1_CTRL_EVENT_WAIT_CONNECT, CMD_PT1_CTRL_PIPE);
 
 HANDLE g_hMutex;
 SERVICE_STATUS_HANDLE g_hStatusHandle;
@@ -345,9 +345,9 @@ void CPTxCtrlCmdServiceOperator::Main()
 				// 一定時間破棄を抑制する
 				if(dur(LastDeactivated)>=g_dwXServiceDeactWaitMSec&&!launchMutexCheck()) {
 
-					mutex_locker_t locker(PT0_GLOBAL_LOCK_MUTEX, true);
 
 					if(PtActivated&(1<<2)) { // PT3
+						mutex_locker_t locker(PT3_GLOBAL_LOCK_MUTEX, true);
 						if(Pt3Manager->IsFindOpen() == FALSE) {
 							DWORD last = g_cMain3.LastDeactivated(), cur = dur();
 							if(dur(last,cur) < dur(LastDeactivated,cur)) {
@@ -367,6 +367,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 					}
 
 					if(PtActivated&1) { // PT1/PT2
+						mutex_locker_t locker(PT1_GLOBAL_LOCK_MUTEX, true);
 						if(Pt1Manager->IsFindOpen() == FALSE) {
 							DWORD last = g_cMain1.LastDeactivated(), cur = dur();
 							if(dur(last,cur) < dur(LastDeactivated,cur)) {
@@ -421,15 +422,15 @@ void CPTxCtrlCmdServiceOperator::Main()
 
 			//アプリ層死んだ時用のチェック
 
-			mutex_locker_t locker(PT0_GLOBAL_LOCK_MUTEX, true);
-
 			if(PtActivated&(1<<2)) { // PT3
+				mutex_locker_t locker(PT3_GLOBAL_LOCK_MUTEX, true);
 				if( Pt3Manager->CloseChk() == FALSE){
 					if(!PtService) SetEvent(g_cMain3.GetStopEvent()) ;
 				}
 			}
 
 			if(PtActivated&1) { // PT1/PT2
+				mutex_locker_t locker(PT1_GLOBAL_LOCK_MUTEX, true);
 				if( Pt1Manager->CloseChk() == FALSE){
 					if(!PtService) SetEvent(g_cMain1.GetStopEvent()) ;
 				}

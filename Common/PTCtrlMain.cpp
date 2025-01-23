@@ -272,7 +272,7 @@ void CPTCtrlMain::CmdOpenTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 	BOOL bSate;
 	CopyDefData((DWORD*)&bSate, pCmdParam->bData);
 
-	HANDLE h = _CreateMutex(TRUE, m_strGlobalLockMutex.c_str());
+	mutex_locker_t locker(m_strGlobalLockMutex,true) ;
 
 	int iID = m_pManager->OpenTuner(bSate);
 	if( iID != -1 ){
@@ -280,11 +280,6 @@ void CPTCtrlMain::CmdOpenTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 		pResParam->dwParam = CMD_SUCCESS;
 	}else{
 		pResParam->dwParam = CMD_ERR;
-	}
-
-	if(h) {
-		ReleaseMutex(h);
-		CloseHandle(h);
 	}
 
 	CreateDefStream(iID, pResParam);
@@ -296,19 +291,15 @@ void CPTCtrlMain::CmdCloseTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 	int iID;
 	CopyDefData((DWORD*)&iID, pCmdParam->bData);
 
-	HANDLE h = _CreateMutex(TRUE, m_strGlobalLockMutex.c_str());
+	mutex_locker_t locker(m_strGlobalLockMutex,true) ;
 
 	if(iID!=0xFFFF'FFFF) m_pManager->CloseTuner(iID);
+
 	pResParam->dwParam = CMD_SUCCESS;
 	if (m_bService == FALSE) {
 		if (m_pManager->IsFindOpen() == FALSE) {
 			StopMain();
 		}
-	}
-
-	if(h) {
-		ReleaseMutex(h);
-		CloseHandle(h);
 	}
 }
 
