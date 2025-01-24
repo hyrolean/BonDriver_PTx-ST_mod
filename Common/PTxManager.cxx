@@ -363,6 +363,8 @@ BOOL CPTxManager::SetFreq(int iID, unsigned long ulCh)
 #if PT_VER==1 || PT_VER==2
 			enCurStatus = m_EnumDev[iDevID]->pcDevice->GetFrequency(iTuner, enISDB, &cur_ch, &cur_offset);
 #elif PT_VER==3
+			//PT3のGetFrequency関数は地デジのチューニングに関してきちんとした情報を返さないっぽい
+			if(enISDB==PT::Device::ISDB_T) return TRUE;
 			enCurStatus = m_EnumDev[iDevID]->pcDevice->GetFrequency(enISDB, iTuner, &cur_ch, &cur_offset);
 #endif
 			if(enCurStatus == PT::STATUS_OK) {
