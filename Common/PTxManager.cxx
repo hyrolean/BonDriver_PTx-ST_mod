@@ -63,7 +63,7 @@ CPTxManager::CPTxManager(void)
 	m_dwMaxDurTMCC_S = GetPrivateProfileInt(L"SET", L"MAXDUR_TMCC_S", m_dwMaxDurTMCC, strIni.c_str() ); //TMCC(Së§)éÊìæÇ…îÔÇ‚Ç∑ç≈ëÂéûä‘(msec)
 	m_dwMaxDurTSID = GetPrivateProfileInt(L"SET", L"MAXDUR_TSID", 1000, strIni.c_str() ); //TSIDê›íËÇ…îÔÇ‚Ç∑ç≈ëÂéûä‘(msec)
 
-	m_bNoCheckFREQ = GetPrivateProfileInt(L"SET", L"NoCheckFREQ", 1, strIni.c_str());
+	m_bNoCheckFREQ = GetPrivateProfileInt(L"SET", L"NoCheckFREQ", 0, strIni.c_str());
 	m_bNoCheckTSID = GetPrivateProfileInt(L"SET", L"NoCheckTSID", 0, strIni.c_str());
 }
 
@@ -565,41 +565,38 @@ DWORD CPTxManager::GetSignal(int iID)
 BOOL CPTxManager::CloseChk()
 {
 	BOOL bRet = FALSE;
-	int iID;
 	for(int i=0; i<(int)m_EnumDev.size(); i++ ){
+		if( !m_EnumDev[i]->bOpen ) continue ;
 		if( m_EnumDev[i]->bUseT0 ){
-			iID = (i<<16) | (PT::Device::ISDB_T<<8) | 0;
+			int iID = (i<<16) | (PT::Device::ISDB_T<<8) | 0;
 			if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) > 100){
 				OutputDebugString(L"T0 OverFlow Close");
 				CloseTuner(iID);
 			}
 		}
 		if( m_EnumDev[i]->bUseT1 ){
-			iID = (i<<16) | (PT::Device::ISDB_T<<8) | 1;
+			int iID = (i<<16) | (PT::Device::ISDB_T<<8) | 1;
 			if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) > 100){
 				OutputDebugString(L"T1 OverFlow Close");
 				CloseTuner(iID);
 			}
 		}
 		if( m_EnumDev[i]->bUseS0 ){
-			iID = (i<<16) | (PT::Device::ISDB_S<<8) | 0;
+			int iID = (i<<16) | (PT::Device::ISDB_S<<8) | 0;
 			if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) > 100){
 				OutputDebugString(L"S0 OverFlow Close");
 				CloseTuner(iID);
 			}
 		}
 		if( m_EnumDev[i]->bUseS1 ){
-			iID = (i<<16) | (PT::Device::ISDB_S<<8) | 1;
+			int iID = (i<<16) | (PT::Device::ISDB_S<<8) | 1;
 			if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) > 100){
 				OutputDebugString(L"S1 OverFlow Close");
 				CloseTuner(iID);
 			}
 		}
-	}
-	for(int i=0; i<(int)m_EnumDev.size(); i++ ){
-		if( m_EnumDev[i]->bOpen ){
+		if( !bRet && m_EnumDev[i]->bOpen )
 			bRet = TRUE;
-		}
 	}
 	return bRet;
 }
