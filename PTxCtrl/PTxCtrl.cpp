@@ -219,6 +219,7 @@ CPTxCtrlCmdServiceOperator::CPTxCtrlCmdServiceOperator(wstring name, BOOL bServi
 	PtService = bService ;
 	PtPipeServer1 = PtPipeServer3 = NULL ;
 	PtSupported = PtActivated = 0 ;
+	Pt1Tuners = Pt3Tuners = 0 ;
 
 	Pt1Manager = CreatePT1Manager();
 	Pt3Manager = CreatePT3Manager();
@@ -226,6 +227,7 @@ CPTxCtrlCmdServiceOperator::CPTxCtrlCmdServiceOperator(wstring name, BOOL bServi
 	if(g_cMain1.Init(PtService, Pt1Manager)) {
 		PtPipeServer1 = g_cMain1.MakePipeServer() ;
 		PtSupported |= 1 ;
+		Pt1Tuners = Pt1Manager->GetTotalTunerCount();
 		DBGOUT("PTxCtrl: PT1 is Supported and was Activated.\n");
 	}else {
 		DBGOUT("PTxCtrl: PT1 is NOT Supported.\n");
@@ -234,6 +236,7 @@ CPTxCtrlCmdServiceOperator::CPTxCtrlCmdServiceOperator(wstring name, BOOL bServi
 	if(g_cMain3.Init(PtService, Pt3Manager)) {
 		PtPipeServer3 = g_cMain3.MakePipeServer() ;
 		PtSupported |= 1<<2 ;
+		Pt3Tuners = Pt3Manager->GetTotalTunerCount();
 		DBGOUT("PTxCtrl: PT3 is Supported and was Activated.\n");
 	}else {
 		DBGOUT("PTxCtrl: PT3 is NOT Supported.\n");
@@ -283,6 +286,7 @@ BOOL CPTxCtrlCmdServiceOperator::ResActivatePt(DWORD PtVer)
 		if(g_cMain3.Init(PtService, Pt3Manager)) {
 			if(!PtPipeServer3) PtPipeServer3 = g_cMain3.MakePipeServer() ;
 			PtActivated |= 1<<2 ;
+			Pt3Tuners = Pt3Manager->GetTotalTunerCount();
 			DBGOUT("PTxCtrl: PT3 was Re-Activated.\n");
 			Result = TRUE ;
 		}
@@ -290,6 +294,7 @@ BOOL CPTxCtrlCmdServiceOperator::ResActivatePt(DWORD PtVer)
 		if(g_cMain1.Init(PtService, Pt1Manager)) {
 			if(!PtPipeServer1) PtPipeServer1 = g_cMain1.MakePipeServer() ;
 			PtActivated |= 1 ;
+			Pt1Tuners = Pt1Manager->GetTotalTunerCount();
 			DBGOUT("PTxCtrl: PT1 was Re-Activated.\n");
 			Result = TRUE ;
 		}
@@ -300,6 +305,18 @@ BOOL CPTxCtrlCmdServiceOperator::ResActivatePt(DWORD PtVer)
 	}
 
 	return Result;
+}
+
+BOOL CPTxCtrlCmdServiceOperator::ResGetTunerCount(DWORD PtVer, DWORD &TunerCount)
+{
+	if( (PtSupported&(1<<(PtVer-1))) ) {
+		switch(PtVer) {
+		case 1: TunerCount = Pt1Tuners; return TRUE;
+		case 3: TunerCount = Pt3Tuners; return TRUE;
+		}
+	}
+	DBGOUT("PTxCtrl: PT%d is Not Supported.\n",PtVer);
+	return FALSE;
 }
 
 void CPTxCtrlCmdServiceOperator::Main()
@@ -351,7 +368,6 @@ void CPTxCtrlCmdServiceOperator::Main()
 
 				// ˆê’èŽžŠÔ”jŠü‚ð—}§‚·‚é
 				if(dur(LastDeactivated)>=g_dwXServiceDeactWaitMSec&&!launchMutexCheck()) {
-
 
 					if(PtActivated&(1<<2)) { // PT3
 						mutex_locker_t locker(PT3_GLOBAL_LOCK_MUTEX, true);

@@ -187,6 +187,7 @@ CBonTuner::CBonTuner()
 	m_bBon3Lnb = GetPrivateProfileIntW(L"SET", L"Bon3Lnb", 0, strIni.c_str());
 	m_bFastScan = GetPrivateProfileIntW(L"SET", L"FastScan", 0, strIni.c_str());
 	m_bPreventSuspending = GetPrivateProfileIntW(L"SET", L"PreventSuspending", 0, strIni.c_str());
+	m_bStrictKeepAlive = GetPrivateProfileIntW(L"SET", L"StrictKeepAlive", 0, strIni.c_str());
 	m_dwSetChDelay = GetPrivateProfileIntW(L"SET", L"SetChDelay", 0, strIni.c_str());
 	m_dwRetryDur = GetPrivateProfileIntW(L"SET", L"RetryDur", 3000, strIni.c_str());
 	m_dwStartBuff = GetPrivateProfileIntW(L"SET", L"StartBuff", 8, strIni.c_str());
@@ -394,11 +395,31 @@ BOOL CBonTuner::LaunchPTCtrl(int iPT)
 	wstring mutexName ;
 
 	auto keepAlive = [&]() ->BOOL {
-		switch(iPT) {
-		case 1:	return PT1CmdSender.KeepAlive();
-		case 3:	return PT3CmdSender.KeepAlive();
-		case 2:	return PTwCmdSender.KeepAlive();
-		case 0: return CPTxCtrlCmdOperator(CMD_PTX_CTRL_OP).CmdIdle() ;
+		if(m_bStrictKeepAlive) {
+			switch(iPT) {
+			case 1:	return PT1CmdSender.KeepAlive();
+			case 3:	return PT3CmdSender.KeepAlive();
+			case 2:	return PTwCmdSender.KeepAlive();
+			case 0:
+				if(!m_pPTxCtrlOp)
+					m_pPTxCtrlOp = new CPTxCtrlCmdOperator(CMD_PTX_CTRL_OP);
+				if(m_pPTxCtrlOp->CmdIdle()) return TRUE;
+				SAFE_DELETE(m_pPTxCtrlOp);
+			}
+		}else {
+			wstring eventName;
+			switch(iPT) {
+			case 1:	eventName = PT1_STARTENABLE_EVENT; break;
+			case 3:	eventName = PT3_STARTENABLE_EVENT; break;
+			case 2:	eventName = PT2_STARTENABLE_EVENT; break;
+			case 0:	eventName = PT0_STARTENABLE_EVENT; break;
+			}
+			HANDLE h = OpenEvent(EVENT_ALL_ACCESS,FALSE,eventName.c_str());
+			if(h&&h!=INVALID_HANDLE_VALUE) {
+				SetEvent(h);
+				CloseHandle(h);
+				return TRUE ;
+			}
 		}
 		return FALSE ;
 	};
@@ -505,7 +526,6 @@ BOOL CBonTuner::TryOpenTuner()
 			int tid = m_iTunerID ;
 			for(int i=0;i<2;i++) {
 				int iPT = m_bXFirstPT3 ? (i?1:3) : (i?3:1) ;
-				BOOL ptx = FALSE ;
 				{
 					// 排他で実行ファイルを起動するためにﾐｭｰﾃｯｸｽをlockする
 					mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
@@ -526,10 +546,12 @@ BOOL CBonTuner::TryOpenTuner()
 					}
 				}
 				DWORD dwNumTuner=0;
-				if(m_pCmdSender->GetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS) {
+				if((m_pPTxCtrlOp&&m_pPTxCtrlOp->CmdGetTunerCount(iPT,dwNumTuner))||
+				   m_pCmdSender->GetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS ) {
 					if(tid>=0 && DWORD(tid)>=dwNumTuner) {
 						tid-=dwNumTuner ;
-						m_pCmdSender->CloseTuner(0xFFFF'FFFF);
+						if(!m_pPTxCtrlOp)
+							m_pCmdSender->CloseTuner(0xFFFF'FFFF);
 						continue;
 					}
 					m_iID=-1 ;
@@ -549,7 +571,6 @@ BOOL CBonTuner::TryOpenTuner()
 				mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
 				if(!locker.lock(LAUNCH_PTX_CTRL_TIMEOUT)) break;
 				// 起動
-				BOOL hasMutex = FALSE ;
 				if(!launchPTxCtrl(m_iPT)) {
 					if(!m_pPTxCtrlOp) {
 						if(!LaunchPTCtrl(m_iPT))

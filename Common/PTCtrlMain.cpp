@@ -60,7 +60,7 @@ void CPTCtrlMain::UnInit()
 
 CPipeServer *CPTCtrlMain::MakePipeServer()
 {
-	CPipeServer *pcPipeServer = new CPipeServer;
+	CPipeServer *pcPipeServer = new CPipeServer(m_strGlobalLockMutex.c_str());
 	pcPipeServer->StartServer(
 		m_strPipeEvent.c_str()/*CMD_PT_CTRL_EVENT_WAIT_CONNECT*/,
 		m_strPipeName.c_str()/*CMD_PT_CTRL_PIPE*/, OutsideCmdCallback, this);
@@ -69,13 +69,11 @@ CPipeServer *CPTCtrlMain::MakePipeServer()
 
 void CPTCtrlMain::DoKeepAlive()
 {
-	mutex_locker_t locker(m_strGlobalLockMutex,true) ;
 	m_dwLastDeactivated=dur();
 }
 
 DWORD CPTCtrlMain::LastDeactivated()
 {
-	mutex_locker_t locker(m_strGlobalLockMutex,true) ;
 	return m_dwLastDeactivated ;
 }
 
@@ -102,15 +100,17 @@ void CPTCtrlMain::StartMain(BOOL bService, IPTManager *pManager)
 				DoKeepAlive();
 				ResetEvent(g_hStartEnableEvent);
 			}else {
-				mutex_locker_t locker(m_strGlobalLockMutex,true) ;
-				//アプリ層死んだ時用のチェック
-				if( m_pManager->CloseChk() == FALSE ) {
-					if( m_bService == FALSE){
-						locker.unlock();
-						DoKeepAlive();
-						deactivated=true;
-					}else {
-						m_pManager->FreeDevice();
+				mutex_locker_t locker(m_strGlobalLockMutex) ;
+				if(locker.lock(10)) {
+					//アプリ層死んだ時用のチェック
+					if( m_pManager->CloseChk() == FALSE ) {
+						if( m_bService == FALSE){
+							locker.unlock();
+							DoKeepAlive();
+							deactivated=true;
+						}else {
+							m_pManager->FreeDevice();
+						}
 					}
 				}
 			}
@@ -276,8 +276,6 @@ void CPTCtrlMain::CmdOpenTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 	BOOL bSate;
 	CopyDefData((DWORD*)&bSate, pCmdParam->bData);
 
-	mutex_locker_t locker(m_strGlobalLockMutex,true) ;
-
 	int iID = m_pManager->OpenTuner(bSate);
 	if( iID != -1 ){
 		ResetEvent(m_hStopEvent); // 終了処理の取消
@@ -295,10 +293,7 @@ void CPTCtrlMain::CmdCloseTuner(CMD_STREAM* pCmdParam, CMD_STREAM* pResParam)
 	int iID;
 	CopyDefData((DWORD*)&iID, pCmdParam->bData);
 
-	mutex_locker_t locker(m_strGlobalLockMutex,true) ;
-
 	if(iID!=0xFFFF'FFFF) m_pManager->CloseTuner(iID);
-
 	pResParam->dwParam = CMD_SUCCESS;
 	if (m_bService == FALSE) {
 		if (m_pManager->IsFindOpen() == FALSE) {

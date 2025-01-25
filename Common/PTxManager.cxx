@@ -65,6 +65,8 @@ CPTxManager::CPTxManager(void)
 
 	m_bNoCheckFREQ = GetPrivateProfileInt(L"SET", L"NoCheckFREQ", 0, strIni.c_str());
 	m_bNoCheckTSID = GetPrivateProfileInt(L"SET", L"NoCheckTSID", 0, strIni.c_str());
+
+	m_dwOverFlowLimit = GetPrivateProfileInt(L"SET", L"OverFlowLimit", 1000, strIni.c_str());
 }
 
 BOOL CPTxManager::LoadSDK()
@@ -273,6 +275,24 @@ BOOL CPTxManager::CloseTuner(int iID)
 	}
 
 	status enStatus;
+
+	BOOL bUsing = FALSE ;
+
+	if( enISDB == PT::Device::ISDB_T ){
+		if( iTuner == 0 ){
+			bUsing = m_EnumDev[iDevID]->bUseT0 ;
+		}else{
+			bUsing = m_EnumDev[iDevID]->bUseT1 ;
+		}
+	}else{
+		if( iTuner == 0 ){
+			bUsing = m_EnumDev[iDevID]->bUseS0 ;
+		}else{
+			bUsing = m_EnumDev[iDevID]->bUseS1 ;
+		}
+	}
+
+	if(!bUsing) return TRUE; //Šù‚É•Â‚¶‚Ä‚¢‚é
 
 #if PT_VER==1 || PT_VER==2
 	enStatus = m_EnumDev[iDevID]->pcDevice->SetStreamEnable(iTuner, enISDB, false);
@@ -569,32 +589,34 @@ BOOL CPTxManager::CloseChk()
 	BOOL bRet = FALSE;
 	for(int i=0; i<(int)m_EnumDev.size(); i++ ){
 		if( !m_EnumDev[i]->bOpen ) continue ;
-		if( m_EnumDev[i]->bUseT0 ){
-			int iID = (i<<16) | (PT::Device::ISDB_T<<8) | 0;
-			if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) > 100){
-				OutputDebugString(L"T0 OverFlow Close");
-				CloseTuner(iID);
+		if( m_dwOverFlowLimit > 0 ) {
+			if( m_EnumDev[i]->bUseT0 ){
+				int iID = (i<<16) | (PT::Device::ISDB_T<<8) | 0;
+				if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) >= m_dwOverFlowLimit){
+					OutputDebugString(L"T0 OverFlow Close");
+					CloseTuner(iID);
+				}
 			}
-		}
-		if( m_EnumDev[i]->bUseT1 ){
-			int iID = (i<<16) | (PT::Device::ISDB_T<<8) | 1;
-			if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) > 100){
-				OutputDebugString(L"T1 OverFlow Close");
-				CloseTuner(iID);
+			if( m_EnumDev[i]->bUseT1 ){
+				int iID = (i<<16) | (PT::Device::ISDB_T<<8) | 1;
+				if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) >= m_dwOverFlowLimit){
+					OutputDebugString(L"T1 OverFlow Close");
+					CloseTuner(iID);
+				}
 			}
-		}
-		if( m_EnumDev[i]->bUseS0 ){
-			int iID = (i<<16) | (PT::Device::ISDB_S<<8) | 0;
-			if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) > 100){
-				OutputDebugString(L"S0 OverFlow Close");
-				CloseTuner(iID);
+			if( m_EnumDev[i]->bUseS0 ){
+				int iID = (i<<16) | (PT::Device::ISDB_S<<8) | 0;
+				if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) >= m_dwOverFlowLimit){
+					OutputDebugString(L"S0 OverFlow Close");
+					CloseTuner(iID);
+				}
 			}
-		}
-		if( m_EnumDev[i]->bUseS1 ){
-			int iID = (i<<16) | (PT::Device::ISDB_S<<8) | 1;
-			if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) > 100){
-				OutputDebugString(L"S1 OverFlow Close");
-				CloseTuner(iID);
+			if( m_EnumDev[i]->bUseS1 ){
+				int iID = (i<<16) | (PT::Device::ISDB_S<<8) | 1;
+				if(m_EnumDev[i]->cDataIO.GetOverFlowCount(iID) >= m_dwOverFlowLimit){
+					OutputDebugString(L"S1 OverFlow Close");
+					CloseTuner(iID);
+				}
 			}
 		}
 		if( !bRet && m_EnumDev[i]->bOpen )

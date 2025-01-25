@@ -57,6 +57,8 @@ protected:
 	BOOL m_bNoCheckFREQ;
 	BOOL m_bNoCheckTSID;
 
+	DWORD m_dwOverFlowLimit;
+
 	virtual void FreeSDK() {}
 };
 

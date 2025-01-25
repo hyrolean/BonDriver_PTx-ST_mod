@@ -30,6 +30,17 @@
 #define CMD_PT2_CTRL_EVENT_WAIT_CONNECT _T("Global\\PT2CtrlConnect")
 #define CMD_PT2_DATA_EVENT_WAIT_CONNECT _T("Global\\PT2DataConnect_")
 
+//グローバルミューテックス
+#define PT1_GLOBAL_LOCK_MUTEX L"PT1_GLOBAL_LOCK_MUTEX"
+#define PT3_GLOBAL_LOCK_MUTEX L"PT3_GLOBAL_LOCK_MUTEX"
+#define PT2_GLOBAL_LOCK_MUTEX L"PT2_GLOBAL_LOCK_MUTEX"
+
+//再開イベント
+#define PT1_STARTENABLE_EVENT L"Global\\PT1StartEnableEvent"
+#define PT3_STARTENABLE_EVENT L"Global\\PT3StartEnableEvent"
+#define PT2_STARTENABLE_EVENT L"Global\\PT2StartEnableEvent"
+#define PT0_STARTENABLE_EVENT L"Global\\PT0StartEnableEvent"
+
 #ifdef PT_VER
 
 	#if PT_VER==0		// PT1/PT2/PT3 (PTxCtrl.exe)

@@ -88,6 +88,16 @@ BOOL CPTxCtrlCmdOperator::CmdActivatePt(DWORD PtVer, DWORD timeout)
 	return op.res ;
 }
 //---------------------------------------------------------------------------
+BOOL CPTxCtrlCmdOperator::CmdGetTunerCount(DWORD PtVer, DWORD &TunerCount, DWORD timeout)
+{
+	OP op;
+	op.cmd = PTXCTRLCMD_GETTUNERCOUNT ;
+	op.data[0] = PtVer ;
+	if(!Xfer(op,op,timeout)) return FALSE;
+	if(op.res) TunerCount = op.data[0];
+	return op.res ;
+}
+//---------------------------------------------------------------------------
 BOOL CPTxCtrlCmdOperator::ServiceReaction(DWORD timeout)
 {
 	if(!ServerMode) return FALSE;
@@ -104,6 +114,9 @@ BOOL CPTxCtrlCmdOperator::ServiceReaction(DWORD timeout)
 		break;
 	case PTXCTRLCMD_ACTIVATEPT:
 		res.res = ResActivatePt(cmd.data[0]);
+		break;
+	case PTXCTRLCMD_GETTUNERCOUNT:
+		res.res = ResGetTunerCount(cmd.data[0], res.data[0]);
 		break;
 	default:
 		result = res.res = FALSE ;

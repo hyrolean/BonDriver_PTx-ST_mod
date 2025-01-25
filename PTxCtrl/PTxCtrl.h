@@ -17,6 +17,7 @@ class CPTxCtrlCmdServiceOperator : public CPTxCtrlCmdOperator
 {
 	IPTManager *Pt1Manager, *Pt3Manager ;
 	CPipeServer *PtPipeServer1, *PtPipeServer3 ;
+	DWORD Pt1Tuners, Pt3Tuners;
 	BOOL PtService;
 	DWORD PtSupported;
 	DWORD PtActivated;
@@ -30,6 +31,7 @@ protected:
 	BOOL ResIdle();
 	BOOL ResSupported(DWORD &PtBits);
 	BOOL ResActivatePt(DWORD PtVer);
+	BOOL ResGetTunerCount(DWORD PtVer, DWORD &TunerCount);
 public:
 	void Main();
 	static void Stop();

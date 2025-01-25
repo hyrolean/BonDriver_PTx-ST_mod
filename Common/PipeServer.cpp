@@ -4,10 +4,14 @@
 
 #define PIPE_TIMEOUT 500
 
-CPipeServer::CPipeServer(void)
+CPipeServer::CPipeServer(LPCWSTR lpwszGlobalLockMutex)
 {
 	m_pCmdProc = NULL;
 	m_pParam = NULL;
+
+	m_strGlobalLockMutex = L"" ;
+	if(lpwszGlobalLockMutex)
+		m_strGlobalLockMutex = lpwszGlobalLockMutex ;
 	m_strEventName = L"";
 	m_strPipeName = L"";
 
@@ -173,7 +177,13 @@ UINT WINAPI CPipeServer::ServerThread(LPVOID pParam)
 					}
 
 					BOOL bAbandon=FALSE;
-					pSys->m_pCmdProc(pSys->m_pParam, &stCmd, &stRes, &bAbandon);
+					if(pSys->m_strGlobalLockMutex!=L"")
+					{
+						mutex_locker_t locker(pSys->m_strGlobalLockMutex,true);
+						pSys->m_pCmdProc(pSys->m_pParam, &stCmd, &stRes, &bAbandon);
+					}else {
+						pSys->m_pCmdProc(pSys->m_pParam, &stCmd, &stRes, &bAbandon);
+					}
 
 					if( WriteFile(pSys->m_hPipe, &stRes, sizeof(DWORD)*2, &dwWrite, NULL ) == FALSE ) {
 						break;

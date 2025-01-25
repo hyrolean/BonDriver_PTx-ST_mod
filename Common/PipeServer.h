@@ -8,7 +8,7 @@ typedef int (CALLBACK *CMD_CALLBACK_PROC)(void* pParam, CMD_STREAM* pCmdParam, C
 class CPipeServer
 {
 public:
-	CPipeServer(void);
+	CPipeServer(LPCWSTR lpwszGlobalLockMutex=L"");
 	~CPipeServer(void);
 
 	BOOL StartServer(LPCWSTR lpwszEventName, LPCWSTR lpwszPipeName, CMD_CALLBACK_PROC pfnCmdProc, void* pParam, int iThreadPriority = THREAD_PRIORITY_NORMAL);
@@ -17,6 +17,7 @@ public:
 protected:
 	CMD_CALLBACK_PROC m_pCmdProc;
 	void* m_pParam;
+	wstring m_strGlobalLockMutex;
 	wstring m_strEventName;
 	wstring m_strPipeName;
 

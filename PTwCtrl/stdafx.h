@@ -19,7 +19,5 @@
 
 
 // TODO: プログラムに必要な追加ヘッダーをここで参照してください。
-#define PT2_GLOBAL_LOCK_MUTEX L"PT2_GLOBAL_LOCK_MUTEX"
-#define PT2_STARTENABLE_EVENT L"Global\\PT2StartEnableEvent"
 extern HANDLE g_hStartEnableEvent;
 

@@ -94,6 +94,7 @@ protected:
 	BOOL m_bTrySpares;
 	BOOL m_bFastScan;
 	BOOL m_bPreventSuspending;
+	BOOL m_bStrictKeepAlive;
 	BOOL m_bXFirstPT3;
 	BOOL m_bXSparePTw;
 	DWORD m_dwSetChDelay;
