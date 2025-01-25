@@ -194,7 +194,8 @@ EARTH_PT.h/EARTH_PT3.hより抜粋
   再配布を行う場合は配布者個人の責任で行ってください。
 
 
-  *※ソースファイルの構築については、[こちら](./HowToBuilding.md)からご参照ください。*
+  *※ソースファイルの構築の仕方については、[こちら](./HowToBuilding.MD)からご参照ください。*
+
   *※mod版の更新履歴については、[こちら](./Readme_MOD.md)からご参照ください。*
 
  **EpgDataCap_Bon (mod by hyrolean)**
