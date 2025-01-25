@@ -434,16 +434,20 @@ void CPTxCtrlCmdServiceOperator::Main()
 			//アプリ層死んだ時用のチェック
 
 			if(PtActivated&(1<<2)) { // PT3
-				mutex_locker_t locker(PT3_GLOBAL_LOCK_MUTEX, true);
-				if( Pt3Manager->CloseChk() == FALSE){
-					if(!PtService) SetEvent(g_cMain3.GetStopEvent()) ;
+				mutex_locker_t locker(PT3_GLOBAL_LOCK_MUTEX);
+				if(locker.lock(10)) {
+					if( Pt3Manager->CloseChk() == FALSE){
+						if(!PtService) SetEvent(g_cMain3.GetStopEvent()) ;
+					}
 				}
 			}
 
 			if(PtActivated&1) { // PT1/PT2
-				mutex_locker_t locker(PT1_GLOBAL_LOCK_MUTEX, true);
-				if( Pt1Manager->CloseChk() == FALSE){
-					if(!PtService) SetEvent(g_cMain1.GetStopEvent()) ;
+				mutex_locker_t locker(PT1_GLOBAL_LOCK_MUTEX);
+				if(locker.lock(10)) {
+					if( Pt1Manager->CloseChk() == FALSE){
+						if(!PtService) SetEvent(g_cMain1.GetStopEvent()) ;
+					}
 				}
 			}
 
