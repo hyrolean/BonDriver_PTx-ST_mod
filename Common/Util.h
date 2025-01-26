@@ -94,7 +94,7 @@ void _OutputDebugString(const TCHAR *pOutputString, ...);
 			if(locking_) unlock();
 			if(mutex_) CloseHandle(mutex_);
 		}
-		bool lock(DWORD timeout) {
+		bool lock(DWORD timeout=INFINITE) {
 			if(!locking_) {
 				if(!mutex_) return false ;
 				locking_ = HRWaitForSingleObject(mutex_, timeout) == WAIT_OBJECT_0 ;
