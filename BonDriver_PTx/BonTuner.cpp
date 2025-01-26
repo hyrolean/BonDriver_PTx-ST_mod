@@ -528,7 +528,7 @@ BOOL CBonTuner::TryOpenTuner()
 				int iPT = m_bXFirstPT3 ? (i?1:3) : (i?3:1) ;
 				{
 					// 排他で実行ファイルを起動するためにﾐｭｰﾃｯｸｽをlockする
-					mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
+					mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX,false);
 					if(!locker.lock(LAUNCH_PTX_CTRL_TIMEOUT)) break;
 					// 起動
 					if(!launchPTxCtrl(iPT)) {
@@ -568,7 +568,7 @@ BOOL CBonTuner::TryOpenTuner()
 
 			{
 				// 排他で実行ファイルを起動するためにﾐｭｰﾃｯｸｽをlockする
-				mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
+				mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX,false);
 				if(!locker.lock(LAUNCH_PTX_CTRL_TIMEOUT)) break;
 				// 起動
 				if(!launchPTxCtrl(m_iPT)) {
@@ -1026,7 +1026,7 @@ void CBonTuner::GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive)
 		for(int i=1;i<=3;i++) {
 			if((!m_iPT&&i!=2)||m_iPT==i) {
 				// 排他で実行ファイルを起動するためにﾐｭｰﾃｯｸｽをlockする
-				mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX);
+				mutex_locker_t locker(LAUNCH_PTX_CTRL_MUTEX,false);
 				if(!locker.lock(LAUNCH_PTX_CTRL_TIMEOUT)) break;
 				// 起動
 				BOOL launched = FALSE;

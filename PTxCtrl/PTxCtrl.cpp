@@ -370,7 +370,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 				if(dur(LastDeactivated)>=g_dwXServiceDeactWaitMSec&&!launchMutexCheck()) {
 
 					if(PtActivated&(1<<2)) { // PT3
-						mutex_locker_t locker(PT3_GLOBAL_LOCK_MUTEX, true);
+						mutex_locker_t locker(PT3_GLOBAL_LOCK_MUTEX);
 						if(Pt3Manager->IsFindOpen() == FALSE) {
 							DWORD last = g_cMain3.LastDeactivated(), cur = dur();
 							if(dur(last,cur) < dur(LastDeactivated,cur)) {
@@ -392,7 +392,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 					}
 
 					if(PtActivated&1) { // PT1/PT2
-						mutex_locker_t locker(PT1_GLOBAL_LOCK_MUTEX, true);
+						mutex_locker_t locker(PT1_GLOBAL_LOCK_MUTEX);
 						if(Pt1Manager->IsFindOpen() == FALSE) {
 							DWORD last = g_cMain1.LastDeactivated(), cur = dur();
 							if(dur(last,cur) < dur(LastDeactivated,cur)) {
@@ -450,7 +450,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 			//アプリ層死んだ時用のチェック
 
 			if(PtActivated&(1<<2)) { // PT3
-				mutex_locker_t locker(PT3_GLOBAL_LOCK_MUTEX);
+				mutex_locker_t locker(PT3_GLOBAL_LOCK_MUTEX,false);
 				if(locker.lock(10)) {
 					if( Pt3Manager->CloseChk() == FALSE){
 						if(!PtService) SetEvent(g_cMain3.GetStopEvent()) ;
@@ -459,7 +459,7 @@ void CPTxCtrlCmdServiceOperator::Main()
 			}
 
 			if(PtActivated&1) { // PT1/PT2
-				mutex_locker_t locker(PT1_GLOBAL_LOCK_MUTEX);
+				mutex_locker_t locker(PT1_GLOBAL_LOCK_MUTEX,false);
 				if(locker.lock(10)) {
 					if( Pt1Manager->CloseChk() == FALSE){
 						if(!PtService) SetEvent(g_cMain1.GetStopEvent()) ;

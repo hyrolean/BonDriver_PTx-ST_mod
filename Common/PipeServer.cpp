@@ -179,7 +179,7 @@ UINT WINAPI CPipeServer::ServerThread(LPVOID pParam)
 					BOOL bAbandon=FALSE;
 					if(pSys->m_strGlobalLockMutex!=L"")
 					{
-						mutex_locker_t locker(pSys->m_strGlobalLockMutex,true);
+						mutex_locker_t locker(pSys->m_strGlobalLockMutex);
 						pSys->m_pCmdProc(pSys->m_pParam, &stCmd, &stRes, &bAbandon);
 					}else {
 						pSys->m_pCmdProc(pSys->m_pParam, &stCmd, &stRes, &bAbandon);

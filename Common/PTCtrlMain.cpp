@@ -100,7 +100,7 @@ void CPTCtrlMain::StartMain(BOOL bService, IPTManager *pManager)
 				DoKeepAlive();
 				ResetEvent(g_hStartEnableEvent);
 			}else {
-				mutex_locker_t locker(m_strGlobalLockMutex) ;
+				mutex_locker_t locker(m_strGlobalLockMutex,false) ;
 				if(locker.lock(10)) {
 					//アプリ層死んだ時用のチェック
 					if( m_pManager->CloseChk() == FALSE ) {
