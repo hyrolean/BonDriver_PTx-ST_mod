@@ -1040,7 +1040,7 @@ void CBonTuner::GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive)
 				// ‹N“®
 				BOOL launched = FALSE;
 				if(!(launched=launchPTxCtrl(i))) {
-					if(!ptxCtrlOp) launched = LaunchPTCtrl(i) ;
+					if(!ptxCtrlOp) launched = LaunchPTCtrl(i,&g_hSendCtrlExternalStopConnectObject) ;
 				}
 				SAFE_DELETE(ptxCtrlOp);
 				if(launched) {
@@ -1058,7 +1058,10 @@ void CBonTuner::GetTunerCounters(DWORD *lpdwTotal, DWORD *lpdwActive)
 					if(lpdwActive && sender->GetActiveTunerCount(m_isISDB_S,&dwNumTuner) == CMD_SUCCESS) {
 						*lpdwActive += dwNumTuner ;
 					}
-					//sender->CloseTuner(0xFFFF'FFFF);
+				}
+				if(g_hSendCtrlExternalStopConnectObject!=NULL) {
+					CloseHandle(g_hSendCtrlExternalStopConnectObject);
+					g_hSendCtrlExternalStopConnectObject=NULL;
 				}
 			}
 		}
