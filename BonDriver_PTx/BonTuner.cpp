@@ -384,7 +384,7 @@ void CBonTuner::FlushPtBuff(BOOL dispose)
 	m_dwStartBuffBorder = m_dwStartBuff ;
 }
 
-BOOL CBonTuner::LaunchPTCtrl(int iPT)
+BOOL CBonTuner::LaunchPTCtrl(int iPT, HANDLE *lpHProcess)
 {
 	PROCESS_INFORMATION pi;
 	STARTUPINFO si;
@@ -461,13 +461,16 @@ BOOL CBonTuner::LaunchPTCtrl(int iPT)
 
 	strPTCtrlExe = L"\""+strPTCtrlExe+L"\"" ;
 	BOOL bRet = CreateProcessW( NULL, (LPWSTR)strPTCtrlExe.c_str(), NULL, NULL, FALSE, GetPriorityClass(GetCurrentProcess()), NULL, NULL, &si, &pi );
-	CloseHandle(pi.hThread);
-	CloseHandle(pi.hProcess);
-
 	_RPT3(_CRT_WARN, "*** CBonTuner::LaunchPTCtrl() ***\nbRet[%s]", bRet ? "TRUE" : "FALSE");
 
 	if(!bRet) bRet = hasMutex ;
 	m_bExecPT[iPT] = bRet ;
+
+	if(bRet&&lpHProcess!=NULL)
+		*lpHProcess = pi.hProcess;
+	else
+		CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
 
 	return bRet ;
 }
@@ -533,7 +536,7 @@ BOOL CBonTuner::TryOpenTuner()
 					// ‹N“®
 					if(!launchPTxCtrl(iPT)) {
 						if(!m_pPTxCtrlOp) {
-							if(!LaunchPTCtrl(iPT))
+							if(!LaunchPTCtrl(iPT,&g_hSendCtrlExternalStopConnectObject))
 								continue;
 						}else {
 							SAFE_DELETE(m_pPTxCtrlOp);
@@ -546,22 +549,28 @@ BOOL CBonTuner::TryOpenTuner()
 					}
 				}
 				DWORD dwNumTuner=0;
+				bool done = false ;
 				if((m_pPTxCtrlOp&&m_pPTxCtrlOp->CmdGetTunerCount(iPT,dwNumTuner))||
-				   m_pCmdSender->GetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS ) {
+				   m_pCmdSender->GetTotalTunerCount(&dwNumTuner) == CMD_SUCCESS ) do {
 					if(tid>=0 && DWORD(tid)>=dwNumTuner) {
 						tid-=dwNumTuner ;
 						if(!m_pPTxCtrlOp)
 							m_pCmdSender->CloseTuner(0xFFFF'FFFF);
-						continue;
+						break;
 					}
 					m_iID=-1 ;
 					if(TryOpenTunerByID(tid, &m_iID)) {
-						opened = true; break;
+						opened = true; done = true ; break;
 					}else if(m_bTrySpares) {
 						if(tid>=0) tid=-1, i=-1 ;
 					}
-					if(tid>=0) break;
-				}//else m_pCmdSender->CloseTuner(0xFFFF'FFFF);
+					if(tid>=0) done=true ;
+				}while(0);
+				if(g_hSendCtrlExternalStopConnectObject!=NULL) {
+					CloseHandle(g_hSendCtrlExternalStopConnectObject);
+					g_hSendCtrlExternalStopConnectObject = NULL;
+				}
+				if(done) break;
 			}
 
 		}else do { // PT1/2/3 or pt2wdm ( manual )

@@ -1,14 +1,20 @@
 #include "stdafx.h"
 #include "PTSendCtrlCmdUtil.h"
 
+HANDLE g_hSendCtrlExternalStopConnectObject = NULL;
+
 static DWORD WaitConnect(LPCWSTR lpwszName, DWORD dwConnectTimeOut)
 {
 	HANDLE hEvent = _CreateEvent(FALSE, FALSE, lpwszName);
 	if( hEvent == NULL ){
 		return CMD_ERR;
 	}
+	HANDLE hObjs[2];
+	hObjs[0]=hEvent;
+	hObjs[1]=g_hSendCtrlExternalStopConnectObject;
+	DWORD nObjs = hObjs[1]!=NULL? 2: 1;
 	DWORD dwRet = CMD_SUCCESS;
-	if(HRWaitForSingleObject(hEvent, dwConnectTimeOut) != WAIT_OBJECT_0){
+	if(HRWaitForMultipleObjects(nObjs, hObjs, FALSE, dwConnectTimeOut) != WAIT_OBJECT_0){
 		dwRet = CMD_ERR_TIMEOUT;
 	}
 	CloseHandle(hEvent);

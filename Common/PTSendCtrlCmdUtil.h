@@ -8,6 +8,8 @@
 
 #define CONNECT_TIMEOUT 30*1000
 
+extern HANDLE g_hSendCtrlExternalStopConnectObject ;
+
 class CPTSendCtrlCmdBase
 {
 public:
